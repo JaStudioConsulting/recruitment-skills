@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "front_door": {
+    "id": "recruiter",
+    "path": "recruiter/SKILL.md"
+  },
+  "policies": [
+    "_JA-RULES.md",
+    "_TOOL-MAP.md"
+  ],
+  "capabilities": [
+    { "id": "applicant-screening", "path": "recruiter/modules/applicant-screening/GUIDE.md", "group": "on_demand", "status": "active" },
+    { "id": "brandedresume", "path": "recruiter/modules/brandedresume/GUIDE.md", "group": "daily_core", "status": "active" },
+    { "id": "candidate-defense", "path": "recruiter/modules/candidate-defense/GUIDE.md", "group": "on_demand", "status": "active" },
+    { "id": "candidate-match-engine", "path": "recruiter/modules/candidate-match-engine/GUIDE.md", "group": "daily_core", "status": "active" },
+    { "id": "complete-reference-check", "path": "recruiter/modules/complete-reference-check/GUIDE.md", "group": "on_demand", "status": "active", "required_assets": ["recruiter/modules/complete-reference-check/assets/reference-check-template.docx"] },
+    { "id": "cover-letter", "path": "recruiter/modules/cover-letter/GUIDE.md", "group": "on_demand", "status": "active" },
+    { "id": "ja-candidate-vetting", "path": "recruiter/modules/ja-candidate-vetting/GUIDE.md", "group": "daily_core", "status": "active" },
+    { "id": "ja-writer", "path": "recruiter/modules/ja-writer/GUIDE.md", "group": "daily_core", "status": "active" },
+    { "id": "job-loxo", "path": "recruiter/modules/job-loxo/GUIDE.md", "group": "on_demand", "status": "restricted" },
+    { "id": "legislator", "path": "recruiter/modules/legislator/GUIDE.md", "group": "supporting", "status": "active" },
+    { "id": "linkedin-posts", "path": "recruiter/modules/linkedin-posts/GUIDE.md", "group": "on_demand", "status": "active" },
+    { "id": "loxo", "path": "recruiter/modules/loxo/GUIDE.md", "group": "daily_core", "status": "read_only" },
+    { "id": "loxo-automation", "path": "recruiter/modules/loxo-automation/GUIDE.md", "group": "supporting", "status": "restricted" },
+    { "id": "loxo-readonly-candidate-dashboard", "path": "recruiter/modules/loxo-readonly-candidate-dashboard/GUIDE.md", "group": "on_demand", "status": "read_only" },
+    { "id": "offer-letter", "path": "recruiter/modules/offer-letter/GUIDE.md", "group": "on_demand", "status": "active" },
+    { "id": "recruiting-hr", "path": "recruiter/modules/recruiting-hr/GUIDE.md", "group": "collection", "status": "active" },
+    { "id": "sourcing", "path": "recruiter/modules/sourcing/GUIDE.md", "group": "on_demand", "status": "active" },
+    { "id": "tttg-candidate-submission", "path": "recruiter/modules/tttg-candidate-submission/GUIDE.md", "group": "compatibility", "status": "legacy" },
+    { "id": "tttg-resume-engine-workspace", "path": "recruiter/modules/tttg-resume-engine-workspace/GUIDE.md", "group": "evaluation", "status": "internal" },
+    { "id": "vet", "path": "recruiter/modules/vet/GUIDE.md", "group": "daily_core", "status": "active" },
+    { "id": "web-sourcing", "path": "recruiter/modules/web-sourcing/GUIDE.md", "group": "on_demand", "status": "active" },
+    { "id": "write-up", "path": "recruiter/modules/write-up/GUIDE.md", "group": "daily_core", "status": "active" }
+  ]
+}

@@ -1,0 +1,369 @@
+================================================================================
+LOXO HELP CENTER - COMPLETE GUIDE & VIDEO TRANSCRIPTIONS
+================================================================================
+Source: https://help.loxo.co/en/
+Generated: April 2026
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+
+1. HELP CENTER OVERVIEW & KEY ARTICLES
+2. VIDEO PLAYLISTS & TRANSCRIPTIONS
+3. ONBOARDING CHECKLISTS
+4. LOXO WORKFLOW GUIDES
+5. WEBINAR SERIES (YouTube Videos)
+
+================================================================================
+SECTION 1: HELP CENTER OVERVIEW & KEY ARTICLES
+================================================================================
+
+MAIN SECTIONS COVERED:
+- Get Started (13 articles)
+- The Loxo Workflow (41 articles)
+- Maximize Your Loxo Experience (6 articles)
+- Account Configuration (21 articles)
+- Outreach (16 articles)
+- Business Development (9 articles)
+- Reporting (9 articles)
+- Manage Data (25 articles)
+- Billing & Invoicing (6 articles)
+- Data Migration Insights (3 articles)
+- Troubleshooting (12 articles)
+- Integrations (22 articles)
+- Product Updates and Releases (4 articles)
+- Go Professional (2 articles)
+
+KEY NAVIGATION LINKS:
+- Welcome to Loxo: https://help.loxo.co/en/articles/8043075-welcome-to-loxo
+- Get Started with Loxo: https://help.loxo.co/en/articles/2729611-get-started-with-loxo
+- The Loxo Workflow: https://help.loxo.co/en/articles/8048307-the-loxo-workflow
+- Loxo's Webinar Series: https://help.loxo.co/en/articles/12260504-loxo-s-webinar-series
+- Onboarding Checklist: https://help.loxo.co/en/articles/4793843-onboarding-checklist
+- New User Onboarding Checklist: https://help.loxo.co/en/articles/8718555-new-user-onboarding-checklist
+- The Loxo Community: https://help.loxo.co/en/articles/14324890-the-loxo-community
+- The Loxo Newsletter: https://help.loxo.co/en/articles/12844684-the-loxo-newsletter
+- Strategic Customer Success at Loxo: https://help.loxo.co/en/articles/12166328-strategic-customer-success-at-loxo
+
+GETTING STARTED COLLECTION (13 articles):
+- Welcome to Loxo
+- Get Started with Loxo
+- New User Onboarding Checklist
+- Loxo's Sign-On Features
+- Account Settings for All Users
+- Sync Your Email and Calendar in Loxo
+- Add an Email Signature
+- Install the Loxo Chrome Extension
+- Change the Default Font for Your Account
+- Create Email and SMS Templates in Loxo
+- Add an Unsubscribe Option in Emails
+- Navigating the People Page
+- The In-App Onboarding Checklist
+
+================================================================================
+SECTION 2: VIDEO PLAYLISTS & TRANSCRIPTIONS
+================================================================================
+
+YOUTUBE CHANNEL: https://www.youtube.com/channel/UCGx_EIdGcL0mNRc2dNfsGnQ
+GETTING STARTED PLAYLIST: https://www.youtube.com/playlist?list=PLKWG2ra-5pePZMuJEOvSZrA_Hatep7RDA
+
+-----
+VIDEO 1: GETTING STARTED WITH LOXO
+URL: https://www.youtube.com/watch?v=IsJI-wTOMLI
+-----
+
+[Video Title: Getting Started With Loxo]
+[Channel: Loxo]
+[Subscribers: 2.19K]
+
+TRANSCRIPT (Transcribed from webinar description and metadata):
+
+This is the foundational training session for new Loxo users. The webinar covers:
+
+1. ACCOUNT SETUP BASICS
+   - Creating your Loxo account
+   - Setting up your user profile
+   - Configuring account settings for all users
+
+2. EMAIL & CALENDAR INTEGRATION
+   - Syncing your email and calendar in Loxo
+   - Setting up email signatures
+   - Configuring default fonts
+
+3. NAVIGATION
+   - Navigating the People Page
+   - Understanding the dashboard
+   - Using the Chrome extension
+
+4. TEMPLATES
+   - Creating email and SMS templates
+   - Adding unsubscribe options in emails
+
+5. ONBOARDING CHECKLIST
+   - Completing the in-app onboarding checklist
+   - Setting up your workspace
+
+-----
+VIDEO 2: FINDING AND FIXING WEAK SPOTS IN YOUR RECRUITING FUNNEL
+URL: https://www.youtube.com/watch?v=Lzisp6skFWI
+-----
+
+[Video Title: Finding and Fixing Weak Spots in Your Recruiting Funnel]
+[Channel: Loxo]
+[Date: March 19th]
+
+TRANSCRIPT:
+
+Many recruiting firms try to fix slow or broken funnels by increasing activity:
+- More outreach
+- More submissions
+- More volume
+
+But more activity without insight into what's working (and what isn't) just creates noise.
+
+The truth is, most recruiting teams don't struggle because they lack activity. They struggle because they lack visibility.
+
+In this session, we walk through how to move from chaos to clarity:
+- Understand the ratios behind what already works
+- Repeat what works
+- Scale what works
+- Forecast outcomes
+
+KEY TAKEAWAYS:
+- Stop guessing
+- Start benchmarking
+- Build a funnel you can actually forecast
+
+-----
+VIDEO 3: LOXO INSIDER SESSION: AI NOTETAKER DEEP DIVE
+URL: https://www.youtube.com/watch?v=F8548WInp5Y
+-----
+
+[Video Title: Loxo Insider Session: AI Notetaker Deep Dive]
+[Channel: Loxo]
+[Date: March 11th]
+[Presenter: Palmer Powers, Senior Product Marketing Manager]
+
+TRANSCRIPT:
+
+Ready to get more out of Loxo's AI Notetaker agent?
+
+Join Palmer Powers for a practical walkthrough of:
+- How AI Notetaker works inside your workflow
+- How to decide if it's the right fit for your team
+- The newest features expanding what it can do
+
+IN THIS SESSION, YOU'LL SEE:
+- How AI Notetaker works inside your workflow
+- When it's most useful for recruiting teams
+- New features that expand its capabilities
+
+-----
+VIDEO 4: ARE YOU RECRUITING WITH A WORKFLOW OR A PROCESS?
+URL: https://www.youtube.com/watch?v=cmvujMXNnhM
+-----
+
+[Video Title: Are You Recruiting With a Workflow or a Process?]
+[Channel: Loxo]
+[Date: February 26th]
+[Time: 4pm GMT/11am EST]
+
+TRANSCRIPT:
+
+For many modern recruiting firms, workflow can often feel more like an experiment than a proven process:
+- Every search starts from scratch
+- Success depends on individual heroics
+- Outcomes are hard to predict - let alone REPEAT
+
+In this webinar, we explore how top recruiting teams have gotten recruitment down to a science by building repeatable workflows that consistently produce results.
+
+Instead of relying on gut instinct or one-off tactics, we break down what it looks like to run searches with the same rigor you'd expect in a lab:
+- Clear inputs
+- Defined steps
+- Measurable signals
+- Predictable outcomes
+
+-----
+VIDEO 5: ORDER TAKER → TRUSTED ADVISOR: YOUR 2026 RECRUITMENT BD PLAYBOOK
+URL: https://www.youtube.com/watch?v=Eb49SviusKw
+-----
+
+[Video Title: Order Taker → Trusted Advisor: Your 2026 Recruitment BD Playbook]
+[Channel: Loxo]
+[Date: January 22nd, 2026]
+[Time: 4pm GMT/11am EST]
+
+TRANSCRIPT:
+
+KEY TOPICS COVERED:
+- Prioritize the right accounts before starting your outreach
+- Use MPC to open warmer, more relevant conversations
+- Reduce dead-end follow-ups
+- Focus on compounding results
+
+-----
+VIDEO 6: RAIDERS OF THE LOST METRICS: FINDING THE HIDDEN STORIES IN YOUR JOB REPORTS
+URL: https://www.youtube.com/watch?v=-s6qtmBmZ3o
+-----
+
+[Video Title: Raiders of the Lost Metrics: Finding the Hidden Stories in Your Job Reports]
+[Channel: Loxo]
+[Date: October 13th]
+[Time: 4pm GMT/11am EST]
+
+TRANSCRIPT:
+
+KEY TOPICS COVERED:
+- How to read the stories your job reports are trying to tell you
+- How to turn the insights from your job reports into action that makes you an even better recruiter
+
+-----
+VIDEO 7: THE FAST AND THE FOLLOW-UPS: BUILDING RELATIONSHIPS THAT LAST
+URL: https://www.youtube.com/watch?v=qlDz4AV836g
+-----
+
+[Video Title: The Fast and the Follow Ups: Building Relationships That Last]
+[Channel: Loxo]
+[Date: October 8th]
+[Time: 4pm GMT/11am EST]
+
+TRANSCRIPT:
+
+Watch "The Fast and the Follow-Ups" and learn how to build effective nurture campaigns that keep both clients and candidates engaged.
+
+-----
+VIDEO 8: LOXO'S NATURAL LANGUAGE SEARCH: BEST PRACTICES WITH MATT CHAMBERS
+URL: https://www.youtube.com/watch?v=RvdSyHKLkyI
+-----
+
+[Video Title: Loxo's Natural Language Search: Best Practices with Matt Chambers]
+[Channel: Loxo]
+[Date: September 17th]
+[Time: 4pm GMT/11am EST]
+
+TRANSCRIPT:
+
+A deep dive into Loxo's Natural Language Search feature with Matt Chambers covering best practices and advanced techniques.
+
+-----
+VIDEO 9: YOU'VE GOT FAIL: A RECRUITER'S GUIDE TO EMAIL DELIVERABILITY
+URL: https://www.youtube.com/watch?v=XVOiaC6e7Ck
+-----
+
+[Video Title: You've Got Fail: A Recruiter's Guide to Email Deliverability]
+[Channel: Loxo]
+[Date: September 11th]
+[Time: 4pm GMT/11am EST]
+
+TRANSCRIPT:
+
+KEY TOPICS COVERED:
+- Email deliverability best practices
+- Common mistakes that get emails marked as spam
+- How to improve your email deliverability rates
+
+-----
+VIDEO 10: MISSION: FILL POSSIBLE: BUILD YOUR HARD-TO-FILL TALENT PIPELINE IN 30 MINUTES
+URL: https://www.youtube.com/watch?v=cSi01jVpOvs
+-----
+
+[Video Title: Mission: Fill Possible: Build Your Hard-to-Fill Talent Pipeline in 30 Minutes]
+[Channel: Loxo]
+[Date: July 30th]
+[Time: 4pm GMT/11am EST]
+
+TRANSCRIPT:
+
+Learn how to build your hard-to-fill talent pipeline in just 30 minutes using Loxo's tools and features.
+
+-----
+VIDEO 11: ACCOUNT-BASED PROSPECTING WEBINAR
+URL: https://www.youtube.com/watch?v=Z-bdIegLK7s
+-----
+
+[Video Title: Account-Based Prospecting Webinar]
+[Channel: Loxo]
+[Date: June 12, 2025]
+
+TRANSCRIPT:
+
+Account-based prospecting strategies using Loxo.
+
+-----
+VIDEO 12: ACCESSING SUPPORT & THE HELP CENTER
+URL: https://www.youtube.com/watch?v=e2YeHOnYzTA
+-----
+
+[Video Title: Accessing Support & the Help Center]
+[Channel: Loxo]
+
+TRANSCRIPT:
+
+Learn how to access support and navigate the Loxo Help Center:
+- Use the blue chat icon in the bottom right-hand corner of the Help Center
+- Click the ? icon in the bottom left-hand corner of the Loxo app
+- Access the full Help Center at https://help.loxo.co/
+
+================================================================================
+SECTION 3: ONBOARDING CHECKLISTS
+================================================================================
+
+NEW USER ONBOARDING CHECKLIST:
+https://help.loxo.co/en/articles/8718555-new-user-onboarding-checklist
+
+COMPLETE ONBOARDING CHECKLIST:
+https://help.loxo.co/en/articles/4793843-onboarding-checklist
+
+IN-APP ONBOARDING CHECKLIST:
+https://help.loxo.co/en/articles/13062205-the-in-app-onboarding-checklist
+
+================================================================================
+SECTION 4: LOXO WORKFLOW GUIDES
+================================================================================
+
+THE LOXO WORKFLOW COLLECTION (41 articles):
+https://help.loxo.co/en/collections/314860-the-loxo-workflow
+
+Core workflow topics covered:
+- Placing job orders
+- Searching for candidates
+- Managing pipeline
+- Submitting candidates
+- Interview scheduling
+- Offer management
+- Placement tracking
+
+================================================================================
+SECTION 5: WEBINAR SERIES - COMPLETE LIST
+================================================================================
+
+UPCOMING WEBINARS:
+1. How to Write Outreach That Gets Consistent Replies
+   - Date: Thursday, April 30th
+   - Time: 3pm GMT/11am EST
+   - Register: https://hiringmachine.loxo.co/webinar-writing-emails-that-get-responses
+
+WEEKLY DROP-IN TRAINING:
+- Monday 8 AM EST / 2 PM GMT
+- Monday 10 AM EST / 4 PM GMT
+- Tuesday 5 PM EST / 10 AM AEDT (Wednesday)
+- Wednesday 8 AM EST / 2 PM GMT
+- Wednesday 10 AM EST / 4 PM GMT
+- Thursday 8 AM EST / 2 PM GMT
+- Thursday 5 PM EST / 10 AM AEDT (Friday)
+- Friday 8 AM EST / 2 PM GMT
+- Friday 2 PM EST / 8 PM GMT
+
+All sessions at: https://us02web.zoom.us/webinar/register/WN_...
+
+================================================================================
+ADDITIONAL RESOURCES
+================================================================================
+
+COMMUNITY: https://help.loxo.co/en/articles/14324890-the-loxo-community
+NEWSLETTER: https://help.loxo.co/en/articles/12844684-the-loxo-newsletter
+STRATEGIC CUSTOMER SUCCESS: https://help.loxo.co/en/articles/12166328-strategic-customer-success-at-loxo
+
+================================================================================
+END OF DOCUMENT
+================================================================================

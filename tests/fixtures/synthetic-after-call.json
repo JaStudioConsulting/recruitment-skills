@@ -1,0 +1,73 @@
+{
+  "fixture": "synthetic-only-after-call-package",
+  "candidate": {
+    "id": "synthetic-candidate-001",
+    "full_name": "Avery Sampleton",
+    "headline_title": "Maintenance Supervisor",
+    "city": "Exampleton",
+    "province": "ON",
+    "current_company": "Sampleworks Fabrication Ltd.",
+    "current_comp": "$88,000",
+    "expected_comp": "$96,000",
+    "interview_availability": "Weekday afternoons",
+    "start_availability": "Two weeks",
+    "resume_file": "avery-sampleton-synthetic-resume.pdf",
+    "notes": "Synthetic recruiter call notes only.",
+    "email": "avery.sampleton@example.invalid",
+    "phone": "555-0101",
+    "verified_facts": {
+      "evidence": [
+        "Supervises a synthetic team of 12 maintenance technicians across two shifts.",
+        "Uses a synthetic CMMS for preventive-maintenance scheduling."
+      ],
+      "missing": [],
+      "commute": "Open to Exampleton.",
+      "reason": "Synthetic career progression.",
+      "vacation": "Three weeks",
+      "work_status": "Authorized to work in Canada",
+      "source_note": "Synthetic resume and synthetic call transcript.",
+      "current_company_industry": "Fabricated metal manufacturing"
+    }
+  },
+  "job": {
+    "id": "synthetic-job-001",
+    "title": "Maintenance Supervisor",
+    "city": "Exampleton",
+    "province": "ON",
+    "company": "synthetic-company-001",
+    "jd_text": "Synthetic role requiring maintenance scheduling and team leadership.",
+    "account_manager_name": "Jordan Example",
+    "account_manager_email": "jordan.example@example.invalid",
+    "submission_cc": "recruiting-team@example.invalid"
+  },
+  "company": {
+    "id": "synthetic-company-001",
+    "name": "Example Manufacturing Ltd."
+  },
+  "transcript": {
+    "id": "synthetic-transcript-001",
+    "created": "2026-08-22T12:00:00.000Z",
+    "text": "Synthetic transcript: Avery Sampleton confirmed two weeks notice and maintenance-team leadership."
+  },
+  "resume": {
+    "name": "Avery Sampleton",
+    "headline": "Maintenance Supervisor",
+    "summary": "Synthetic maintenance leader with documented team scheduling and preventive-maintenance experience.",
+    "skills": ["Preventive maintenance", "Synthetic CMMS", "Team scheduling", "Safety coordination"],
+    "experience": [{
+      "title": "Maintenance Supervisor",
+      "dates": "Jan-2022 - Present",
+      "company": "Sampleworks Fabrication Ltd.",
+      "location": "Exampleton, ON",
+      "bullets": ["Supervise 12 maintenance technicians across two shifts.", "Maintain preventive-maintenance schedules in the synthetic CMMS."]
+    }],
+    "education": ["Example Institute, Industrial Maintenance Diploma"]
+  },
+  "reference_check": {
+    "candidate": { "full_name": "Avery Sampleton", "position_applied_for": "Maintenance Supervisor", "company_name": "Example Manufacturing Ltd." },
+    "reference": { "full_name": "Morgan Placeholder", "job_title": "Plant Manager", "company_name": "Sampleworks Fabrication Ltd.", "professional_relationship": "Synthetic direct manager" },
+    "answers": { "known_duration": "Synthetic example only.", "working_capacity": "Synthetic example only.", "overall_performance": "Synthetic example only.", "responsibilities": "Synthetic example only.", "strengths": ["Synthetic safety focus", "Synthetic team coordination"], "area_for_improvement": "Not discussed during the reference check.", "performance_rating": "Not discussed during the reference check.", "communication": "Synthetic example only.", "interactions": "Synthetic example only.", "teamwork": "Synthetic example only.", "adaptability": "Synthetic example only.", "problem_solving": "Synthetic example only.", "dependability": "Synthetic example only.", "leadership_potential": "Synthetic example only.", "recommendation": "Synthetic example only.", "rehire": "Synthetic example only.", "additional_comments": "Synthetic example only." },
+    "completed_by": "Jordan Example",
+    "date": "2026-08-22"
+  }
+}

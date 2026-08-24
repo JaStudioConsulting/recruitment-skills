@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "authority": "External integrations are adapters only. They never replace skills/recruiter/SKILL.md.",
+  "integrations": [
+    { "id": "google-workspace", "kind": "external_api", "status": "optional", "allowed": ["gmail_draft", "gmail_read", "calendar_read", "drive_read"], "forbidden": ["gmail_send"], "credentials": "runtime_only" },
+    { "id": "loxo", "kind": "external_service", "status": "optional", "allowed": ["read", "draft_bullets"], "forbidden": ["write_without_named_human_authorization"], "credentials": "host_managed" },
+    { "id": "airtable", "kind": "external_service", "status": "optional", "allowed": ["read"], "forbidden": ["write_without_named_human_authorization"], "credentials": "host_managed" },
+    { "id": "adzuna", "kind": "external_api", "status": "optional", "allowed": ["job_search", "salary_research"], "credentials": "environment_or_host_secret_store" },
+    { "id": "firecrawl", "kind": "external_service", "status": "optional", "allowed": ["public_web_research"], "credentials": "host_managed" },
+    { "id": "neo4j", "kind": "external_database", "status": "optional", "allowed": ["read_query"], "forbidden": ["write_via_mcp"], "credentials": "environment_or_host_secret_store" }
+  ]
+}

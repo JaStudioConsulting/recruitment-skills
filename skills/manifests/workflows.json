@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "workflows": [
+    {
+      "id": "after_call_full_package",
+      "router": "recruiter",
+      "required_sources": ["resume", "job_description", "transcript_or_call_notes"],
+      "stages": ["source_audit", "fit_verdict", "mode_choice", "resume_draft", "submission_draft", "final_verify"],
+      "outputs": ["branded_resume_pdf", "candidate_submission_draft", "presentation_email_draft", "loxo_draft_bullets"],
+      "external_actions": "none",
+      "fixture": "tests/fixtures/synthetic-after-call.json"
+    },
+    {
+      "id": "reference_check",
+      "router": "recruiter",
+      "capability": "complete-reference-check",
+      "stages": ["source_audit", "answer_map", "docx_build", "document_verify"],
+      "external_actions": "none",
+      "template": "recruiter/modules/complete-reference-check/assets/reference-check-template.docx"
+    },
+    {
+      "id": "candidate_sourcing",
+      "router": "recruiter",
+      "capabilities": ["sourcing", "web-sourcing"],
+      "stages": ["criteria", "public_research", "verification", "dedupe", "export"],
+      "external_actions": "public_read_only"
+    }
+  ]
+}

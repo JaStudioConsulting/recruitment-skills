@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "cutover_status": "not_started",
+  "instructions": "docs/consolidation/host-compatibility.md",
+  "hosts": [
+    { "id": "codex", "mode": "repository_or_mcp", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": false },
+    { "id": "opencode", "mode": "repository_or_mcp", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": false },
+    { "id": "hermes", "mode": "repository_or_native_mcp", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": false },
+    { "id": "claude", "mode": "repository_or_mcp", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": false },
+    { "id": "gemini", "mode": "repository_or_mcp", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": false },
+    { "id": "generic-mcp", "mode": "streamable_http", "front_door_tool": "skill_get", "capability_tool": "recruiter_capability_get", "active_repoint_allowed": false }
+  ]
+}

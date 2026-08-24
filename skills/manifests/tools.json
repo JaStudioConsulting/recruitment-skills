@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "runtime": "consumer_provided",
+  "router": "recruiter",
+  "tools": [
+    { "id": "workspace_status", "class": "read_only", "external_effect": "none" },
+    { "id": "graph_schema", "class": "read_only", "external_effect": "none" },
+    { "id": "graph_read_query", "class": "read_only", "external_effect": "neo4j_read" },
+    { "id": "match_current_candidate", "class": "internal_write", "external_effect": "local_queue_only" },
+    { "id": "candidate_search", "class": "read_only", "external_effect": "none" },
+    { "id": "candidate_get", "class": "read_only", "external_effect": "none" },
+    { "id": "candidate_import_preview", "class": "read_only", "external_effect": "none" },
+    { "id": "call_start", "class": "restricted", "external_effect": "local_record_create", "gate": "explicit_call_action" },
+    { "id": "call_stop", "class": "restricted", "external_effect": "local_record_update", "gate": "explicit_call_action" },
+    { "id": "transcript_get", "class": "read_only", "external_effect": "none" },
+    { "id": "skill_get", "class": "router", "external_effect": "none", "allowed_names": ["recruiter"] },
+    { "id": "recruiter_capability_get", "class": "router", "external_effect": "none", "includes_front_door": true },
+    { "id": "resume_generate", "class": "draft_prepare", "external_effect": "none", "includes_front_door": true },
+    { "id": "leads_list", "class": "read_only", "external_effect": "none" },
+    { "id": "approval_list", "class": "read_only", "external_effect": "none" },
+    { "id": "gmail_draft_create", "class": "draft_only", "external_effect": "gmail_draft_create", "gate": "human_review_before_send" },
+    { "id": "gmail_drafts_list", "class": "read_only", "external_effect": "gmail_read" },
+    { "id": "calendar_events_list", "class": "read_only", "external_effect": "calendar_read" },
+    { "id": "drive_search", "class": "read_only", "external_effect": "drive_read" }
+  ],
+  "forbidden_mcp_actions": [
+    "gmail_send",
+    "candidate_submit",
+    "loxo_write",
+    "approval_decide",
+    "external_delete"
+  ]
+}

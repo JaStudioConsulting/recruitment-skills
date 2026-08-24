@@ -1,0 +1,27 @@
+{
+  "job": {
+    "job_id": 123456,
+    "title": "Production Shift Supervisor",
+    "company": "Example Company",
+    "location": "Welland, ON",
+    "salary": "$75,000–$80,000",
+    "schedule": "12-hour continental rotating shift",
+    "generated": "July 19, 2026"
+  },
+  "candidates": [
+    {
+      "id": 1,
+      "stage": "Longlist",
+      "applied": true,
+      "candidate": "Synthetic Candidate I",
+      "employment": [
+        "Example Manufacturing Ltd. | Team Lead | Mar 2018 – Present"
+      ],
+      "employment_summary": "8+ years with Example Manufacturing Ltd.; progressed into frontline leadership.",
+      "industry": "Automotive manufacturing",
+      "tickets": "Forklift; First Aid",
+      "activity": "No job-specific outreach found",
+      "activity_type": "none"
+    }
+  ]
+}

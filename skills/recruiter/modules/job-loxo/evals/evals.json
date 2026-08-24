@@ -1,0 +1,23 @@
+{
+  "skill_name": "job-loxo",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "A synthetic hiring manager wants a Press Operator / Mold Maker sourcing job in Exampleton. Check Loxo first, check Adzuna for salary, and tell me whether the title should change. Question only; do not create anything.",
+      "expected_output": "Read-only duplicate and adjacent-role findings, properly scoped Adzuna evidence, and a concise title recommendation without a creation plan or email draft.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Draft a Lead Mechanical Assembler posting for Exampleton at no more than $30 per hour. Keep it hands-on so it does not duplicate our Production Team Lead. Include our approved equality and AI statements.",
+      "expected_output": "A complete JD with supported compensation, hands-on duties, no unsupported facts, and exact approved compliance language.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Create and publish this approved synthetic Exampleton job in Loxo, hide the company, then prove it is active and live.",
+      "expected_output": "A complete Loxo field packet and explicit confirmation gate before any write, followed after approval by record-level and public-link verification. No email work.",
+      "files": []
+    }
+  ]
+}

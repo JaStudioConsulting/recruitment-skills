@@ -1,0 +1,55 @@
+[
+  {
+    "full_name": "Full Name",
+    "title": "Title",
+    "company": "Company",
+    "location": "Location",
+    "linkedin": "LinkedIn"
+  },
+  {
+    "full_name": "Synthetic Candidate A",
+    "title": "EHS Lead",
+    "company": "Example Thermal Systems Ltd.",
+    "location": "Belleville, ON",
+    "linkedin": "https://profiles.example.invalid/synthetic-candidate-a",
+    "status": "Eligible",
+    "fit": "Strong",
+    "confidence": "High",
+    "evidence": "Automotive; ISO 45001/14001; investigations",
+    "gaps": "Confirm compensation"
+  },
+  {
+    "full_name": "Synthetic Candidate A",
+    "title": "EHS Lead",
+    "company": "Example Thermal Systems Ltd.",
+    "location": "Belleville, ON",
+    "linkedin": "https://profiles.example.invalid/synthetic-candidate-a",
+    "status": "Eligible",
+    "fit": "Strong",
+    "confidence": "High"
+  },
+  {
+    "full_name": "Synthetic Candidate B",
+    "title": "HSE Coordinator",
+    "company": "Example Metalworks Inc.",
+    "location": "Oshawa, ON",
+    "linkedin": "https://profiles.example.invalid/synthetic-candidate-b",
+    "status": "Eligible",
+    "fit": "Possible",
+    "confidence": "Medium",
+    "evidence": "Automotive; incident investigations",
+    "gaps": "ISO exposure unconfirmed"
+  },
+  {
+    "full_name": "Synthetic Prospect A",
+    "title": "Plant Manager",
+    "company": "Example Thermal Systems Ltd.",
+    "location": "Belleville, ON",
+    "linkedin": "https://profiles.example.invalid/synthetic-prospect-a",
+    "status": "Eligible",
+    "priority": "High",
+    "confidence": "High",
+    "evidence": "Plant leadership and active hiring",
+    "notes": "Approved for candidate-market mapping"
+  }
+]

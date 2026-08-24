@@ -1,0 +1,62 @@
+{
+  "skill_name": "sourcing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run a candidate audit for an HSE Specialist role at Orion Automotive in Kingston, Ontario. Orion Lighting and Orion Interiors are Orion Automotive divisions. Must-haves: automotive manufacturing, ISO 45001 and ISO 14001 exposure, incident investigations, Ontario safety knowledge, and realistic Kingston logistics. Salary is $75K-$85K. Clean the repeated headers and duplicates, audit every unique person once, and return a concise ranked table. Public profiles only; do not invent contact data. Input rows:\nName | Current title/company | Location | Public evidence\nName | Current title/company | Location | Public evidence\nSynthetic Candidate E | HSE Coordinator, Orion Lighting | Kingston | ISO 45001 and 14001 internal auditor; investigations\nSynthetic Candidate A | EHS Lead, Thermo Systems | Belleville | automotive manufacturing; ISO 45001/14001; WSIB and investigations\nSynthetic Candidate A | EHS Lead, Thermo Systems | Belleville | duplicate row\nSynthetic Candidate C | Global VP EHS, MotionWorks | Toronto | enterprise automotive EHS leader\nSynthetic Candidate D | Safety Committee Member, Northstar Retail | Kingston | JHSC member; no manufacturing evidence\nSynthetic Candidate B | HSE Coordinator, MetalForm Canada | Oshawa | automotive; incident investigations; ISO status unconfirmed",
+      "expected_output": "A deduplicated candidate table that excludes Synthetic Candidate E as a current client-group employee, does not recommend excluded or overqualified people first, ranks eligible candidates from supplied evidence, and lists concise verification gaps.",
+      "files": [],
+      "expectations": [
+        "The candidate table contains exactly one row for each of the five unique people and no repeated header row.",
+        "Synthetic Candidate E is marked Excluded because Orion Lighting belongs to the hiring client group, and Synthetic Candidate E is absent from the top recommendations.",
+        "Synthetic Candidate A is the first eligible recommendation based on direct automotive HSE, ISO 45001/14001, WSIB, investigations, and plausible Belleville-to-Kingston logistics.",
+        "Synthetic Candidate C is not recommended ahead of plausible specialist-level candidates because the Global VP role creates a material seniority and compensation mismatch.",
+        "The output uses the required candidate columns and includes exclusions, top recommendations, and concise verification questions.",
+        "The output does not invent email addresses, phone numbers, credentials, or experience beyond the supplied evidence."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Audit this synthetic BD prospect list for a manufacturing recruitment campaign. Target accounts are Ontario automotive suppliers. Best contacts are plant leaders, HR/talent leaders, or operational executives with evidence of hiring or expansion. Existing Client Automotive Inc. is excluded. Target-account employees are desired and must not be rejected merely because they work there. Return one concise prospect-priority table, exclusions, top three, and only necessary verification questions. Public profiles only.\nName | Role/company | Location | Signal\nSynthetic Prospect A | Plant Manager, Example Thermal Systems | Belleville | company posted 18 skilled-trades openings\nSynthetic Prospect B | HR Director, Example MotionWorks | Guelph | company announced a new production line\nSynthetic Prospect C | Software Developer, Example MotionWorks | Toronto | no hiring authority shown\nSynthetic Prospect A | Plant Manager, Example Thermal Systems | Belleville | duplicate\nSynthetic Prospect D | Talent Acquisition Manager, Existing Client Automotive Inc. | Aurora | active hiring posts\nSynthetic Prospect E | Operations Director, Example AutoStamp | Cambridge | role verified; no current growth signal\nHeader Name | Role/company | Location | Signal",
+      "expected_output": "A deduplicated prospect table that keeps target-account employees eligible, excludes the Existing Client Automotive Inc. contact and irrelevant software developer, and separates commercial priority from evidence confidence.",
+      "files": [],
+      "expectations": [
+        "The prospect table contains exactly one row for each of the five unique people and no repeated header row.",
+        "Synthetic Prospect A and Synthetic Prospect B remain eligible and rank above lower-signal prospects because target-account employees are desired.",
+        "Synthetic Prospect D is marked Excluded because Existing Client Automotive Inc. is an existing-client exclusion, despite the hiring signal.",
+        "Synthetic Prospect C is rejected or placed last because the software role has no shown staffing-buying authority.",
+        "Synthetic Prospect E is not rated High because no current growth or hiring signal is supplied.",
+        "The output uses the required prospect columns, separates priority from confidence, and does not invent contact data or business signals."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Use the sourcing export workflow. From the approved JSON file provided in the task workspace, create both a generic candidate CSV and a Loxo-ready candidate CSV in the specified outputs directory. Remove the repeated header and duplicate profile. Do not import anything into Loxo. Verify headers and row counts, then save a short result summary as result.md. Input file: approved_rows.json.",
+      "expected_output": "Two CSV files with exact generic and Loxo headers, three unique data rows, safe values, and a result.md confirming output paths, headers, and counts.",
+      "files": ["evals/approved_rows.json"],
+      "expectations": [
+        "The run creates one generic CSV, one Loxo-ready CSV, and result.md in the outputs directory.",
+        "The generic CSV header exactly matches Full Name, Title, Company, Location, LinkedIn, Status, Fit/Priority, Confidence, Evidence, Gaps/Risks, Notes.",
+        "The Loxo CSV header exactly matches First Name, Last Name, Full Name, Title, Company, Location, LinkedIn, Tags, Notes.",
+        "Each CSV contains exactly three unique data rows after removing one repeated header and one duplicate Synthetic Candidate A profile.",
+        "No Loxo import or external write occurs; the skill only prepares files.",
+        "result.md reports both output paths, verifies both headers, and states the exported row count."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Map the supplied synthetic open roles for Synthetic Candidate H. Use the candidate's explicit preferences as hard decision inputs, not optional notes. Candidate: Senior Accountant at Example Foods. Wants Senior Accountant, Accounting Manager, or Assistant Controller roles in manufacturing; Toronto-west through Guelph; hybrid at least two days per week; minimum $105K; no relocation; no night shift. Current employer Example Foods must be excluded. Roles: Controller, Example Foods, Guelph, $130K, hybrid 2 days, manufacturing; Senior Accountant, Example MotionWorks, Cambridge, $110K, hybrid 2 days, automotive manufacturing; Plant Accountant, Example AutoStamp, Windsor, $115K, onsite, automotive; Assistant Controller, Example RetailCo, Toronto, $120K, hybrid 3 days, retail; Accounting Manager, Example FormTech, Milton, $100K, hybrid 2 days, manufacturing. Return the preference-aware opportunity map, best opportunities, exclusions, candidate questions, and search boundary. Do not apply or write to any system.",
+      "expected_output": "A job map that ranks Example MotionWorks first, treats Example RetailCo as an industry-adjacent possibility, and rejects or excludes roles that violate current-employer, location/work-model, or minimum-compensation preferences.",
+      "files": [],
+      "expectations": [
+        "The output uses the required candidate-opportunity table columns and covers all five roles exactly once.",
+        "Example MotionWorks Senior Accountant ranks first and is Strong because title, manufacturing, geography, hybrid schedule, and compensation align.",
+        "Example Foods Controller is Excluded because it is the candidate's current employer, despite otherwise attractive terms.",
+        "Example AutoStamp Plant Accountant is rejected or excluded because Windsor and onsite work violate explicit location, relocation, and hybrid preferences.",
+        "Example FormTech Accounting Manager is rejected or excluded because $100K is below the explicit $105K minimum.",
+        "Example RetailCo Assistant Controller is Possible or Stretch, not Strong, because title, geography, hybrid, and pay align but industry preference does not.",
+        "The output includes best opportunities, exclusions, candidate questions, and an internal-role search boundary without applying or writing to any system."
+      ]
+    }
+  ]
+}

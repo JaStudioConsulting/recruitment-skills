@@ -1,0 +1,36 @@
+{
+  "name": "Synthetic Candidate J",
+  "headline": "Senior Manufacturing Engineer",
+  "summary": "Senior Manufacturing Engineer with 10+ years improving high-volume production lines. Strong in lean, process optimization, and quality systems, with a record of measurable cost and cycle-time reductions. Known for leading cross-functional teams and driving audit-ready compliance.",
+  "skills": [
+    "Lean Manufacturing", "Six Sigma (Black Belt)",
+    "Process Optimization", "CNC Programming",
+    "Quality Systems / ISO 9001", "Cross-Functional Leadership"
+  ],
+  "experience": [
+    {
+      "title": "Senior Manufacturing Engineer",
+      "dates": "Mar-2019 - Present",
+      "company": "Example Industrial Ltd.",
+      "location": "Detroit, MI, USA",
+      "bullets": [
+        "Redesigned the line layout and standardized work across a high-volume assembly cell.",
+        "Led ISO 9001 recertification across two plants with zero major findings."
+      ]
+    },
+    {
+      "title": "Manufacturing Engineer",
+      "dates": "Jun-2014 - Feb-2019",
+      "company": "Example Tooling Ltd.",
+      "location": "Warren, MI, USA",
+      "bullets": [
+        "Led root-cause analysis and tooling changes for recurring scrap issues.",
+        "Designed fixtures and SOPs for consistent first-pass inspection."
+      ]
+    }
+  ],
+  "education": [
+    "B.S. Mechanical Engineering, Example University",
+    "Six Sigma Black Belt, Example Certification Body"
+  ]
+}
