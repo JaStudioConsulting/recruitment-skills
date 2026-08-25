@@ -10,7 +10,7 @@ Recruiting instructions, builders, and integration declarations had diverged acr
 
 ## Decisions
 
-1. `skills/recruiter/SKILL.md` is the sole recruiting front door. Its 22 capabilities are internal `GUIDE.md` modules and are never registered as standalone skills.
+1. `skills/recruiter/SKILL.md` is the sole recruiting front door. Its 23 capabilities are internal `GUIDE.md` modules and are never registered as standalone skills. The Tracker guide is a thin route to a protected host-provided Tracker Manager authority.
 2. This private package owns the router, policies, manifests, sanitized deterministic builders/assets, and synthetic fixtures. Consumers provide runtime adapters and do not copy or fork this authority.
 3. Manifests remain router-first and declare the integration contract only. Gmail is draft-first; Loxo is read-only/draft-only unless separately authorized in a consumer. No send, candidate submission, Loxo write, approval decision, or external deletion is declared.
 4. The package contains no real candidate/client/referee records, staff email identities, account IDs, credentials, environment values, generated outputs, deployment code, or external symlinks. Runtime addresses, account identifiers, browser adapters, and output paths are host-supplied.
@@ -21,7 +21,7 @@ Recruiting instructions, builders, and integration declarations had diverged acr
 
 - Skills can be reviewed, tested, and versioned independently of the Workbench.
 - Consumers pin an exact private package version and use `getRecruiterAuthority()` or `resolveSkillPath()` to locate the router, manifests, and internal resources.
-- The package validator enforces one `SKILL.md`, 22 modules, manifest consistency, safe paths, sanitized DOCX placeholders, no symlinks, and basic secret/privacy checks.
+- The package validator enforces one `SKILL.md`, 23 modules, manifest consistency, safe paths, sanitized DOCX placeholders, no symlinks, and basic secret/privacy checks.
 
 ## Verification
 

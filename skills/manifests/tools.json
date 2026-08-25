@@ -21,7 +21,15 @@
     { "id": "gmail_draft_create", "class": "draft_only", "external_effect": "gmail_draft_create", "gate": "human_review_before_send" },
     { "id": "gmail_drafts_list", "class": "read_only", "external_effect": "gmail_read" },
     { "id": "calendar_events_list", "class": "read_only", "external_effect": "calendar_read" },
-    { "id": "drive_search", "class": "read_only", "external_effect": "drive_read" }
+    { "id": "drive_search", "class": "read_only", "external_effect": "drive_read" },
+    { "id": "tracker_check_current", "class": "read_only", "external_effect": "gmail_and_sheets_read", "includes_front_door": true },
+    { "id": "tracker_search", "class": "read_only", "external_effect": "sheets_read", "includes_front_door": true },
+    { "id": "tracker_prepare_update", "class": "draft_prepare", "external_effect": "gmail_and_sheets_read", "includes_front_door": true },
+    { "id": "tracker_execute_update", "class": "restricted", "external_effect": "sheets_write_submissions_only", "gate": "explicit_tracker_update", "includes_front_door": true },
+    { "id": "tracker_prepare_repair", "class": "draft_prepare", "external_effect": "gmail_and_sheets_read", "includes_front_door": true },
+    { "id": "tracker_execute_repair", "class": "restricted", "external_effect": "sheets_write_submissions_only", "gate": "explicit_tracker_repair", "includes_front_door": true },
+    { "id": "tracker_check_ownership", "class": "read_only", "external_effect": "sheets_read", "includes_front_door": true },
+    { "id": "tracker_run_qa", "class": "read_only", "external_effect": "sheets_read", "includes_front_door": true }
   ],
   "forbidden_mcp_actions": [
     "gmail_send",

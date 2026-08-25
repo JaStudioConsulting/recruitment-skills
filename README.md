@@ -1,6 +1,6 @@
 # @jastudioconsulting/recruitment-skills
 
-Private, versioned recruiting-skills authority for Ja Studio Consulting. `$recruiter` is the sole front door; all 22 specialist capabilities are internal modules and must not be registered as competing top-level skills.
+Private, versioned recruiting-skills authority for Ja Studio Consulting. `$recruiter` is the sole front door. All 23 capabilities are internal modules and must not be registered as competing top-level skills. Tracker uses a thin internal route to the consuming host's protected Tracker Manager authority.
 
 ## Consumer use
 
@@ -21,6 +21,7 @@ Direct exports are also available for packaged resources, for example `@jastudio
 - Loxo is read-only/draft-only unless separately authorized in a consumer.
 - No candidate/client/referee records, staff addresses, account IDs, credentials, environment files, deployment code, or live integrations are included.
 - Loxo agency/owner values, Gmail recipients, browser adapters, and output locations must come from the consuming host.
+- Tracker workbook identifiers, account profiles, source rules, and live mutations remain owned by the consuming host's protected Tracker Manager authority.
 - This package is proprietary. See [NOTICE.md](NOTICE.md).
 
 ## Validation

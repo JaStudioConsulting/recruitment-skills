@@ -26,6 +26,7 @@
     { "id": "offer-letter", "path": "recruiter/modules/offer-letter/GUIDE.md", "group": "on_demand", "status": "active" },
     { "id": "recruiting-hr", "path": "recruiter/modules/recruiting-hr/GUIDE.md", "group": "collection", "status": "active" },
     { "id": "sourcing", "path": "recruiter/modules/sourcing/GUIDE.md", "group": "on_demand", "status": "active" },
+    { "id": "tracker", "path": "recruiter/modules/tracker/GUIDE.md", "group": "daily_core", "status": "restricted" },
     { "id": "tttg-candidate-submission", "path": "recruiter/modules/tttg-candidate-submission/GUIDE.md", "group": "compatibility", "status": "legacy" },
     { "id": "tttg-resume-engine-workspace", "path": "recruiter/modules/tttg-resume-engine-workspace/GUIDE.md", "group": "evaluation", "status": "internal" },
     { "id": "vet", "path": "recruiter/modules/vet/GUIDE.md", "group": "daily_core", "status": "active" },
