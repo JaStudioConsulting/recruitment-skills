@@ -1,11 +1,18 @@
 ---
 name: recruiter
-description: The single front door for all Top Tier Talent Group recruiting work. Use whenever Ja wants to vet, screen, match, source, defend, brand, write up, submit, MPC, blind, reference-check, or package a candidate, or asks who to call, whether someone fits, or to build a resume or submission. Also fires on any upload of a resume, transcript, call notes, JD, or Loxo record with a recruiting ask. This is the ONE router. It owns the workflow and pulls in the specialist skills automatically. Replaces the old toptier-recruiting-ai, candidate-agent-team, and candidate-submission-flow entrypoints.
+description: The single front door for all Top Tier Talent Group recruiting work. Use whenever Ja wants to vet, screen, match, source, defend, brand, write up, submit, MPC, blind, reference-check, or package a candidate, asks who to call or whether someone fits, or wants to update, sync, audit, repair, search, or verify Tracker Submissions. Also fires on any upload of a resume, transcript, call notes, JD, or Loxo record with a recruiting ask. This is the ONE router. It owns workflow selection and routes Tracker work to the protected Tracker Manager authority.
 ---
 
 # Recruiter (the one front door)
 
-This is the ONLY recruiting skill. There are no other recruiting skills to pick. Every specialist (brandedresume, vet, write-up, ja-writer, loxo, sourcing, and the rest) now lives INSIDE this skill under `modules/`, as `modules/<name>/GUIDE.md`. They are no longer separately invokable and will not appear in any skill list.
+This is the ONLY recruiting entrypoint. Candidate-work specialists such as
+brandedresume, vet, write-up, ja-writer, loxo, and sourcing live inside this
+skill under `modules/` as `modules/<name>/GUIDE.md`.
+
+Tracker Manager is the deliberate protected exception. Recruiter routes Tracker
+requests through `modules/tracker/GUIDE.md`, while the consuming host provides
+the canonical `tracker-manager` authority. Never copy, move, or restate its
+schema, event identity, write scope, or QA rules inside Recruiter.
 
 When a recruiting task arrives, start here, read only the module you need, and follow it. This file owns the workflow, the gates, and the routing.
 
@@ -32,17 +39,19 @@ Truth comes only from: the resume, the call audio/transcript, recruiter notes th
    - High confidence: prepare a submission draft for human review.
    - Medium: prepare cautiously, flag follow-ups, omit unknown deal-breakers.
    - Low: do not submit, pivot to targeted search.
-4. **Mode choice.** Pick the narrowest: resume only, vet only, defense only, full package, MPC, reference check, match engine, sourcing, or Loxo bullets.
-5. **Specialist stage.** Route to the skill in the table below.
+4. **Mode choice.** Pick the narrowest: resume only, vet only, defense only, full package, MPC, reference check, match engine, sourcing, Loxo bullets, or Tracker operations.
+5. **Specialist stage.** Route to the module or protected capability in the table below.
 6. **Final verify.** Check source integrity, PDF layout and privacy, the single unsent Gmail draft, and any missing facts before calling it done.
 
 ## UI Action Runbook
 
 Legacy UI action boards and their external scripts were not imported because they contain operational candidate data and direct-send paths. Use only Workbench's consolidated draft and approval tools. No automatic Loxo-to-Gmail fallback, no automatic retry after an unknown result, and no send without Ja's explicit approval.
 
-## Mode routing (read the module file, do not look for a skill)
+## Mode routing
 
-All paths are relative to this skill folder.
+All module paths are relative to this skill folder. Tracker operations use the
+thin routing module, which then loads the host-provided Tracker Manager
+authority.
 
 | Ja wants | Read this module | Tool it uses | Done only when |
 |----------|------------------|--------------|----------------|
@@ -56,6 +65,7 @@ All paths are relative to this skill folder.
 | Reference check DOCX | `modules/complete-reference-check/GUIDE.md` | docx build | file exists, size > 0 |
 | Source / x-ray / find candidates on the web | `modules/web-sourcing/GUIDE.md`, `modules/sourcing/GUIDE.md` | web search | every row marked Verified yes or no |
 | Loxo ATS work, bullets, dashboards | `modules/loxo/GUIDE.md`, `modules/loxo-readonly-candidate-dashboard/GUIDE.md` | Loxo (read-only) | no write performed |
+| Update, sync, audit, repair, search, or verify Tracker Submissions | `modules/tracker/GUIDE.md` | protected `tracker-manager`, Gmail read, scoped Sheets adapter | Tracker Manager's operation-specific verification and final report pass |
 | Offer letter | `modules/offer-letter/GUIDE.md` | none | file exists if a file was promised |
 | Cover letter | `modules/cover-letter/GUIDE.md` | none | source-grounded draft returned |
 | Job-ad drafting and salary research | `modules/job-loxo/GUIDE.md` | Adzuna read-only when configured | draft returned, no Loxo write |
@@ -85,6 +95,7 @@ This exists because a model previously reported a CSV written when no file exist
 - MPC to the host-configured internal team mailbox attaches the NAMED resume with real employers. Only anonymize when a resume goes OUT to an external client speculatively. Real current employer name always appears in the email body.
 - Never invent a fact, never ship a placeholder or a "[confirm]" marker to a client. Missing employer, date, degree, location, or metric means stop and ask Ja.
 - Keep candidate approval and duplicate-submission checks as hard gates.
+- A candidate package, resume, Gmail draft, or submission-writing request does not authorize a Tracker write. Pass the exact Tracker request and authorization through the routing module. Tracker Manager alone decides whether the request is read-only or authorizes a scoped Submissions mutation.
 - BULLET BOLD RULE: never bold the whole lead sentence like a book chapter title. Bold only the specific proof point wherever it falls in the sentence, employer name, system, cert, number, or skill. Never mechanically bold the opening words of a bullet.
 
 ## Delegation
@@ -101,6 +112,18 @@ Use the smallest useful team. For a normal package, one to three passes is enoug
 ## Output to Ja
 
 Give only what matters: which stage ran, what it produced, any blocked or missing facts, and the final artifact link or draft status. No internal chatter.
+
+## Protected operational capability
+
+The consuming host must provide the canonical `tracker-manager` authority.
+`modules/tracker/GUIDE.md` is a routing adapter only. Recruiter owns intake and
+mode selection. Tracker Manager owns Gmail-to-Submissions discovery,
+reconciliation, source-grounded manifests, sequential writes, repairs,
+ownership checks, sorting, filter coverage, formatting, and final QA.
+
+Do not merge Google accounts. Gmail and authenticated Sheets connections may
+use different profiles. Do not treat an open browser tab, a Gmail draft, or a
+prepared candidate package as a Tracker source event.
 
 ## Modules (absorbed 2026-07-29, formerly standalone skills)
 

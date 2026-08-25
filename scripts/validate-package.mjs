@@ -47,7 +47,7 @@ const [capabilities, tools, plugins, hosts, workflows] = await Promise.all(["cap
 if ([capabilities, tools, plugins, hosts, workflows].every(Boolean)) {
   if (capabilities.schema_version !== 2 || capabilities.front_door?.id !== "recruiter" || capabilities.front_door?.path !== "recruiter/SKILL.md") problems.push("recruiter must remain the sole front door");
   const capabilityIds = ids(capabilities.capabilities, "capability", problems);
-  if (capabilityIds.size !== 22) problems.push(`expected 22 internal capabilities, found ${capabilityIds.size}`);
+  if (capabilityIds.size !== 23) problems.push(`expected 23 internal capabilities, found ${capabilityIds.size}`);
   for (const item of capabilities.capabilities || []) {
     if (!item.path?.endsWith("/GUIDE.md")) problems.push(`capability ${item.id} must use GUIDE.md`);
     const target = path.resolve(skillsRoot, item.path || "");
@@ -76,4 +76,4 @@ for (const file of files) {
   for (const match of content.matchAll(/\b[A-Z0-9._%+-]+@(?:[A-Z0-9.-]+\.)+[A-Z]{2,}\b/gi)) if (!match[0].toLowerCase().endsWith(".invalid")) problems.push(`non-synthetic email address in ${relative}`);
   for (const target of markdownTargets(content)) { const resolved = path.resolve(path.dirname(file), target.split("#")[0]); if (!contained(root, resolved) || !await exists(resolved)) problems.push(`broken local Markdown link in ${relative}: ${target}`); }
 }
-if (problems.length) { console.error([...new Set(problems)].sort().join("\n")); process.exitCode = 1; } else console.log(`validated standalone recruiter package: 22 capabilities, ${tools.tools.length} declared MCP contract tools, ${hosts.hosts.length} hosts, ${files.length} skills files`);
+if (problems.length) { console.error([...new Set(problems)].sort().join("\n")); process.exitCode = 1; } else console.log(`validated standalone recruiter package: 23 capabilities, ${tools.tools.length} declared MCP contract tools, ${hosts.hosts.length} hosts, ${files.length} skills files`);

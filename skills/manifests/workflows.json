@@ -24,6 +24,14 @@
       "capabilities": ["sourcing", "web-sourcing"],
       "stages": ["criteria", "public_research", "verification", "dedupe", "export"],
       "external_actions": "public_read_only"
+    },
+    {
+      "id": "tracker_submissions",
+      "router": "recruiter",
+      "capability": "tracker",
+      "required_sources": ["original_submission_email", "live_submissions_headers", "live_identity_index"],
+      "stages": ["source_gate", "reconciliation", "manifest", "authorization_check", "sequential_write", "server_qa", "visual_qa"],
+      "external_actions": "approval_gated_submissions_write"
     }
   ]
 }
