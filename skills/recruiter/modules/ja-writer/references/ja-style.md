@@ -11,8 +11,8 @@ for "voice" or "style."
 1. **No em dashes (—), no en dashes (–), no double hyphens (--), no tildes (~).**
    Use a period, comma, or regular hyphen instead. Write "about" not "~". Regular hyphens
    in compound words and date ranges (Oct 2017 to Present) are fine.
-   Exception: Ja's verified signature block keeps its existing hyphen/en-dash as-is; the ban
-   applies to all body prose, labels, and bullets.
+   Exception: quoted source text may keep its original punctuation; the ban applies to all
+   generated body prose, labels, and bullets.
 2. **No semicolons (;).** Use a period or comma. Short sentences win.
 3. **No redundancy between Profile Summary and bullets.** The summary is the fit thesis
    (why this person for THIS role). The bullets are the proof. If a sentence could sit in
@@ -59,7 +59,7 @@ Do not type a signature into a Gmail draft. Ja's configured Gmail signature is t
    - e.g. *Metal machining match:* · *P&L Scope:* · *Proven turnaround:* · *Executive scope:* · *CI results:* · *Systems:* · *Leadership match:*
    - Every bullet carries a **hard number or concrete proof** (PPM 400→single digits, $138M P&L, D→A rating in under 2 years, 10 GMs across 4 countries, $5M→$1.4M inventory).
 4. **Additional Info:** context paragraph — fit/motivation, candidate's own words ("Those are his words"), honest caveats.
-5. Close: **"CV attached."** + full signature.
+5. Close the body with **"CV attached."** Gmail appends Ja's configured signature.
 
 **Tone:** confident, evidence-first, concise. Sells on proof, not adjectives. Honest about gaps.
 

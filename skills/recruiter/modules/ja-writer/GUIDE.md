@@ -5,8 +5,8 @@ description: >
   outreach, client emails, follow-ups, LinkedIn notes, and any recruiting copy. Grounded in
   Ja's verified writing patterns, not generic templates. Use whenever Ja says "write
   this", "draft an email", "submit this candidate", "reach out to", "present {name}", "write the
-  submission", "follow up with", or asks for anything in her voice. Load references/ja-style.md
-  for the exact patterns, signature, and the two writing modes.
+  submission", "follow up with", or asks for anything in his voice. Load references/ja-style.md
+  for the exact patterns, signature handling, and the two writing modes.
 ---
 
 # Ja Writer
@@ -23,7 +23,7 @@ Ja's actual sent email — warm, genuine, confident, direct, quantified. Not gen
 2. Pull real facts from Loxo / the resume / call notes. **Never invent** salary, availability,
    credentials, client interest, or experience. Honest caveats are on-brand ("not an expert by
    his own account").
-3. Use the **exact signature block** from the style file (don't paraphrase it).
+3. For Gmail drafts, do not type a signature. Ja's configured Gmail signature is the authority.
 4. Canadian spelling (labour, etc.). Quantify wherever possible (PPM, $ P&L, %, ratings).
 5. In Loxo templates/emails, placeholders use **`{{ }}`** (double curly braces), inserted from the
    Person / Job / Form merge-field dropdowns.
@@ -34,4 +34,4 @@ Ja's actual sent email — warm, genuine, confident, direct, quantified. Not gen
 - Pairs with: `vet` (qualify/submit), `candidate-defense` (advocacy), `loxo` (where the data lives).
 
 Do not reuse Kevin Wood's old Loxo templates as the voice source — they are inherited boilerplate,
-not Ja's voice. Ja's voice = her sent Gmail, captured in the style file.
+not Ja's voice. Ja's voice = his sent Gmail, captured in the style file.
