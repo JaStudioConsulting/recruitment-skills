@@ -35,10 +35,24 @@ Use this order:
 2. Load the relevant reference file:
    - `references/loxo-platform-overview.md` - the video-grounded platform map for translating Ja's wording into the correct Jobs, People, Source, pipeline, profile, extension, stage-automation, Outreach, Companies, Tasks, Schedule, or Reports surface. This is orientation only and never overrides approval, ownership, Activity, DNC, or read-only rules.
    - `references/loxo-workflow.md` for jobs, people, candidates, submissions, resumes, status, tags, filtering, and imports.
+   - `references/loxo-safe-pipeline-actions.md` for review, action manifests, independent audit, approval, precondition checks, serialized execution, and post-write verification.
+   - `references/gmail-loxo-candidate-reconciliation.md` for evidence-based reconciliation of Gmail submission history, Loxo stages, job association, and structured candidate fields.
    - `references/loxo-outreach.md` for campaigns, deliverability, personalization, metrics, A/B tests, scheduling, merge tags, and email/SMS behavior.
    - `references/loxo-business-development.md` for companies, account-based prospecting, deals, MPC/spec CV, sales activities, and client BD.
 3. If article-level detail is needed, use current official Loxo Help Center documentation through an approved research adapter.
 4. If the live UI doesn't match what's documented, screenshot, stop, and report — do not guess at click paths.
+
+## Protected workflow routes
+
+- For candidate review or a request to shortlist, reject, move, or clean up a
+  job pipeline, load `references/loxo-safe-pipeline-actions.md`. Review and
+  manifest preparation are read-only. Any write remains separately authorized.
+- For after-call or submission-history cleanup using Gmail evidence, load
+  `references/gmail-loxo-candidate-reconciliation.md`, then route its proposed
+  changes through the safe pipeline action manifest.
+- Never execute from a conversational count, candidate name alone, or a prior
+  review bucket. Resolve one current `person_id`, one current `job_id`, and the
+  expected current state for every proposed action.
 
 ## Ja Defaults
 

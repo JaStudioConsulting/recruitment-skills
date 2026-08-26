@@ -19,6 +19,9 @@ Direct exports are also available for packaged resources, for example `@jastudio
 
 - Gmail is draft-first; sending is not declared here.
 - Loxo is read-only/draft-only unless separately authorized in a consumer.
+- Loxo pipeline and Gmail reconciliation workflows prepare exact manifests;
+  this package never treats a review result or conversational count as write
+  approval.
 - No candidate/client/referee records, staff addresses, account IDs, credentials, environment files, deployment code, or live integrations are included.
 - Loxo agency/owner values, Gmail recipients, browser adapters, and output locations must come from the consuming host.
 - Tracker workbook identifiers, account profiles, source rules, and live mutations remain owned by the consuming host's protected Tracker Manager authority.

@@ -32,6 +32,24 @@
       "required_sources": ["original_submission_email", "live_submissions_headers", "live_identity_index"],
       "stages": ["source_gate", "reconciliation", "manifest", "authorization_check", "sequential_write", "server_qa", "visual_qa"],
       "external_actions": "approval_gated_submissions_write"
+    },
+    {
+      "id": "loxo_safe_pipeline_action",
+      "router": "recruiter",
+      "capabilities": ["loxo", "loxo-automation"],
+      "required_sources": ["target_loxo_job", "live_candidate_state", "decision_evidence"],
+      "stages": ["read_only_review", "action_manifest", "independent_audit", "human_approval", "precondition_recheck", "serialized_execution", "post_write_verification", "audit_log"],
+      "external_actions": "approval_gated_consumer_loxo_write",
+      "reference": "recruiter/modules/loxo/references/loxo-safe-pipeline-actions.md"
+    },
+    {
+      "id": "gmail_loxo_candidate_reconciliation",
+      "router": "recruiter",
+      "capabilities": ["loxo", "loxo-automation"],
+      "required_sources": ["target_loxo_job", "live_candidate_records", "gmail_submission_evidence"],
+      "stages": ["job_scope", "loxo_baseline", "gmail_evidence", "classification", "change_manifest", "human_approval", "serialized_execution", "post_write_verification", "exception_report"],
+      "external_actions": "approval_gated_consumer_loxo_write",
+      "reference": "recruiter/modules/loxo/references/gmail-loxo-candidate-reconciliation.md"
     }
   ]
 }

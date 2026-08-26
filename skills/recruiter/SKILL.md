@@ -64,7 +64,7 @@ authority.
 | Match candidates to roles, call list, intake | `modules/candidate-match-engine/GUIDE.md` | Airtable | list returned or blocker named |
 | Reference check DOCX | `modules/complete-reference-check/GUIDE.md` | docx build | file exists, size > 0 |
 | Source / x-ray / find candidates on the web | `modules/web-sourcing/GUIDE.md`, `modules/sourcing/GUIDE.md` | web search | every row marked Verified yes or no |
-| Loxo ATS work, bullets, dashboards | `modules/loxo/GUIDE.md`, `modules/loxo-readonly-candidate-dashboard/GUIDE.md` | Loxo (read-only) | no write performed |
+| Loxo ATS work, bullets, dashboards, Gmail reconciliation, or safe pipeline action manifest | `modules/loxo/GUIDE.md`, `modules/loxo-readonly-candidate-dashboard/GUIDE.md` | Loxo and Gmail read-only | findings or exact approval manifest returned; no implicit write |
 | Update, sync, audit, repair, search, or verify Tracker Submissions | `modules/tracker/GUIDE.md` | protected `tracker-manager`, Gmail read, scoped Sheets adapter | Tracker Manager's operation-specific verification and final report pass |
 | Offer letter | `modules/offer-letter/GUIDE.md` | none | file exists if a file was promised |
 | Cover letter | `modules/cover-letter/GUIDE.md` | none | source-grounded draft returned |
