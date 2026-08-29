@@ -37,6 +37,7 @@ Use this order:
    - `references/loxo-workflow.md` for jobs, people, candidates, submissions, resumes, status, tags, filtering, and imports.
    - `references/loxo-safe-pipeline-actions.md` for review, action manifests, independent audit, approval, precondition checks, serialized execution, and post-write verification.
    - `references/gmail-loxo-candidate-reconciliation.md` for evidence-based reconciliation of Gmail submission history, Loxo stages, job association, and structured candidate fields.
+   - `references/loxo-linkedin-candidate-vetting.md` for read-only candidate vetting against the exact LinkedIn social-profile link visible on the Loxo profile before ranking or pitching.
    - `references/loxo-outreach.md` for campaigns, deliverability, personalization, metrics, A/B tests, scheduling, merge tags, and email/SMS behavior.
    - `references/loxo-business-development.md` for companies, account-based prospecting, deals, MPC/spec CV, sales activities, and client BD.
 3. If article-level detail is needed, use current official Loxo Help Center documentation through an approved research adapter.
@@ -50,9 +51,18 @@ Use this order:
 - For after-call or submission-history cleanup using Gmail evidence, load
   `references/gmail-loxo-candidate-reconciliation.md`, then route its proposed
   changes through the safe pipeline action manifest.
+- For candidate ranking or pitch preparation that uses public LinkedIn evidence,
+  load `references/loxo-linkedin-candidate-vetting.md`. For a job-linked review,
+  start with the target job; for proactive MPC/Pitch, start with the approved
+  client, deal, role, or candidate-marketing brief. Then read the candidate's
+  current Loxo state and open only the exact LinkedIn social-profile link visibly
+  attached to that Loxo profile. If no link is present, do not search for or
+  guess the person's LinkedIn identity.
 - Never execute from a conversational count, candidate name alone, or a prior
-  review bucket. Resolve one current `person_id`, one current `job_id`, and the
-  expected current state for every proposed action.
+  review bucket. For a job-linked action, resolve one current `person_id`, one
+  current `job_id`, and the expected current state. For proactive MPC/Pitch,
+  resolve the current `person_id`, expected current state, and approved client,
+  deal, role, or candidate-marketing context; do not invent a `job_id`.
 
 ## Ja Defaults
 
