@@ -37,6 +37,7 @@ Use this order:
    - `references/loxo-workflow.md` for jobs, people, candidates, submissions, resumes, status, tags, filtering, and imports.
    - `references/loxo-safe-pipeline-actions.md` for review, action manifests, independent audit, approval, precondition checks, serialized execution, and post-write verification.
    - `references/gmail-loxo-candidate-reconciliation.md` for evidence-based reconciliation of Gmail submission history, Loxo stages, job association, and structured candidate fields.
+   - `references/loxo-candidate-fit-review.md` for the read-only, job-linked Profile, Resume, Activity, and optional LinkedIn sequence used to decide whether one pipeline candidate fits the exact role.
    - `references/loxo-linkedin-candidate-vetting.md` for read-only candidate vetting against the exact LinkedIn social-profile link visible on the Loxo profile before ranking or pitching.
    - `references/loxo-outreach.md` for campaigns, deliverability, personalization, metrics, A/B tests, scheduling, merge tags, and email/SMS behavior.
    - `references/loxo-business-development.md` for companies, account-based prospecting, deals, MPC/spec CV, sales activities, and client BD.
@@ -45,6 +46,12 @@ Use this order:
 
 ## Protected workflow routes
 
+- For a read-only fit check on one candidate already attached to one Loxo job,
+  load `references/loxo-candidate-fit-review.md` plus the recruiter decision and
+  vetting frameworks. Start from the exact job and its requirements, then review
+  Profile, Resume, same-job Activity when relevant, and only the exact LinkedIn
+  link visible on the Loxo profile when public corroboration is useful. Return a
+  `GO`, `NEEDS VERIFICATION`, or `NO-GO` verdict without changing Loxo.
 - For candidate review or a request to shortlist, reject, move, or clean up a
   job pipeline, load `references/loxo-safe-pipeline-actions.md`. Review and
   manifest preparation are read-only. Any write remains separately authorized.

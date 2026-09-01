@@ -26,6 +26,15 @@
       "external_actions": "public_read_only"
     },
     {
+      "id": "loxo_candidate_fit_review",
+      "router": "recruiter",
+      "capabilities": ["loxo", "vet"],
+      "required_sources": ["target_loxo_job", "job_requirements", "exact_candidate_profile", "candidate_resume_or_explicit_missing_evidence"],
+      "stages": ["job_scope", "candidate_identity", "profile_context", "resume_evidence", "same_job_activity", "optional_linkedin_corroboration", "fit_verdict", "return_to_pipeline"],
+      "external_actions": "none",
+      "reference": "recruiter/modules/loxo/references/loxo-candidate-fit-review.md"
+    },
+    {
       "id": "tracker_submissions",
       "router": "recruiter",
       "capability": "tracker",

@@ -42,7 +42,7 @@ Read `recruiter/SKILL.md`, then read only the module the lane names.
 |---|---|---|---|
 | "brand this", "make this a resume", "give me the PDF" | Branded resume | `modules/brandedresume/GUIDE.md` | PDF in Downloads, `test -f` passes, size > 0 |
 | "write up the submission", "full package", "bundle this" | Full package | `modules/write-up/GUIDE.md` | exactly one Gmail draft, body ends "CV attached.", PDF exists |
-| "vet this", "is he worth submitting", "check fit" | Vet | `modules/vet/GUIDE.md` | verdict is GO, NO-GO, or NEEDS VERIFICATION |
+| "vet this", "is he worth submitting", "check fit" | Vet | `modules/vet/GUIDE.md`; if reviewing inside a Loxo job, also use `modules/loxo/GUIDE.md` and `modules/loxo/references/loxo-candidate-fit-review.md` | verdict is GO, NO-GO, or NEEDS VERIFICATION; no Loxo write |
 | "defend this", "they will reject him because X" | Defense | `modules/candidate-defense/GUIDE.md` | written case, every claim source-tagged |
 | "draft an email", "reach out to", "follow up with" | Ja voice | `modules/ja-writer/GUIDE.md` | no banned punctuation, no AI filler |
 | "what do you think of this role", "is this worth working", JD pasted with no other ask | **Role read** | `references/jd-screening-guide.md` then `references/decision-framework.md` | pain buckets named, screening questions listed, red flags called |

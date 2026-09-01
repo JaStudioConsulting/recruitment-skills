@@ -56,7 +56,7 @@ authority.
 | Ja wants | Read this module | Tool it uses | Done only when |
 |----------|------------------|--------------|----------------|
 | Build the branded resume PDF ("brand this") | `modules/brandedresume/GUIDE.md` | `modules/brandedresume/scripts/build_resume.py` | PDF exists in Downloads, size > 0 |
-| Vet / go-no-go / check fit | `modules/vet/GUIDE.md`, `modules/ja-candidate-vetting/GUIDE.md` | none | verdict is GO, NO-GO, or NEEDS VERIFICATION |
+| Vet / go-no-go / check fit | `modules/vet/GUIDE.md`, `modules/ja-candidate-vetting/GUIDE.md`; for a candidate inside a Loxo job pipeline also read `modules/loxo/GUIDE.md` and its `loxo-candidate-fit-review.md` route | none or verified Loxo read-only access | verdict is GO, NO-GO, or NEEDS VERIFICATION; no Loxo write |
 | Full package (submission email draft + PDF) | `modules/write-up/GUIDE.md` | Gmail draft + build_resume.py | exactly one draft, body ends "CV attached.", PDF exists |
 | Defend a borderline candidate | `modules/candidate-defense/GUIDE.md` | none | written case cites sources |
 | Write in Ja's voice (email, outreach, follow-up) | `modules/ja-writer/GUIDE.md` | none | no banned punctuation, no AI tells |
