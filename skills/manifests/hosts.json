@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
-  "cutover_status": "not_started",
+  "cutover_status": "local_shared_install_authorized_verify_receipt",
   "instructions": "docs/consolidation/host-compatibility.md",
   "hosts": [
-    { "id": "codex", "mode": "repository_or_mcp", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": false },
+    { "id": "codex", "mode": "verified_shared_repository", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": true },
     { "id": "opencode", "mode": "repository_or_mcp", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": false },
-    { "id": "hermes", "mode": "repository_or_native_mcp", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": false },
-    { "id": "claude", "mode": "repository_or_mcp", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": false },
+    { "id": "hermes", "mode": "verified_shared_repository", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": true },
+    { "id": "claude", "mode": "verified_shared_repository", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": true },
     { "id": "gemini", "mode": "repository_or_mcp", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": false },
     { "id": "generic-mcp", "mode": "streamable_http", "front_door_tool": "skill_get", "capability_tool": "recruiter_capability_get", "active_repoint_allowed": false }
   ]

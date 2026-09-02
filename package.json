@@ -1,6 +1,6 @@
 {
   "name": "@jastudioconsulting/recruitment-skills",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Private, router-first recruiting skills authority for Ja Studio Consulting.",
   "exports": {
@@ -9,12 +9,16 @@
     "./manifests/*": "./skills/manifests/*",
     "./package.json": "./package.json"
   },
-  "files": ["lib", "skills", "docs", "tests/fixtures", "README.md", "SECURITY.md", "NOTICE.md"],
+  "files": ["lib", "skills", "scripts", "test", "docs", "tests/fixtures", "README.md", "SECURITY.md", "NOTICE.md"],
   "scripts": {
     "validate": "node scripts/validate-package.mjs",
     "test": "node --test test/*.test.mjs",
     "check:python": "node scripts/check-python-syntax.mjs",
-    "pack:check": "node scripts/check-packed-artifact.mjs"
+    "pack:check": "node scripts/check-packed-artifact.mjs",
+    "authority:check": "node skills/recruiter/scripts/authority.mjs",
+    "authority:ensure": "node skills/recruiter/scripts/authority.mjs ensure",
+    "install:local": "node scripts/install-local.mjs",
+    "sync:local": "node scripts/sync-local.mjs"
   },
   "packageManager": "pnpm@10.33.0",
   "engines": { "node": ">=20" },

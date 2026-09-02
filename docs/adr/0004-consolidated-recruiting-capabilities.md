@@ -4,24 +4,31 @@
 
 Accepted upstream on 2026-08-22. This package-specific extract was created during the split-repository migration from verified upstream commit `81cf42c`. Publishing, consumer installation, host repointing, deployment, and live smoke testing remain pending.
 
+Amended 2026-09-02: Ja authorized publishing the complete protected Tracker
+workflow and installing the repository as the shared local authority. The
+historical no-cutover statements below describe the original migration only.
+The current contract is [CUTOVER.md](../consolidation/CUTOVER.md). The validator
+now permits Recruiter's SKILL.md and one Tracker compatibility SKILL.md that
+routes back through Recruiter; all operational rules remain in one GUIDE.md.
+
 ## Context
 
 Recruiting instructions, builders, and integration declarations had diverged across old local sources. The split keeps the reusable recruiting authority independently versioned, while a Workbench consumer owns gateway implementation, UI, credentials, and deployment.
 
 ## Decisions
 
-1. `skills/recruiter/SKILL.md` is the sole recruiting front door. Its 23 capabilities are internal `GUIDE.md` modules and are never registered as standalone skills. The Tracker guide is a thin route to a protected host-provided Tracker Manager authority.
+1. `skills/recruiter/SKILL.md` is the sole recruiting front door. Its 23 capabilities use internal `GUIDE.md` modules. Tracker routes to the protected repository-owned `skills/tracker-manager/GUIDE.md`; its SKILL.md compatibility entry returns through Recruiter.
 2. This private package owns the router, policies, manifests, sanitized deterministic builders/assets, and synthetic fixtures. Consumers provide runtime adapters and do not copy or fork this authority.
 3. Manifests remain router-first and declare the integration contract only. Gmail is draft-first; Loxo is read-only/draft-only unless separately authorized in a consumer. No send, candidate submission, Loxo write, approval decision, or external deletion is declared.
 4. The package contains no real candidate/client/referee records, staff email identities, account IDs, credentials, environment values, generated outputs, deployment code, or external symlinks. Runtime addresses, account identifiers, browser adapters, and output paths are host-supplied.
 5. The resolver API and explicit package exports are the only supported way for consumers to locate packaged resources. Consumers must not hard-code a `node_modules` path.
-6. No cutover is implied. The source repository remains unchanged as rollback evidence until a separately approved reversible release.
+6. Ja approved the reversible shared local cutover for Codex, Claude and Hermes on 2026-09-02. Retain the pre-cutover skill entries and receipt as rollback evidence. Other hosts remain pending.
 
 ## Consequences
 
 - Skills can be reviewed, tested, and versioned independently of the Workbench.
 - Consumers pin an exact private package version and use `getRecruiterAuthority()` or `resolveSkillPath()` to locate the router, manifests, and internal resources.
-- The package validator enforces one `SKILL.md`, 23 modules, manifest consistency, safe paths, sanitized DOCX placeholders, no symlinks, and basic secret/privacy checks.
+- The package validator enforces the Recruiter entry and Tracker compatibility entry, 23 capabilities, required protected resources, manifest consistency, safe paths, sanitized DOCX placeholders, no packaged symlinks, and basic secret/privacy checks.
 
 ## Verification
 

@@ -18,6 +18,10 @@ Compiled 2026-07-29 from Ja's corrections across Claude Code and Codex sessions 
 
 ## 1. WRITING STYLE (all output: resumes, emails, docs)
 
+Tracker is an event ledger. Its protected row contract controls cell structure,
+exact headers and source-value preservation. Do not apply submission-email
+narrative rules to Tracker rows or rewrite completed events for style alone.
+
 - No em dashes, no en dashes, no double hyphens, no semicolons, no tildes. Anywhere. Reword with commas or "and", or restructure the sentence.
 - No spaces around slashes. Write "CNC/manual" and "Production Supervisor/Converting Supervisor", never "CNC / manual".
 - Write proper sentences with verbs. Not title-case fragment headers. A resume bullet is a sentence, not a heading.

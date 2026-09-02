@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "headers": ["Submission Date", "Recruiter", "Candidate Name", "Current / Most Recent Title", "Current / Most Recent Company", "License & Certifications", "Location", "Industry", "Target Compensation / Current Rate", "Reason for Leaving", "Profile Summary", "Additional Notes", "Submission Type", "Role Submitted For", "Client Submitted To", "Activity Status", "Submission Link", "Gmail Message ID", "Gmail Thread ID", "Candidate Key", "Source Verified Date"],
+  "required_fields": ["Recruiter", "Candidate Name", "Submission Type"],
+  "metadata_fields": ["Submission Date", "Submission Link", "Gmail Message ID", "Gmail Thread ID", "Candidate Key", "Source Verified Date"],
+  "notes_order": ["Availability", "Notice", "Start date", "Shift", "Commute", "Work status", "Arrangement", "Limitations"],
+  "format": {"row_height": 30, "date_pattern": "yyyy-mm-dd", "copy_exemplar_format": true, "wrap_strategy": "CLIP", "freeze_header_rows": 1, "sort_date": "descending"}
+}

@@ -5,14 +5,17 @@ search, or verify Tracker Submissions.
 
 ## Canonical authority
 
-This adapter contains no Tracker business logic. Load and follow the consuming
-host's canonical `tracker-manager` authority before any Tracker action. If the
-host does not provide that authority, stop without reading or mutating the live
-Tracker.
+After Recruiter's authority check, load the returned canonical Tracker guide:
+[protected Tracker Manager](../../../tracker-manager/GUIDE.md).
 
-Do not copy Tracker schema, source hierarchy, event identity, write scope,
-ownership logic, formatting rules, or QA into Recruiter. If this adapter and
-Tracker Manager differ, Tracker Manager controls.
+It and its row contract belong to the same verified repository version. The
+host supplies only workbook/account configuration and working connections.
+Never substitute old vault instructions or invent missing field-writing rules.
+
+Keep Tracker schema, source hierarchy, event identity, write scope, ownership,
+formatting and QA in that protected implementation. Use its offline planner
+before every write; the primary agent sends only the validated returned values
+through the actual scoped Sheets connection.
 
 ## Authorization handoff
 

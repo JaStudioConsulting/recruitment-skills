@@ -3,7 +3,7 @@
   "authority": "External integrations are adapters only. They never replace skills/recruiter/SKILL.md.",
   "integrations": [
     { "id": "google-workspace", "kind": "external_api", "status": "optional", "allowed": ["gmail_draft", "gmail_read", "calendar_read", "drive_read", "sheets_read", "sheets_write_submissions_only"], "forbidden": ["gmail_send", "sheets_write_other_tabs"], "credentials": "runtime_only" },
-    { "id": "tracker-manager", "kind": "protected_skill_service", "status": "required_for_tracker_operations", "allowed": ["read", "prepare_manifest", "approved_submissions_write", "qa"], "forbidden": ["write_outside_submissions", "gmail_send"], "credentials": "host_managed" },
+    { "id": "tracker-manager", "kind": "repository_protected_capability", "path": "tracker-manager/GUIDE.md", "status": "required_for_tracker_operations", "allowed": ["read", "prepare_manifest", "approved_submissions_write", "qa"], "forbidden": ["write_outside_submissions", "gmail_send"], "credentials": "host_managed" },
     { "id": "loxo", "kind": "external_service", "status": "optional", "allowed": ["read", "draft_bullets"], "forbidden": ["write_without_named_human_authorization"], "credentials": "host_managed" },
     { "id": "airtable", "kind": "external_service", "status": "optional", "allowed": ["read"], "forbidden": ["write_without_named_human_authorization"], "credentials": "host_managed" },
     { "id": "adzuna", "kind": "external_api", "status": "optional", "allowed": ["job_search", "salary_research"], "credentials": "environment_or_host_secret_store" },

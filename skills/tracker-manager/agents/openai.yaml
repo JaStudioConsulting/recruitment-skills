@@ -1,0 +1,6 @@
+interface:
+  display_name: "Tracker Manager"
+  short_description: "Keep Gmail-backed Submissions current and verified"
+  default_prompt: "Use $tracker-manager through Recruiter to verify the active repository version and run the protected Tracker workflow with validated rows and final QA."
+policy:
+  allow_implicit_invocation: true

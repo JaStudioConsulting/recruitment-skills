@@ -30,9 +30,9 @@ Default domain is recruiting. If a request is ambiguous between recruiting and g
 
 ## 1. Front door
 
-`recruiter` is the ONE recruiting skill. Every specialist lives inside it at
-`recruiter/modules/<name>/GUIDE.md`. There are no other recruiting skills to pick.
-Read `recruiter/SKILL.md`, then read only the module the lane names.
+`recruiter` is the ONE recruiting front door. Complete its authority check and
+read only the needed module. Tracker routes to the repository's protected
+`tracker-manager/GUIDE.md`; its skill-name compatibility entry loads Recruiter.
 
 ---
 
@@ -50,6 +50,7 @@ Read `recruiter/SKILL.md`, then read only the module the lane names.
 | "find me candidates", "x-ray", "source" | Sourcing | `modules/web-sourcing/GUIDE.md` | every row marked Verified yes or no |
 | "reference check" | Reference check | `modules/complete-reference-check/GUIDE.md` | DOCX exists, size > 0 |
 | Loxo work, bullets, dashboards | Loxo | `modules/loxo/GUIDE.md` | read-only, no write performed |
+| Update, sync, audit, repair, search Tracker or check ownership | Tracker | `modules/tracker/GUIDE.md`, then canonical `tracker-manager/GUIDE.md` | planner, exact row rereads and operation-specific QA pass |
 | "screen this list", "rank these" | Screening | `modules/applicant-screening/GUIDE.md` | ranked list returned |
 | Cover letter, offer letter | Letters | `modules/cover-letter/GUIDE.md`, `modules/offer-letter/GUIDE.md` | file exists if a file was promised |
 | Server, SSH, containers, m1 | Ops | `skills/productivity/m1-console-ops/SKILL.md` | command output pasted, not summarized |
@@ -90,7 +91,9 @@ Rules for the ask:
 - If Ja already named a skill or tool, do not ask at all. Run it.
 - If the request is clearly recruiting but the lane is unclear, default to **Vet** and say that is what you picked. Vet is cheap and reversible.
 
-**After Ja answers, record it.** Append a line to section 5 so the same question is never asked twice. This file is how the system stops making Ja repeat himself.
+Record task-specific answers in the private run record. Reusable routing changes
+belong in an explicit repository change with validation and publication; never
+edit the installed authority as an uncommitted side effect of a Tracker run.
 
 ---
 

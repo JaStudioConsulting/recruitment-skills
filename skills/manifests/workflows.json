@@ -38,9 +38,11 @@
       "id": "tracker_submissions",
       "router": "recruiter",
       "capability": "tracker",
-      "required_sources": ["original_submission_email", "live_submissions_headers", "live_identity_index"],
-      "stages": ["source_gate", "reconciliation", "manifest", "authorization_check", "sequential_write", "server_qa", "visual_qa"],
-      "external_actions": "approval_gated_submissions_write"
+      "required_sources": ["original_submission_email", "reviewed_attachment_inventory", "credential_scan", "live_submissions_headers", "live_identity_index"],
+      "stages": ["authority_check", "complete_mailbox_discovery", "source_gate", "reconciliation", "validated_row_plan", "authorization_check", "precondition_recheck", "sequential_write", "server_qa", "format_qa", "visual_qa"],
+      "external_actions": "approval_gated_submissions_write",
+      "reference": "tracker-manager/GUIDE.md",
+      "row_contract_version": 1
     },
     {
       "id": "loxo_safe_pipeline_action",

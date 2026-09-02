@@ -9,14 +9,39 @@ This is the ONLY recruiting entrypoint. Candidate-work specialists such as
 brandedresume, vet, write-up, ja-writer, loxo, and sourcing live inside this
 skill under `modules/` as `modules/<name>/GUIDE.md`.
 
-Tracker Manager is the deliberate protected exception. Recruiter routes Tracker
-requests through `modules/tracker/GUIDE.md`, while the consuming host provides
-the canonical `tracker-manager` authority. Never copy, move, or restate its
-schema, event identity, write scope, or QA rules inside Recruiter.
+Tracker Manager is a protected repository-owned capability. Recruiter routes
+through `modules/tracker/GUIDE.md` to `../tracker-manager/GUIDE.md`. Its existing
+skill name is a compatibility entry back through Recruiter. Keep its row
+contract and operational rules in that one protected implementation.
+
+## Load the active repository version first
+
+For local Codex, Claude and Hermes, run this before any recruiting operation:
+
+```
+node <loaded-recruiter-folder>/scripts/authority.mjs ensure
+```
+
+`<loaded-recruiter-folder>` is the directory of this SKILL.md, including when
+loaded through a shared-skills symlink. The command checks installed links,
+clean repository, installation receipt and published main commit. Authorized
+routine updates fast-forward only after validating the incoming version in an
+isolated worktree. Never overwrite local changes or invent a fallback skill.
+If it fails, stop the affected recruiting action and report the exact cause.
+
+Use the **canonical paths returned by the command** for this router, rules,
+tool map, Tracker guide and private host/Tracker config. If the command updated
+the commit, reread the router and needed guide before continuing. Do not mix
+repository modules with older shared-vault policy files. The private host
+config supplies output paths and internal recipients, never reusable rules.
+
+For a connector-only host, fetch current GitHub main and load this router and
+required resources from that same commit. Do not claim local sync or executable
+Tracker validation there unless that runtime is actually present.
 
 When a recruiting task arrives, start here, read only the module you need, and follow it. This file owns the workflow, the gates, and the routing.
 
-Read `../_JA-RULES.md` first. Those style, resume, and submission rules override defaults and apply to every artifact.
+Read the canonical `../_JA-RULES.md` returned by the authority check. Those style, resume, and submission rules override defaults and apply to every artifact.
 
 ## Canonical sources
 
@@ -45,13 +70,12 @@ Truth comes only from: the resume, the call audio/transcript, recruiter notes th
 
 ## UI Action Runbook
 
-Legacy UI action boards and their external scripts were not imported because they contain operational candidate data and direct-send paths. Use only Workbench's consolidated draft and approval tools. No automatic Loxo-to-Gmail fallback, no automatic retry after an unknown result, and no send without Ja's explicit approval.
+Legacy UI action boards and their external scripts were not imported because they contain operational candidate data and direct-send paths. Use the current host's verified scoped connectors or Workbench adapters. Manifest tool names describe contracts, not proof that those tools are installed. No automatic Loxo-to-Gmail fallback, no automatic retry after an unknown result, and no send without Ja's explicit approval.
 
 ## Mode routing
 
 All module paths are relative to this skill folder. Tracker operations use the
-thin routing module, which then loads the host-provided Tracker Manager
-authority.
+thin routing module, which then loads the repository-owned Tracker Manager.
 
 | Ja wants | Read this module | Tool it uses | Done only when |
 |----------|------------------|--------------|----------------|
@@ -115,7 +139,7 @@ Give only what matters: which stage ran, what it produced, any blocked or missin
 
 ## Protected operational capability
 
-The consuming host must provide the canonical `tracker-manager` authority.
+The repository provides the canonical `tracker-manager` authority.
 `modules/tracker/GUIDE.md` is a routing adapter only. Recruiter owns intake and
 mode selection. Tracker Manager owns Gmail-to-Submissions discovery,
 reconciliation, source-grounded manifests, sequential writes, repairs,
