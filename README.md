@@ -1,6 +1,6 @@
 # @jastudioconsulting/recruitment-skills
 
-Private, versioned recruiting-skills authority for Ja Studio Consulting. `$recruiter` is the sole front door for 23 capabilities. Tracker routes to the complete protected implementation in `skills/tracker-manager/GUIDE.md`. The `$tracker-manager` compatibility entry loads Recruiter first; it does not duplicate the rules.
+Private, versioned recruiting-skills authority for Ja Studio Consulting. GitHub `main` is the only source of recruiting rules. `$recruiter` is the sole front door for 23 capabilities. Tracker routes to the complete protected implementation in `skills/tracker-manager/GUIDE.md`, including its explicit, approval-gated Leads import contract. The `$tracker-manager` compatibility entry loads Recruiter first; it does not duplicate the rules.
 
 ## Consumer use
 
@@ -24,7 +24,7 @@ Direct exports are also available for packaged resources, for example `@jastudio
   approval.
 - No candidate/client/referee records, staff addresses, account IDs, credentials, environment files, deployment code, or live integrations are included.
 - Loxo agency/owner values, Gmail recipients, browser adapters, and output locations must come from the consuming host.
-- The repository owns Tracker source rules, field formats, reconciliation and QA. Hosts supply private workbook/account configuration and live adapters. All new/changed rows must use the bundled planner; completed events remain unchanged on repeat runs.
+- The repository owns Tracker source rules, field formats, reconciliation and QA. Hosts supply private workbook/account configuration and live adapters. All new/changed Submissions and Leads rows must use the bundled planner; completed events remain unchanged on repeat runs.
 - This package is proprietary. See [NOTICE.md](NOTICE.md).
 
 ## Validation
@@ -40,8 +40,9 @@ The package uses pnpm exclusively. `pack:check` creates and removes a temporary 
 
 ## Local use
 
-See [the cutover contract](docs/consolidation/CUTOVER.md). Codex, Claude and
-Hermes can share symlinks to one clean checkout. `authority:ensure` compares
+See [the cutover contract](docs/consolidation/CUTOVER.md). Codex, Claude,
+Hermes, and Gemini can each expose one symlink to one clean checkout.
+`authority:ensure` compares
 published main on every recruiting run, validates incoming changes before a
 fast-forward, and verifies the installation receipt. It does not overwrite
 unpublished local edits. Private profiles, backups and run records stay outside

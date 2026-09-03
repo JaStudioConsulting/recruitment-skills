@@ -15,8 +15,10 @@ Do not reconstruct either from memory or reuse a previous run's row numbers.
    permits Submissions updates; a repair request permits the specified fixes.
    Candidate packaging and Gmail drafts confer no Tracker-write permission.
 3. Verify the actual workbook title, tab and sheet ID against configuration.
-   Only configured `Submissions` is writable. Other tabs remain read-only
-   unless Ja expressly expands the current request.
+   `Submissions` is writable only for its protected submission operations.
+   `Leads` is writable only through the separate protected
+   [Leads workflow](leads/GUIDE.md), with explicit import authorization and a
+   configured Leads sheet ID. Other tabs remain read-only.
 4. Prefer connected Gmail and direct Google Sheets tools. Authenticated GWS
    is a fallback when the needed direct operation is unavailable. A failing
    separate Drive connector is not a reason to reconfigure working connections.

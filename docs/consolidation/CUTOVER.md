@@ -13,7 +13,8 @@ Keep the checkout outside the shared notes/skills vault. Create private
 directory, or the directory named by `JASTUDIO_RECRUITMENT_CONFIG`.
 
 - Tracker config: workbook_id, workbook_title, sheet_id, tab (Submissions),
-  owner_names, optional approved vocabulary. Verify these against the live
+  owner_names, optional approved vocabulary, plus an optional `leads` object
+  containing `sheet_id` and `tab: "Leads"`. Verify these against the live
   connection at operation start; the config is never a substitute for reads.
 - Host config: actor name, internal-team recipient, output directory and
   private run directory. Credentials stay in existing connector stores.
@@ -41,7 +42,10 @@ trees and failed validation stop the sync without replacing the active version.
 No background scheduler is installed. Newly loaded local skills use the shared
 version; an already-running task must reread the router after the check.
 
-Only Codex, Claude and Hermes local shared-path installation is covered here.
+Codex, Claude, Hermes, and Gemini local shared-path installation may expose a
+symlink to this one checkout. Register `recruiter` once per host. Do not expose
+the same skill through both a host's `.agents/skills` and `.gemini/skills`
+directories: that duplicate registration confuses Gemini's skill resolver.
 Other machines, cloud chats and MCP consumers require their own verified adapter
 or package installation; this document does not claim they were repointed.
 

@@ -1,7 +1,7 @@
 # Tracker routing
 
 Use this adapter when a request asks Recruiter to update, sync, audit, repair,
-search, or verify Tracker Submissions.
+search, or verify Tracker Submissions, or preview/import verified Tracker Leads.
 
 ## Canonical authority
 
@@ -25,6 +25,9 @@ Pass the exact request and authorization to Tracker Manager.
   read-only.
 - Update, sync, bring current, or add submissions authorizes only the
   source-backed Submissions writes defined by Tracker Manager.
+- Previewing Leads is read-only. Importing Leads requires an explicit request
+  to import Leads and the validated `import_leads` authorization defined by
+  [the protected Leads guide](../../../tracker-manager/leads/GUIDE.md).
 - Repair, fix, or fill authorizes only the exact source-backed corrections
   defined by Tracker Manager.
 - Candidate vetting, packaging, resume creation, submission writing, or Gmail
@@ -41,9 +44,9 @@ Tracker Manager owns every Tracker read, Gmail reconciliation, manifest,
 mutation, sort, filter change, formatting operation, ownership check, and QA.
 Recruiter must not write to the workbook directly.
 
-Only the host-declared Submissions ledger is writable by default. Every other
-Tracker surface remains read-only unless the user explicitly expands scope in
-the current request.
+Only the host-declared Submissions ledger is writable by default. The
+host-declared Leads tab becomes writable only for a validated, explicitly
+authorized Leads import. Every other Tracker surface remains read-only.
 
 The Gmail source connection and authenticated Sheets connection may use
 different Google accounts. Never require or attempt an account merge.

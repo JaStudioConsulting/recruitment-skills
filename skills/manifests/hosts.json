@@ -7,7 +7,7 @@
     { "id": "opencode", "mode": "repository_or_mcp", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": false },
     { "id": "hermes", "mode": "verified_shared_repository", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": true },
     { "id": "claude", "mode": "verified_shared_repository", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": true },
-    { "id": "gemini", "mode": "repository_or_mcp", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": false },
+    { "id": "gemini", "mode": "verified_shared_repository", "front_door": "skills/recruiter/SKILL.md", "active_repoint_allowed": true },
     { "id": "generic-mcp", "mode": "streamable_http", "front_door_tool": "skill_get", "capability_tool": "recruiter_capability_get", "active_repoint_allowed": false }
   ]
 }

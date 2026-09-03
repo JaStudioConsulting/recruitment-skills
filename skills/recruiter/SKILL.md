@@ -1,6 +1,6 @@
 ---
 name: recruiter
-description: The single front door for all Top Tier Talent Group recruiting work. Use whenever Ja wants to vet, screen, match, source, defend, brand, write up, submit, MPC, blind, reference-check, or package a candidate, asks who to call or whether someone fits, or wants to update, sync, audit, repair, search, or verify Tracker Submissions. Also fires on any upload of a resume, transcript, call notes, JD, or Loxo record with a recruiting ask. This is the ONE router. It owns workflow selection and routes Tracker work to the protected Tracker Manager authority.
+description: The single front door for all Top Tier Talent Group recruiting work. Use whenever Ja wants to vet, screen, match, source, defend, brand, write up, submit, MPC, blind, reference-check, or package a candidate, asks who to call or whether someone fits, or wants to update, sync, audit, repair, search, or verify Tracker Submissions or Leads. Also fires on any upload of a resume, transcript, call notes, JD, or Loxo record with a recruiting ask. This is the ONE router. It owns workflow selection and routes Tracker work to the protected Tracker Manager authority.
 ---
 
 # Recruiter (the one front door)
@@ -16,7 +16,7 @@ contract and operational rules in that one protected implementation.
 
 ## Load the active repository version first
 
-For local Codex, Claude and Hermes, run this before any recruiting operation:
+For local Codex, Claude, Hermes, and Gemini, run this before any recruiting operation:
 
 ```
 node <loaded-recruiter-folder>/scripts/authority.mjs ensure
@@ -89,7 +89,7 @@ thin routing module, which then loads the repository-owned Tracker Manager.
 | Reference check DOCX | `modules/complete-reference-check/GUIDE.md` | docx build | file exists, size > 0 |
 | Source / x-ray / find candidates on the web | `modules/web-sourcing/GUIDE.md`, `modules/sourcing/GUIDE.md` | web search | every row marked Verified yes or no |
 | Loxo ATS work, bullets, dashboards, Gmail reconciliation, or safe pipeline action manifest | `modules/loxo/GUIDE.md`, `modules/loxo-readonly-candidate-dashboard/GUIDE.md` | Loxo and Gmail read-only | findings or exact approval manifest returned; no implicit write |
-| Update, sync, audit, repair, search, or verify Tracker Submissions | `modules/tracker/GUIDE.md` | protected `tracker-manager`, Gmail read, scoped Sheets adapter | Tracker Manager's operation-specific verification and final report pass |
+| Update, sync, audit, repair, search, or verify Tracker Submissions or import verified Tracker Leads | `modules/tracker/GUIDE.md` | protected `tracker-manager`, Gmail read, scoped Sheets adapter | Tracker Manager's operation-specific verification and final report pass |
 | Offer letter | `modules/offer-letter/GUIDE.md` | none | file exists if a file was promised |
 | Cover letter | `modules/cover-letter/GUIDE.md` | none | source-grounded draft returned |
 | Job-ad drafting and salary research | `modules/job-loxo/GUIDE.md` | Adzuna read-only when configured | draft returned, no Loxo write |
@@ -119,7 +119,7 @@ This exists because a model previously reported a CSV written when no file exist
 - MPC to the host-configured internal team mailbox attaches the NAMED resume with real employers. Only anonymize when a resume goes OUT to an external client speculatively. Real current employer name always appears in the email body.
 - Never invent a fact, never ship a placeholder or a "[confirm]" marker to a client. Missing employer, date, degree, location, or metric means stop and ask Ja.
 - Keep candidate approval and duplicate-submission checks as hard gates.
-- A candidate package, resume, Gmail draft, or submission-writing request does not authorize a Tracker write. Pass the exact Tracker request and authorization through the routing module. Tracker Manager alone decides whether the request is read-only or authorizes a scoped Submissions mutation.
+- A candidate package, resume, Gmail draft, or submission-writing request does not authorize a Tracker write. Pass the exact Tracker request and authorization through the routing module. Tracker Manager alone decides whether the request is read-only or authorizes a scoped Submissions or Leads mutation.
 - BULLET BOLD RULE: never bold the whole lead sentence like a book chapter title. Bold only the specific proof point wherever it falls in the sentence, employer name, system, cert, number, or skill. Never mechanically bold the opening words of a bullet.
 
 ## Delegation
@@ -141,8 +141,8 @@ Give only what matters: which stage ran, what it produced, any blocked or missin
 
 The repository provides the canonical `tracker-manager` authority.
 `modules/tracker/GUIDE.md` is a routing adapter only. Recruiter owns intake and
-mode selection. Tracker Manager owns Gmail-to-Submissions discovery,
-reconciliation, source-grounded manifests, sequential writes, repairs,
+mode selection. Tracker Manager owns Gmail-to-Submissions discovery, Leads
+intake planning, source-grounded manifests, sequential writes, repairs,
 ownership checks, sorting, filter coverage, formatting, and final QA.
 
 Do not merge Google accounts. Gmail and authenticated Sheets connections may

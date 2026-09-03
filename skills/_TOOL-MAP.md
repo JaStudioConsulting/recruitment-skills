@@ -50,7 +50,7 @@ read only the needed module. Tracker routes to the repository's protected
 | "find me candidates", "x-ray", "source" | Sourcing | `modules/web-sourcing/GUIDE.md` | every row marked Verified yes or no |
 | "reference check" | Reference check | `modules/complete-reference-check/GUIDE.md` | DOCX exists, size > 0 |
 | Loxo work, bullets, dashboards | Loxo | `modules/loxo/GUIDE.md` | read-only, no write performed |
-| Update, sync, audit, repair, search Tracker or check ownership | Tracker | `modules/tracker/GUIDE.md`, then canonical `tracker-manager/GUIDE.md` | planner, exact row rereads and operation-specific QA pass |
+| Update, sync, audit, repair, search Tracker, check ownership, or preview/import verified Leads | Tracker | `modules/tracker/GUIDE.md`, then canonical `tracker-manager/GUIDE.md` | planner, exact row rereads and operation-specific QA pass |
 | "screen this list", "rank these" | Screening | `modules/applicant-screening/GUIDE.md` | ranked list returned |
 | Cover letter, offer letter | Letters | `modules/cover-letter/GUIDE.md`, `modules/offer-letter/GUIDE.md` | file exists if a file was promised |
 | Server, SSH, containers, m1 | Ops | `skills/productivity/m1-console-ops/SKILL.md` | command output pasted, not summarized |

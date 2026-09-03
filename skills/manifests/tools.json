@@ -26,6 +26,8 @@
     { "id": "tracker_search", "class": "read_only", "external_effect": "sheets_read", "includes_front_door": true },
     { "id": "tracker_prepare_update", "class": "draft_prepare", "external_effect": "gmail_and_sheets_read", "includes_front_door": true },
     { "id": "tracker_execute_update", "class": "restricted", "external_effect": "sheets_write_submissions_only", "gate": "explicit_tracker_update", "requires": ["verified_repository_authority", "validated_tracker_plan", "live_precondition_match"], "includes_front_door": true },
+    { "id": "tracker_prepare_leads_import", "class": "draft_prepare", "external_effect": "sheets_read", "includes_front_door": true },
+    { "id": "tracker_execute_leads_import", "class": "restricted", "external_effect": "sheets_write_leads_only", "gate": "explicit_leads_import", "requires": ["verified_repository_authority", "validated_leads_plan", "user_preview_approval", "live_precondition_match"], "includes_front_door": true },
     { "id": "tracker_prepare_repair", "class": "draft_prepare", "external_effect": "gmail_and_sheets_read", "includes_front_door": true },
     { "id": "tracker_execute_repair", "class": "restricted", "external_effect": "sheets_write_submissions_only", "gate": "explicit_tracker_repair", "requires": ["verified_repository_authority", "validated_tracker_plan", "live_precondition_match"], "includes_front_door": true },
     { "id": "tracker_check_ownership", "class": "read_only", "external_effect": "sheets_read", "includes_front_door": true },

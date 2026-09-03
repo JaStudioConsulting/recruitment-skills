@@ -45,6 +45,16 @@
       "row_contract_version": 1
     },
     {
+      "id": "tracker_leads_import",
+      "router": "recruiter",
+      "capability": "tracker",
+      "required_sources": ["source_lead_sheet_or_structured_intake", "live_leads_headers", "complete_live_company_job_identity_index"],
+      "stages": ["authority_check", "source_review", "validated_leads_plan", "preview", "human_approval", "precondition_recheck", "serialized_write", "server_qa", "visual_qa"],
+      "external_actions": "approval_gated_leads_write",
+      "reference": "tracker-manager/leads/GUIDE.md",
+      "row_contract_version": 1
+    },
+    {
       "id": "loxo_safe_pipeline_action",
       "router": "recruiter",
       "capabilities": ["loxo", "loxo-automation"],
