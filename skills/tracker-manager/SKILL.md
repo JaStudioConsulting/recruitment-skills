@@ -10,6 +10,9 @@ Load `../recruiter/SKILL.md` first and follow its authority check. Then use
 is [GUIDE.md](GUIDE.md), with [Leads](leads/GUIDE.md) as its only approved
 non-Submissions write route, in this same repository version.
 
+For every Leads request, read [leads/README.md](leads/README.md) in full before
+planning or acting. Its data-entry and formatting rules are mandatory.
+
 This entry preserves existing `$tracker-manager` invocations. It contains no
 independent schema, writing rules, or permissions. Do not load an older vault
 copy or reconstruct the workflow from chat history.
