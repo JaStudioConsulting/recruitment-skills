@@ -1,13 +1,13 @@
 ---
 name: complete-reference-check
-description: Complete candidate reference checks from supported evidence and generate a polished Top Tier Talent Group DOCX from the repository-owned sanitized blank template.
+description: Complete candidate reference checks from supported evidence and generate a polished Top Tier Talent Group PDF from the repository-owned sanitized blank template.
 ---
 
 # Complete Reference Check
 
 ## Consolidation safety gate
 
-Use only `assets/reference-check-template.docx`, generated from blank placeholders by `scripts/generate-reference-template.cjs`. Never substitute a completed candidate or referee document. The builder fails closed when the sanitized placeholder contract is missing.
+Use only the repository-owned sanitized blank `assets/reference-check-template.docx`. Never substitute a completed candidate or referee document. The bundled `scripts/build_reference_check.py` is the source of truth for filling and validating the template; it fails closed when the sanitized placeholder contract is missing.
 
 ## Required references
 
@@ -36,8 +36,8 @@ Read both files before drafting:
      --output "/absolute/path/Candidate Name - Reference Check - Reference Name.docx"
    ```
 
-11. Render the output with the documents skill. Inspect every page at 100%, then revise and rerender until there is no clipping, overlap, orphaned question, broken bullet, awkward page break, or unexpected drift from the template.
-12. Save the verified PDF in the caller-selected output directory using the exact naming pattern above. Never assume a machine-specific folder.
+11. Render the output with the documents skill. Inspect every page at 100% with human/vision review, then revise and rerender until there is no clipping, overlap, orphaned question, broken bullet, awkward page break, or unexpected drift from the template. Write the completed QA record and run the canonical repository validator at `../../scripts/validate-artifact-qa.mjs`; automated rendering alone is not sufficient.
+12. Save the verified PDF in the caller-selected output directory using the exact naming pattern above only after the completed QA record passes the validator. Never assume a machine-specific folder.
 13. Deliver only the finished PDF unless Ja requests another format. Retain or remove the intermediate DOCX according to Ja's task-specific direction.
 
 ## Input schema
@@ -99,7 +99,8 @@ Read both files before drafting:
 - Strong evidence appears in the most relevant question instead of being repeated everywhere.
 - The full template flow is present and visually recognizable.
 - Names, companies, roles, dates, ratings, pronouns, and recommendation language are internally consistent.
-- Every rendered page has been inspected after the final edit.
+- Every rendered page has a completed human/vision inspection record after the final edit; automated rendering alone does not satisfy this gate.
+- `../../scripts/validate-artifact-qa.mjs` passes against the completed QA record.
 - The final PDF is saved in Downloads as `Candidate Name - Reference Check - Reference Name.pdf`.
 
 ## Dashboard capability contract

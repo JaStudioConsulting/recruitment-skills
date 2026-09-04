@@ -28,7 +28,27 @@ One shot beats a redo. Before building, scan the input for any missing or unclea
    ```
 
    Save the PDF to the user's Downloads folder (or wherever they ask), named `<Candidate Name> - Top Tier Talent Group.pdf`.
-5. **Glance at the preview** the builder writes, fix anything off, then hand over the PDF as a clickable link. Delete the temp preview/json afterward.
+5. **Render and inspect every page** the builder writes, fix anything off, then hand over the
+   PDF as a clickable link. A preview glance is insufficient. Record PASS/FAIL for clipping,
+   overlap, orphaned headings or bullets, logo placement, privacy/contact removal, and natural
+   page breaks. Fix every FAIL and rerender before handoff. Delete temporary preview/json files
+   only after the QA record is complete.
+
+   Automated render checks are necessary, but they cannot mark visual completion. After actual
+   human/vision inspection of every rendered page, write the canonical artifact QA record with
+   `human_visual_inspection_complete: true`, the inspected page count, and explicit PASS results
+   for each required check. Validate that record against the final PDF:
+
+   The QA record's `artifact` field must contain the absolute final PDF path. Run the canonical
+   validator against that record:
+
+   ```bash
+   node skills/recruiter/scripts/validate-artifact-qa.mjs \
+     "/absolute/path/to/artifact-qa.json"
+   ```
+
+   Stop unless this validator exits 0 successfully. Automated tests or a render manifest
+   must leave the human-inspection field false and are not completion proof.
 
 ### How the builder just works anywhere
 
@@ -84,6 +104,16 @@ The recruiter front door pairs this capability with the internal write-up guide 
 ## Swapping the logo (for sharing to others)
 
 The logo lives at `assets/tttg_logo.png`. To rebrand for a different company, replace that PNG with their banner logo at the same path and filename. Everything else stays the same.
+
+## Done conditions
+
+- Builder output reports expected page count and no long dashes or hyperlinks.
+- Every page was rendered and inspected, with recorded PASS/FAIL for clipping, overlap,
+  orphaned headings/bullets, logo placement, privacy/contact removal, and page breaks.
+- The canonical `skills/recruiter/scripts/validate-artifact-qa.mjs` validator passes successfully
+  for the final PDF and QA record after actual human/vision inspection of every page.
+- No candidate contact information, placeholders, or unsupported facts remain.
+- The final PDF exists at the requested output path.
 
 ## Output
 

@@ -65,10 +65,12 @@ Confidence measures evidence quality, not enthusiasm:
 
 Use exactly:
 
-| Rank | Name | Verified Role/Location | Status | Fit | Evidence | Gaps | Public Profile | Confidence |
+| Rank | Name | Verified Role/Location | Eligibility | Evidence Status | Fit | Evidence | Gaps | Public Profile | Confidence |
 |---:|---|---|---|---|---|---|---|---|
 
-- `Status`: Eligible, Excluded, Outdated, Conflicting, or Unconfirmed.
+- `Eligibility`: `Eligible` or `Excluded` only. Use `Excluded` only for a confirmed hard gate.
+- `Evidence Status`: `Verified`, `Unconfirmed`, `Conflicting`, or `Outdated` only. This
+  describes evidence quality and never replaces eligibility.
 - Rank eligible people first. Put excluded and rejected rows after eligible rows while preserving
   one row per unique person.
 - Cover every unique supplied candidate exactly once.

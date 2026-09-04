@@ -40,21 +40,21 @@ read only the needed module. Tracker routes to the repository's protected
 
 | Ja says something like | Lane | Read | Done only when |
 |---|---|---|---|
-| "brand this", "make this a resume", "give me the PDF" | Branded resume | `modules/brandedresume/GUIDE.md` | PDF in Downloads, `test -f` passes, size > 0 |
-| "write up the submission", "full package", "bundle this" | Full package | `modules/write-up/GUIDE.md` | exactly one Gmail draft, body ends "CV attached.", PDF exists |
+| "brand this", "make this a resume", "give me the PDF" | Branded resume | `modules/brandedresume/GUIDE.md` + `recruiter/scripts/validate-artifact-qa.mjs` | PDF exists, every page human/vision-inspected, completed QA record, validator passes |
+| "write up the submission", "full package", "bundle this" | Full package | `modules/write-up/GUIDE.md` + `recruiter/scripts/validate-artifact-qa.mjs` | one saved unsent draft reread, PDF human/vision per-page QA and validator pass, attachment verified or explicitly unavailable/ready-to-attach |
 | "vet this", "is he worth submitting", "check fit" | Vet | `modules/vet/GUIDE.md`; if reviewing inside a Loxo job, also use `modules/loxo/GUIDE.md` and `modules/loxo/references/loxo-candidate-fit-review.md` | verdict is GO, NO-GO, or NEEDS VERIFICATION; no Loxo write |
 | "defend this", "they will reject him because X" | Defense | `modules/candidate-defense/GUIDE.md` | written case, every claim source-tagged |
 | "draft an email", "reach out to", "follow up with" | Ja voice | `modules/ja-writer/GUIDE.md` | no banned punctuation, no AI filler |
 | "what do you think of this role", "is this worth working", JD pasted with no other ask | **Role read** | `references/jd-screening-guide.md` then `references/decision-framework.md` | pain buckets named, screening questions listed, red flags called |
 | "who should I call", "check matches", "process intake" | Match engine | `modules/candidate-match-engine/GUIDE.md` | list returned, or blocker named (see Known Issues in `_JA-RULES.md`) |
-| "find me candidates", "x-ray", "source" | Sourcing | `modules/web-sourcing/GUIDE.md` | every row marked Verified yes or no |
-| "reference check" | Reference check | `modules/complete-reference-check/GUIDE.md` | DOCX exists, size > 0 |
+| "find me candidates", "x-ray", "source" | Sourcing | `modules/web-sourcing/GUIDE.md` | every row has `Eligibility` (`Eligible` or `Excluded`) and `Evidence Status` (`Verified`, `Unconfirmed`, `Conflicting`, or `Outdated`) with direct evidence |
+| "reference check" | Reference check | `modules/complete-reference-check/GUIDE.md` + `recruiter/scripts/validate-artifact-qa.mjs` | final PDF exists, every page human/vision-inspected with completed QA record, validator passes |
 | Loxo work, bullets, dashboards | Loxo | `modules/loxo/GUIDE.md` | read-only, no write performed |
 | Update, sync, audit, repair, search Tracker, check ownership, or preview/import verified Leads | Tracker | `modules/tracker/GUIDE.md`, then canonical `tracker-manager/GUIDE.md` | planner, exact row rereads and operation-specific QA pass |
 | "screen this list", "rank these" | Screening | `modules/applicant-screening/GUIDE.md` | ranked list returned |
 | Cover letter, offer letter | Letters | `modules/cover-letter/GUIDE.md`, `modules/offer-letter/GUIDE.md` | file exists if a file was promised |
-| Server, SSH, containers, m1 | Ops | `skills/productivity/m1-console-ops/SKILL.md` | command output pasted, not summarized |
-| Explain a tool or connection in plain words | Plain talk | `skills/talkdirty/SKILL.md` | no backend jargon |
+| Server, SSH, containers, m1 | Ops | Outside this package; no local guide is available | State unavailable and ask Ja before using an external capability |
+| Explain a tool or connection in plain words | Plain talk | Outside this package; no local guide is available | State unavailable and ask Ja before using an external capability |
 
 **Audio first.** If input has mp3/m4a/wav, run `transcribe` before writing any claim, in every lane.
 

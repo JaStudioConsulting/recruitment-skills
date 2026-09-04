@@ -29,6 +29,33 @@ async function walk(dir, files = [], problems = []) {
   return { files, problems };
 }
 function markdownTargets(content) { return [...content.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)].map((m) => m[1].trim().replace(/^<|>$/g, "").split(/\s+["']/)[0]).filter((target) => target && !target.startsWith("#") && !/^(https?:|mailto:|tel:|data:)/i.test(target) && !target.includes("{{")); }
+function backtickRoutes(content) {
+  return [...content.matchAll(/`([^`\n]+)`/g)].map((match) => match[1].trim().replace(/[.,;:)]+$/, "")).filter((token) =>
+    token.includes("/") && !/[<>]/.test(token) && /\.(?:md|json|docx|py|mjs|js|yml|yaml|html)(?:#.*)?$/i.test(token));
+}
+function resolveBacktickRoute(token, source) {
+  const clean = token.split("#")[0];
+  if (clean.startsWith("skills/")) return path.resolve(root, clean);
+  if (clean.startsWith("recruiter/") || clean.startsWith("tracker-manager/")) return path.resolve(skillsRoot, clean);
+  if (/^(modules|references|scripts|templates|assets)\//.test(clean)) {
+    const relative = path.relative(skillsRoot, source);
+    const sourceDir = path.basename(path.dirname(source)) === "references" ? path.dirname(path.dirname(source)) : path.dirname(source);
+    const base = clean.startsWith("modules/") ? path.join(skillsRoot, "recruiter") : (relative.startsWith("recruiter/") || relative.startsWith("tracker-manager/") ? sourceDir : path.join(skillsRoot, "recruiter"));
+    return path.resolve(base, clean);
+  }
+  return null;
+}
+async function inspectInternalRoutes(file, content) {
+  const relative = path.relative(root, file);
+  for (const token of backtickRoutes(content)) {
+    if (/modules\/[^/]+\/SKILL\.md$/i.test(token)) problems.push(`stale root skill route in ${relative}: ${token}`);
+    const resolved = resolveBacktickRoute(token, file);
+    if (resolved && (!contained(root, resolved) || !await exists(resolved))) problems.push(`broken backtick route in ${relative}: ${token}`);
+  }
+  if (relative.startsWith("skills/recruiter/modules/recruiting-hr/")) {
+    for (const match of content.matchAll(/^\s*\/[a-z][a-z0-9-]*(?:\s|$)/gim)) problems.push(`standalone slash-command marker in ${relative}: ${match[0].trim()}`);
+  }
+}
 function ids(items, name, problems) { const found = new Set(); for (const item of items || []) { if (!item?.id || found.has(item.id)) problems.push(`missing or duplicate ${name} id: ${item?.id || "<empty>"}`); else found.add(item.id); } return found; }
 function inspectSanitizedDocx(file) {
   for (const member of ["word/document.xml", "docProps/core.xml"]) {
@@ -76,5 +103,10 @@ for (const file of files) {
   for (const { pattern, label } of operationalPatterns) if (pattern.test(content)) problems.push(`${label} in ${relative}`);
   for (const match of content.matchAll(/\b[A-Z0-9._%+-]+@(?:[A-Z0-9.-]+\.)+[A-Z]{2,}\b/gi)) if (!match[0].toLowerCase().endsWith(".invalid")) problems.push(`non-synthetic email address in ${relative}`);
   for (const target of markdownTargets(content)) { const resolved = path.resolve(path.dirname(file), target.split("#")[0]); if (!contained(root, resolved) || !await exists(resolved)) problems.push(`broken local Markdown link in ${relative}: ${target}`); }
+  await inspectInternalRoutes(file, content);
 }
+const routerContent = await readFile(path.join(skillsRoot, "recruiter/SKILL.md"), "utf8");
+const packageGuide = await readFile(path.join(skillsRoot, "recruiter/modules/write-up/GUIDE.md"), "utf8");
+if (!/visual(?:ly)?\s+(?:review|verif)/i.test(routerContent)) problems.push("recruiter root route must require explicit visual review");
+if (!/(?:attachment|attach).*(?:verified|ready to attach|unavailable)/is.test(packageGuide)) problems.push("full-package guide must declare attachment state");
 if (problems.length) { console.error([...new Set(problems)].sort().join("\n")); process.exitCode = 1; } else console.log(`validated standalone recruiter package: 23 capabilities, ${tools.tools.length} declared MCP contract tools, ${hosts.hosts.length} hosts, ${files.length} skills files`);

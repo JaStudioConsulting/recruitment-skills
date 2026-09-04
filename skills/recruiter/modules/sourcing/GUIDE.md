@@ -61,9 +61,11 @@ tokens.
    - Pass 1: verify identity, current employer/title/location, profile link, obvious conflict,
      and obvious level mismatch for every row.
    - Pass 2: deepen only top contenders and material unknowns that could change the decision.
-5. **Rank from evidence.** Missing public evidence is `Unconfirmed`; do not invent, infer a
-   credential, or convert absence into a false fact.
-6. **Return one compact table.** Skip process narration. Follow with exclusions, top three,
+5. **Rank from evidence.** Every evidence-bearing row uses exactly one status: `Verified`,
+   `Unconfirmed`, `Conflicting`, or `Outdated`. Missing public evidence is `Unconfirmed`.
+   Do not invent, infer a credential, or convert absence into a false fact.
+6. **Return one compact table.** Include separate `Eligibility` (`Eligible` or `Excluded`)
+   and `Evidence Status` (only the four normalized values) columns. Skip process narration. Follow with exclusions, top three,
    and only decision-changing verification questions; maximum three bullets per section.
 7. **Stop before outbound action.** Do not draft outreach, write to Loxo, start campaigns, or
    submit candidates. Route those requests to their dedicated skills.
@@ -92,7 +94,8 @@ visibly published by the person or employer.
 
 - Lead with the table. Omit a search diary and repeated target summary.
 - Cite material current facts with direct links.
-- Mark `Verified`, `Unconfirmed`, `Conflicting`, or `Outdated` when source quality matters.
+- Mark `Eligibility` as `Eligible` or `Excluded`, and independently mark `Evidence Status`
+  as `Verified`, `Unconfirmed`, `Conflicting`, or `Outdated`.
 - Keep evidence specific: title, employer, industry, scope, certification, location, or signal.
 - Do not praise weak evidence or force a fit.
 - Do not create CSV until Ja explicitly requests export.
@@ -101,9 +104,11 @@ visibly published by the person or employer.
 
 - Resume/JD submission vetting and submission packages: use `vet`.
 - Loxo searches or writes: use `loxo` after this skill prepares criteria or approved rows.
-- Candidate or client messaging: use `outreach`.
+- Candidate or client messaging: no packaged `outreach` route exists in this repository.
+  Stop and ask Ja before using an external messaging capability.
 - Existing-database role matching: use `candidate-match-engine`.
 - Scheduled or bulk Airtable match-engine runs: use `candidate-match-engine`; one-candidate
   opportunity mapping stays in this skill.
-- Full company or pre-call intelligence beyond sourcing: use `account-research` or
-  `deep-research`.
+- Full company or pre-call intelligence beyond sourcing: no packaged `account-research` or
+  `deep-research` route exists in this repository. Stop and ask Ja before using an external
+  capability and state that the work is outside this package.

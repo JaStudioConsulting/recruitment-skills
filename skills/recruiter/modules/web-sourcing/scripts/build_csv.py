@@ -6,7 +6,7 @@ Usage:
     cat rows.json | python3 build_csv.py --role "machinist-ohio"
 
 rows.json is a JSON array of objects with keys (any missing key -> blank cell):
-    full_name, company, tenure, linkedin_link, contact_info
+    full_name, company, tenure, linkedin_link, contact_info, eligibility, evidence_status
 """
 import argparse
 import csv
@@ -17,15 +17,20 @@ import sys
 import tempfile
 from datetime import date
 from pathlib import Path
+from urllib.parse import urlparse
 
-COLUMNS = ["Full Name", "Company", "Tenure", "LinkedIn Link", "Contact Info"]
+COLUMNS = ["Full Name", "Company", "Tenure", "LinkedIn Link", "Contact Info", "Eligibility", "Evidence Status"]
 FIELD_MAP = {
     "Full Name": "full_name",
     "Company": "company",
     "Tenure": "tenure",
     "LinkedIn Link": "linkedin_link",
     "Contact Info": "contact_info",
+    "Eligibility": "eligibility",
+    "Evidence Status": "evidence_status",
 }
+EVIDENCE_STATUSES = {"Verified", "Unconfirmed", "Conflicting", "Outdated"}
+ELIGIBILITY_STATUSES = {"Eligible", "Excluded"}
 
 
 def slugify(text):
@@ -35,6 +40,34 @@ def slugify(text):
 def protect_csv(value):
     value = str(value or "")
     return "'" + value if value.startswith(("=", "+", "-", "@")) else value
+
+
+def normalize_rows(rows):
+    cleaned, seen = [], set()
+    headers_removed = duplicates_removed = 0
+    for index, row in enumerate(rows, start=1):
+        if not isinstance(row, dict):
+            raise SystemExit(f"row {index}: expected a JSON object")
+        if str(row.get("full_name", "")).strip().lower() in {"name", "full name"}:
+            headers_removed += 1
+            continue
+        eligibility = str(row.get("eligibility", "")).strip()
+        evidence_status = str(row.get("evidence_status", "")).strip()
+        if eligibility not in ELIGIBILITY_STATUSES:
+            raise SystemExit(f"row {index}: Eligibility must be Eligible or Excluded")
+        if evidence_status not in EVIDENCE_STATUSES:
+            raise SystemExit(f"row {index}: Evidence Status must be Verified, Unconfirmed, Conflicting, or Outdated")
+        parsed = urlparse(str(row.get("linkedin_link", "")).strip())
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise SystemExit(f"row {index}: LinkedIn Link must be a direct http(s) profile/evidence URL")
+        profile = f"https://{parsed.netloc.lower()}{parsed.path.rstrip('/')}"
+        key = "url:" + profile
+        if key in seen:
+            duplicates_removed += 1
+            continue
+        seen.add(key)
+        cleaned.append(row)
+    return cleaned, headers_removed, duplicates_removed
 
 
 def main():
@@ -48,6 +81,7 @@ def main():
     rows = json.loads(raw)
     if not isinstance(rows, list):
         raise SystemExit("Expected a JSON array of row objects")
+    cleaned, headers_removed, duplicates_removed = normalize_rows(rows)
 
     outdir = Path(args.outdir).expanduser().resolve()
     outdir.mkdir(parents=True, exist_ok=True)
@@ -60,13 +94,11 @@ def main():
         temp_path = Path(f.name)
         writer = csv.writer(f)
         writer.writerow(COLUMNS)
-        for row in rows:
-            if not isinstance(row, dict):
-                raise SystemExit("Each row must be a JSON object")
+        for row in cleaned:
             writer.writerow([protect_csv(row.get(FIELD_MAP[col], "")) for col in COLUMNS])
     os.replace(temp_path, outpath)
 
-    print(str(outpath))
+    print(json.dumps({"output": str(outpath), "input_rows": len(rows), "exported_rows": len(cleaned), "headers_removed": headers_removed, "duplicates_removed": duplicates_removed}, indent=2))
 
 
 if __name__ == "__main__":

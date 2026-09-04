@@ -79,15 +79,15 @@ thin routing module, which then loads the repository-owned Tracker Manager.
 
 | Ja wants | Read this module | Tool it uses | Done only when |
 |----------|------------------|--------------|----------------|
-| Build the branded resume PDF ("brand this") | `modules/brandedresume/GUIDE.md` | `modules/brandedresume/scripts/build_resume.py` | PDF exists in Downloads, size > 0 |
+| Build the branded resume PDF ("brand this") | `modules/brandedresume/GUIDE.md` | `modules/brandedresume/scripts/build_resume.py` + `scripts/validate-artifact-qa.mjs` | PDF exists at requested path, size > 0, every page has explicit visual review by human/vision inspection with completed QA record, validator passes |
 | Vet / go-no-go / check fit | `modules/vet/GUIDE.md`, `modules/ja-candidate-vetting/GUIDE.md`; for a candidate inside a Loxo job pipeline also read `modules/loxo/GUIDE.md` and its `loxo-candidate-fit-review.md` route | none or verified Loxo read-only access | verdict is GO, NO-GO, or NEEDS VERIFICATION; no Loxo write |
-| Full package (submission email draft + PDF) | `modules/write-up/GUIDE.md` | Gmail draft + build_resume.py | exactly one draft, body ends "CV attached.", PDF exists |
+| Full package (submission email draft + PDF) | `modules/write-up/GUIDE.md` | Gmail draft + build_resume.py + `scripts/validate-artifact-qa.mjs` | exactly one saved unsent draft reread; PDF has completed human/vision per-page QA record and explicit visual review plus validator pass; attachment verified or explicitly unavailable/ready-to-attach |
 | Defend a borderline candidate | `modules/candidate-defense/GUIDE.md` | none | written case cites sources |
 | Write in Ja's voice (email, outreach, follow-up) | `modules/ja-writer/GUIDE.md` | none | no banned punctuation, no AI tells |
 | Create LinkedIn recruiting posts, company-page copy, or image briefs | `modules/linkedin-posts/GUIDE.md` | none | publish-ready copy matches the correct LinkedIn format and recruiting facts |
 | Match candidates to roles, call list, intake | `modules/candidate-match-engine/GUIDE.md` | Airtable | list returned or blocker named |
-| Reference check DOCX | `modules/complete-reference-check/GUIDE.md` | docx build | file exists, size > 0 |
-| Source / x-ray / find candidates on the web | `modules/web-sourcing/GUIDE.md`, `modules/sourcing/GUIDE.md` | web search | every row marked Verified yes or no |
+| Reference check PDF | `modules/complete-reference-check/GUIDE.md` | docx build + PDF render + `scripts/validate-artifact-qa.mjs` | final PDF exists, size > 0, every page human/vision-inspected with completed QA record and validator pass |
+| Source / x-ray / find candidates on the web | `modules/web-sourcing/GUIDE.md`, `modules/sourcing/GUIDE.md` | web search | every row has `Eligibility` (`Eligible` or `Excluded`) and `Evidence Status` (`Verified`, `Unconfirmed`, `Conflicting`, or `Outdated`) with direct evidence |
 | Loxo ATS work, bullets, dashboards, Gmail reconciliation, or safe pipeline action manifest | `modules/loxo/GUIDE.md`, `modules/loxo-readonly-candidate-dashboard/GUIDE.md` | Loxo and Gmail read-only | findings or exact approval manifest returned; no implicit write |
 | Update, sync, audit, repair, search, or verify Tracker Submissions or import verified Tracker Leads | `modules/tracker/GUIDE.md` | protected `tracker-manager`, Gmail read, scoped Sheets adapter | Tracker Manager's operation-specific verification and final report pass |
 | Offer letter | `modules/offer-letter/GUIDE.md` | none | file exists if a file was promised |
@@ -151,7 +151,7 @@ prepared candidate package as a Tracker source event.
 
 ## Modules (absorbed 2026-07-29, formerly standalone skills)
 
-22 specialist skills now live under `modules/`. Each keeps its own scripts, assets, and references. Their `SKILL.md` was renamed `GUIDE.md` so they no longer register as separate skills. Nothing was deleted.
+23 specialist capabilities now live under `modules/`. Each keeps its own scripts, assets, and references. Their `SKILL.md` was renamed `GUIDE.md` so they no longer register as separate skills. Nothing was deleted.
 
 `applicant-screening, brandedresume, candidate-defense, candidate-match-engine, complete-reference-check, cover-letter, ja-candidate-vetting, ja-writer, job-loxo, legislator, linkedin-posts, loxo, loxo-automation, loxo-readonly-candidate-dashboard, offer-letter, recruiting-hr, sourcing, tttg-candidate-submission, tttg-resume-engine-workspace, vet, web-sourcing, write-up`
 

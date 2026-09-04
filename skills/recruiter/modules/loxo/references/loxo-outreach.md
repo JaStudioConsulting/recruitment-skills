@@ -2,6 +2,11 @@
 
 This reference covers Loxo's Outreach collection gathered on 2026-04-21.
 
+**Revalidation warning:** This is a historical, dated reference. Recheck the
+current Loxo UI, permissions, deliverability limits, and official Help Center
+before relying on any operational detail. This reference never authorizes a
+send, campaign start, or other external action.
+
 ## Collection
 
 - Current collection used by Opencode subagent: `https://help.loxo.co/en/collections/8306153-outreach`

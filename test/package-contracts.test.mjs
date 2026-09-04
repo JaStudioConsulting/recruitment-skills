@@ -1,0 +1,210 @@
+import assert from "node:assert/strict";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { existsSync, statSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import path from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const skills = path.join(root, "skills");
+const fixture = path.join(root, "tests", "fixtures", "synthetic-after-call.json");
+const exists = (p) => existsSync(p) && statSync(p).isFile();
+
+function routeTarget(token, source) {
+  const clean = token.replace(/[.,;:)]+$/, "").split("#")[0];
+  if (clean.startsWith("skills/")) return path.join(root, clean);
+  if (clean.startsWith("recruiter/") || clean.startsWith("tracker-manager/")) return path.join(skills, clean);
+  if (/^(modules|references|scripts|templates|assets)\//.test(clean)) {
+    const sourceRelative = path.relative(skills, source);
+    const sourceDir = path.basename(path.dirname(source)) === "references" ? path.dirname(path.dirname(source)) : path.dirname(source);
+    const base = clean.startsWith("modules/") ? path.join(skills, "recruiter") : (sourceRelative.startsWith("recruiter/") || sourceRelative.startsWith("tracker-manager/") ? sourceDir : path.join(skills, "recruiter"));
+    return path.join(base, clean);
+  }
+  return null;
+}
+
+async function backtickRouteProblems() {
+  const problems = [];
+  async function walk(dir) {
+    for (const name of await readdir(dir, { withFileTypes: true })) {
+      const file = path.join(dir, name.name);
+      if (name.isDirectory()) await walk(file);
+      else if (name.isFile() && name.name.endsWith(".md")) {
+        const content = await readFile(file, "utf8");
+        for (const match of content.matchAll(/`([^`\n]+)`/g)) {
+          const token = match[1].trim();
+          if (!token.includes("/") || /[<>]/.test(token) || !/\.(?:md|json|docx|py|mjs|js|yml|yaml|html)(?:#.*)?$/i.test(token)) continue;
+          if (/modules\/[^/]+\/SKILL\.md$/i.test(token)) problems.push(`stale root skill route: ${path.relative(root, file)} -> ${token}`);
+          const target = routeTarget(token, file);
+          if (target && !exists(target)) problems.push(`missing route: ${path.relative(root, file)} -> ${token}`);
+        }
+        if (path.relative(root, file).startsWith("skills/recruiter/modules/recruiting-hr/") && /^\s*\/[a-z][a-z0-9-]*(?:\s|$)/im.test(content)) problems.push(`standalone slash-command marker: ${path.relative(root, file)}`);
+      }
+    }
+  }
+  await walk(skills);
+  return problems;
+}
+
+const sourcingColumns = ["Full Name", "Title", "Company", "Location", "LinkedIn", "Eligibility", "Evidence Status", "Fit/Priority", "Confidence", "Evidence", "Gaps/Risks", "Notes"];
+const allowedStatuses = new Set(["Verified", "Unconfirmed", "Conflicting", "Outdated"]);
+const allowedEligibility = new Set(["Eligible", "Excluded"]);
+function assertSourcingRows(rows) {
+  const seen = new Set();
+  for (const row of rows) {
+    assert.ok(allowedEligibility.has(row.eligibility), `eligibility must be Eligible or Excluded`);
+    assert.ok(allowedStatuses.has(row.evidence_status), `evidence status must be one of ${[...allowedStatuses].join(", ")}`);
+    assert.match(row.linkedin || "", /^https:\/\/[a-z0-9.-]+\/.+/i, "direct evidence URL is required");
+    const header = [row.full_name, row.title, row.company].map((x) => String(x || "").toLowerCase()).join("|");
+    assert.notEqual(header, "full name|title|company", "repeated header row is not data");
+    const key = row.linkedin?.trim().toLowerCase() || `${row.full_name}|${row.company}`.toLowerCase();
+    assert.ok(!seen.has(key), `duplicate sourcing row: ${key}`);
+    seen.add(key);
+  }
+  assert.deepEqual(sourcingColumns, ["Full Name", "Title", "Company", "Location", "LinkedIn", "Eligibility", "Evidence Status", "Fit/Priority", "Confidence", "Evidence", "Gaps/Risks", "Notes"]);
+  return rows.length;
+}
+
+function assertFullPackage({ drafts, pdf, attachment }) {
+  assert.equal(drafts.length, 1, "exactly one draft is required");
+  assert.match(drafts[0].body.trimEnd(), /CV attached\.$/, "draft body must end with CV attached.");
+  assert.ok(exists(pdf) && statSync(pdf).size > 0, "finished PDF must exist");
+  assert.ok(["verified", "unavailable", "ready_to_attach"].includes(attachment?.state), "attachment state must be verified, unavailable, or ready_to_attach");
+  if (attachment.state !== "verified") assert.ok(attachment.reason, "non-verified attachment state needs an explicit reason");
+}
+
+test("all 23 manifest routes and internal backtick routes resolve", async () => {
+  const manifest = JSON.parse(await readFile(path.join(skills, "capabilities.json"), "utf8"));
+  assert.equal(manifest.capabilities.length, 23);
+  for (const capability of manifest.capabilities) {
+    assert.match(capability.path, /\/GUIDE\.md$/);
+    assert.ok(exists(path.join(skills, capability.path)), capability.path);
+  }
+  assert.deepEqual(await backtickRouteProblems(), []);
+});
+
+function runPython(script, args) {
+  return spawnSync("python3", [script, ...args], { encoding: "utf8" });
+}
+
+test("sourcing and web-sourcing CLIs export exact synthetic contracts", async () => {
+  const dir = await mkdtemp(path.join(root, ".tmp-sourcing-contract-"));
+  const rows = [
+    { full_name: "Synthetic Candidate A", title: "Welder", company: "Synthetic Co", location: "Toronto", linkedin: "https://linkedin.com/in/synthetic-a", eligibility: "Eligible", evidence_status: "Verified", evidence: "Synthetic public evidence", fit_priority: "High", confidence: "High" },
+    { full_name: "Synthetic Candidate B", title: "Millwright", company: "Synthetic Co", location: "Toronto", linkedin: "https://linkedin.com/in/synthetic-b", eligibility: "Eligible", evidence_status: "Unconfirmed", evidence: "Synthetic public evidence", fit_priority: "Review", confidence: "Medium" },
+    { full_name: "Full Name", title: "Title", company: "Company", eligibility: "Eligible", evidence_status: "Verified", linkedin: "https://linkedin.com/in/header" },
+    { full_name: "Synthetic Candidate A", title: "Welder", company: "Synthetic Co", linkedin: "https://linkedin.com/in/synthetic-a", eligibility: "Eligible", evidence_status: "Verified" },
+  ];
+  try {
+    const input = path.join(dir, "rows.json");
+    await writeFile(input, JSON.stringify(rows), "utf8");
+    const sourcing = runPython(path.join(skills, "recruiter/modules/sourcing/scripts/sourcing_rows.py"), ["--data", input, "--kind", "candidate", "--format", "generic", "--label", "synthetic", "--outdir", dir]);
+    assert.equal(sourcing.status, 0, sourcing.stderr);
+    const summary = JSON.parse(sourcing.stdout);
+    assert.deepEqual({ input_rows: summary.input_rows, exported_rows: summary.exported_rows, headers_removed: summary.headers_removed, duplicates_removed: summary.duplicates_removed }, { input_rows: 4, exported_rows: 2, headers_removed: 1, duplicates_removed: 1 });
+    const csv = await readFile(summary.output, "utf8");
+    assert.deepEqual(csv.split(/\r?\n/)[0].replace(/^\uFEFF/, "").split(","), sourcingColumns);
+    assert.equal(csv.trimEnd().split(/\r?\n/).length, 3);
+    assert.equal(assertSourcingRows(rows.slice(0, 2)), 2);
+    assert.throws(() => assertSourcingRows([{ ...rows[0], evidence_status: "Eligible" }]), /evidence status/);
+    assert.throws(() => assertSourcingRows([{ ...rows[0], linkedin: "" }]), /evidence URL/);
+    assert.throws(() => assertSourcingRows([rows[0], rows[3]]), /duplicate/);
+    assert.throws(() => assertSourcingRows([rows[2]]), /header/);
+    for (const invalid of [{ ...rows[0], evidence_status: "Eligible" }, { ...rows[0], linkedin: "" }]) {
+      const invalidInput = path.join(dir, "invalid.json");
+      await writeFile(invalidInput, JSON.stringify([invalid]), "utf8");
+      const failed = runPython(path.join(skills, "recruiter/modules/sourcing/scripts/sourcing_rows.py"), ["--data", invalidInput, "--kind", "candidate", "--format", "generic", "--label", "invalid", "--outdir", dir]);
+      assert.notEqual(failed.status, 0, "invalid evidence rows must fail the actual sourcing CLI");
+    }
+
+    const webInput = path.join(dir, "web-rows.json");
+    await writeFile(webInput, JSON.stringify([{ full_name: "Synthetic Prospect", company: "Synthetic Co", tenure: "2 years", linkedin_link: "https://linkedin.com/in/synthetic-prospect", contact_info: "synthetic@example.invalid", eligibility: "Eligible", evidence_status: "Verified" }]), "utf8");
+    const web = runPython(path.join(skills, "recruiter/modules/web-sourcing/scripts/build_csv.py"), ["--role", "synthetic-role", "--data", webInput, "--outdir", dir]);
+    assert.equal(web.status, 0, web.stderr);
+    const webSummary = JSON.parse(web.stdout);
+    assert.deepEqual({ input_rows: webSummary.input_rows, exported_rows: webSummary.exported_rows, headers_removed: webSummary.headers_removed, duplicates_removed: webSummary.duplicates_removed }, { input_rows: 1, exported_rows: 1, headers_removed: 0, duplicates_removed: 0 });
+    const webOutput = webSummary.output;
+    assert.ok(exists(webOutput));
+    assert.deepEqual((await readFile(webOutput, "utf8")).split(/\r?\n/)[0].replace(/^\uFEFF/, "").split(","), ["Full Name", "Company", "Tenure", "LinkedIn Link", "Contact Info", "Eligibility", "Evidence Status"]);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test("sourcing contract rejects invalid evidence rows before export", () => {
+  const rows = [
+    { full_name: "Synthetic Candidate A", title: "Welder", company: "Synthetic Co", linkedin: "https://linkedin.com/in/synthetic-a", eligibility: "Eligible", evidence_status: "Verified" },
+  ];
+  assert.equal(assertSourcingRows(rows), 1);
+    assert.throws(() => assertSourcingRows([{ ...rows[0], evidence_status: "Eligible" }]), /evidence status/);
+    assert.throws(() => assertSourcingRows([{ ...rows[0], linkedin: "" }]), /evidence URL/);
+});
+
+test("full-package contract requires one draft, finished PDF, and explicit attachment state", async () => {
+  const dir = await mkdtemp(path.join(root, ".tmp-package-contract-"));
+  try {
+    const pdf = path.join(dir, "Synthetic Candidate.pdf");
+    await writeFile(pdf, "%PDF-1.4 synthetic\n", "ascii");
+    assertFullPackage({ drafts: [{ body: "Hello team,\nCV attached." }], pdf, attachment: { state: "ready_to_attach", reason: "draft tools cannot carry attachments" } });
+    assert.throws(() => assertFullPackage({ drafts: [], pdf, attachment: { state: "verified" } }), /exactly one/);
+    assert.throws(() => assertFullPackage({ drafts: [{ body: "Hello team" }], pdf, attachment: { state: "verified" } }), /CV attached/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test("reference contract documents existing final PDF, intermediate DOCX, builder, and template paths", async () => {
+  const guide = await readFile(path.join(skills, "recruiter/modules/complete-reference-check/GUIDE.md"), "utf8");
+  const contract = await readFile(path.join(skills, "recruiter/modules/complete-reference-check/references/template-contract.md"), "utf8");
+  const paths = [
+    path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"),
+    path.join(skills, "recruiter/modules/complete-reference-check/scripts/build_reference_check.py"),
+    path.join(skills, "recruiter/modules/complete-reference-check/assets/reference-check-template.docx"),
+    path.join(skills, "recruiter/modules/write-up/assets/submission_email_template.html"),
+  ];
+  for (const p of paths) assert.ok(exists(p), p);
+  assert.match(guide, /intermediate DOCX/i);
+  assert.match(contract, /Template: `assets\/reference-check-template\.docx`/);
+  assert.match(contract, /Builder: `scripts\/build_reference_check\.py`/);
+});
+
+test("synthetic branded resume artifact QA renders every page and records automation separately", async () => {
+  const data = JSON.parse(await readFile(fixture, "utf8"));
+  const dir = await mkdtemp(path.join(root, ".tmp-resume-contract-"));
+  try {
+    const input = path.join(dir, "resume.json");
+    const output = path.join(dir, "resume.pdf");
+    await writeFile(input, JSON.stringify(data.resume), "utf8");
+    const result = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", input, "--out", output, "--engine", "reportlab"], { encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.ok(exists(output) && statSync(output).size > 0);
+    const info = spawnSync("pdfinfo", [output], { encoding: "utf8" }).stdout;
+    const pages = Number(info.match(/^Pages:\s+(\d+)/m)?.[1] || 0);
+    assert.ok(pages > 0);
+    const imagePrefix = path.join(dir, "page");
+    const render = spawnSync("pdftoppm", ["-png", "-r", "72", output, imagePrefix], { encoding: "utf8" });
+    assert.equal(render.status, 0, render.stderr);
+    const renderedPages = (await readdir(dir)).filter((name) => /^page-\d+\.png$/.test(name));
+    assert.equal(renderedPages.length, pages);
+    for (const name of renderedPages) assert.ok(statSync(path.join(dir, name)).size > 0, name);
+    const text = spawnSync("pdftotext", [output, "-"], { encoding: "utf8" }).stdout;
+    assert.doesNotMatch(text, /\[[^\]]*(?:confirm|tbd|todo|xxx|placeholder|insert|add)[^\]]*\]/i);
+    assert.doesNotMatch(text, /—|–|--/);
+    assert.equal((await readFile(output)).includes(Buffer.from("/URI")), false, "PDF must not contain hyperlinks");
+    const pageQa = { schema_version: 1, artifact: output, pages, rendered_pages: renderedPages.length, automated_checks: { no_placeholders: true, no_long_dashes: true, no_hyperlinks: true, rendered_images_nonzero: true }, human_visual_inspection: "required", human_visual_inspection_complete: false, verified_by: "synthetic-harness" };
+    assert.equal(pageQa.schema_version, 1);
+    assert.equal(pageQa.pages, pages);
+    assert.equal(typeof pageQa.artifact, "string");
+    assert.equal(pageQa.rendered_pages, pages);
+    assert.deepEqual(Object.keys(pageQa.automated_checks).sort(), ["no_hyperlinks", "no_long_dashes", "no_placeholders", "rendered_images_nonzero"]);
+    assert.equal(pageQa.human_visual_inspection, "required");
+    assert.equal(pageQa.human_visual_inspection_complete, false);
+    const qaInput = path.join(dir, "automated-only-qa.json");
+    await writeFile(qaInput, JSON.stringify({ artifact: output, expected_page_count: pages, reviewer: "synthetic-harness", inspected_at: "2026-09-04T00:00:00Z", human_visual_inspection_complete: false, pages: Array.from({ length: pages }, (_, index) => ({ page: index + 1, ...pageQa.automated_checks })) }), "utf8");
+    const qaRejected = spawnSync("node", [path.join(skills, "recruiter/scripts/validate-artifact-qa.mjs"), qaInput], { encoding: "utf8" });
+    assert.notEqual(qaRejected.status, 0, "automated-only QA must not satisfy the hard gate");
+    // Contract fixture only: these booleans model a separate human inspection and do not claim automation proved visual quality.
+    const completedInput = path.join(dir, "completed-human-qa.json");
+    const completed = { artifact: output, expected_page_count: pages, reviewer: "Synthetic Human Reviewer", inspected_at: "2026-09-04T00:00:00Z", human_visual_inspection_complete: true, pages: Array.from({ length: pages }, (_, index) => ({ page: index + 1, no_clipping: true, no_overlap: true, no_orphaned_content: true, bullets_intact: true, logo_layout_ok: true, privacy_ok: true, page_breaks_natural: true })) };
+    await writeFile(completedInput, JSON.stringify(completed), "utf8");
+    const qaAccepted = spawnSync("node", [path.join(skills, "recruiter/scripts/validate-artifact-qa.mjs"), completedInput], { encoding: "utf8" });
+    assert.equal(qaAccepted.status, 0, qaAccepted.stderr || qaAccepted.stdout);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});

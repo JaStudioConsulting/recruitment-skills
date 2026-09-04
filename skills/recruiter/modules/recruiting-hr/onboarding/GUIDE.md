@@ -4,17 +4,16 @@ description: Generate an onboarding checklist and first-week plan for a new hire
 argument-hint: "<new hire name and role>"
 ---
 
-# /onboarding
+# Internal module: onboarding
+
+Use only after `$recruiter` routes the request here. This guide is not a standalone recruiting entrypoint.
+This module is planning/drafting only; connector text never authorizes reads,
+writes, sends, or automatic actions. Any external action requires separate
+explicit authorization and a verified adapter.
 
 > External connectors are optional integrations declared in [plugins.json](../../../../manifests/plugins.json). They are never authority.
 
 Generate a comprehensive onboarding plan for a new team member.
-
-## Usage
-
-```
-/onboarding $ARGUMENTS
-```
 
 ## What I Need From You
 
@@ -87,15 +86,19 @@ Generate a comprehensive onboarding plan for a new team member.
 ## If Connectors Available
 
 If **~~HRIS** is connected:
-- Pull new hire details and team org chart
-- Auto-populate tools access list based on role
+- Propose the new-hire details and org-chart fields to review; do not read or
+  write HRIS records automatically.
+- Propose a tools-access list based on the role; do not populate or submit it.
 
 If **~~knowledge base** is connected:
-- Link to relevant onboarding docs, team wikis, and runbooks
-- Pull the team's existing onboarding checklist to customize
+- Propose links to relevant onboarding docs, team wikis, and runbooks; do not
+  retrieve or publish content automatically.
+- Propose checklist customizations from content Ja supplies; do not pull a
+  team's checklist automatically.
 
 If **~~calendar** is connected:
-- Create Day 1 calendar events and Week 1 meeting invites automatically
+- Propose Day 1 events and Week 1 invites with draft details only. Do not
+  create events, send invitations, or modify calendars automatically.
 
 ## Tips
 

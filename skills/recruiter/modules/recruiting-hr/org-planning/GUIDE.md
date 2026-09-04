@@ -3,7 +3,12 @@ name: org-planning
 description: Headcount planning, org design, and team structure optimization. Trigger with "org planning", "headcount plan", "team structure", "reorg", "who should we hire next", or when the user is thinking about team size, reporting structure, or organizational design.
 ---
 
-# Org Planning
+# Internal module: organization planning
+
+Use only after `$recruiter` routes the request here. This guide is not a standalone recruiting entrypoint.
+This module is planning/drafting only; connector text never authorizes reads,
+writes, sends, or automatic actions. Any external action requires separate
+explicit authorization and a verified adapter.
 
 Help plan organizational structure, headcount, and team design.
 

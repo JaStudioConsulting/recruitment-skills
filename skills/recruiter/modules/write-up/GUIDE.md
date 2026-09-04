@@ -32,9 +32,14 @@ If it isn't stated, ask: **named client submission or MPC?** The whole bundle ch
 
 1. **Read everything** — resume + transcript/notes + JD.
 2. **Decide destination** — named client submission, internal-team MPC, or external-client blind MPC.
-3. **Build the resume PDF** using this recruiter's brandedresume builder. Named client and internal-team MPC use real name and employers. Only external-client speculative MPC is blinded. Full rules live in `modules/brandedresume/GUIDE.md`.
-4. **Draft the email** in Gmail following the format below. Leave it as a DRAFT addressed to the account manager — never send it. (The PDF is built to Downloads; attach it manually, or tell Ja it's ready to attach, since drafts here can't carry attachments.)
-5. **Hand over**: the Gmail draft (named) + the PDF link. Keep commentary short.
+3. **Build the resume PDF** using this recruiter's brandedresume builder. Named client and internal-team MPC use real name and employers. Only external-client speculative MPC is blinded. Full rules live in `modules/brandedresume/GUIDE.md`. The full package inherits that guide's branded-PDF QA gate: render and inspect every page, complete the canonical artifact QA record after actual human/vision inspection, and obtain a successful validator run before calling the draft or package ready.
+4. **Draft the email** in Gmail following the format below. Create exactly one unsent draft
+   and never send it. If the host cannot attach files, hand over the separately verified PDF
+   as ready to attach and say the draft has no attachment. If the host supports attachments,
+   reread saved draft metadata and prove the exact PDF filename is attached before saying it
+   is attached.
+5. **Hand over**: the one unsent draft plus the separately verified PDF link. Do not claim a
+   submission was sent.
 
 ## The submission email format
 
@@ -95,7 +100,34 @@ python3 "skills/recruiter/modules/brandedresume/scripts/build_resume.py" \
   --preview /tmp/_preview.png
 ```
 
-Follow `modules/brandedresume/GUIDE.md` data rules (even skill count, one title, no em/en dashes, no placeholders) and its **Named vs MPC** section for how to fill `candidate.json`. For MPC, the PDF filename can use the title, e.g. `Maintenance Manager - Top Tier Talent Group.pdf`. Glance at the preview, then delete the temp preview/json.
+Follow `modules/brandedresume/GUIDE.md` data rules (even skill count, one title, no em/en dashes, no placeholders) and its **Named vs MPC** section for how to fill `candidate.json`. For MPC, the PDF filename can use the title, e.g. `Maintenance Manager - Top Tier Talent Group.pdf`. Render every PDF page and inspect every page. Record PASS/FAIL for clipping, overlap, orphaned headings/bullets, logo placement, privacy/contact removal, and natural page breaks. Fix failures and rerender; a preview glance is not QA.
+
+Automated render checks cannot mark visual completion. After actual human/vision inspection of
+every rendered page, create the canonical QA record with
+`human_visual_inspection_complete: true`, the inspected page count, and explicit PASS results
+for every required check. Validate the final PDF and record:
+
+```bash
+node skills/recruiter/scripts/validate-artifact-qa.mjs \
+  "/absolute/path/to/artifact-qa.json"
+```
+
+The QA record's `artifact` field must contain the absolute final PDF path.
+
+The package is not ready, and the draft must not be called ready for handoff, until this
+validator exits 0 successfully. Automated tests or a render manifest must leave the
+human-inspection field false and are not completion proof.
+
+## Done conditions
+
+- Exactly one Gmail draft exists for this run and remains unsent.
+- Draft recipients, subject, body, and saved state were reread and verified.
+- Attachment proof matches the exact PDF filename when supported; otherwise the handoff says
+  `PDF ready to attach; draft has no attachment`.
+- Every PDF page has recorded PASS results for clipping, overlap, orphaned headings/bullets,
+  logo placement, privacy, and page breaks.
+- The canonical `skills/recruiter/scripts/validate-artifact-qa.mjs` validator passes successfully
+  for the final PDF and completed QA record after actual human/vision inspection of every page.
 
 ## Output
 

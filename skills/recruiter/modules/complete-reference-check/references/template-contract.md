@@ -3,7 +3,7 @@
 ## Authority
 
 - Template: `assets/reference-check-template.docx`
-- Generator: `scripts/generate-reference-template.cjs` at repository root
+- Builder: `scripts/build_reference_check.py` fills and validates the repository-owned blank template; no separate generator is required by this package
 - Source: generated from blank placeholders and generic question wording only
 - Page: US Letter portrait, 0.5-inch margins
 
@@ -27,4 +27,5 @@ The blank template contains one token for every candidate field, reference field
 
 - Blank template XML and core properties contain no candidate, referee, client, recruiter, email, phone, profile URL, completed answer, or operational identifier.
 - Validator allows this DOCX only when every required placeholder and title is present.
+- Final PDF delivery additionally requires a completed human/vision per-page QA record and a passing canonical artifact validator at `../../../scripts/validate-artifact-qa.mjs`; automated rendering alone is insufficient.
 - Synthetic builds use unmistakable `Synthetic ...` identities and `.invalid` email domains.

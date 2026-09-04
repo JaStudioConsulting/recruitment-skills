@@ -72,20 +72,25 @@ For each candidate surfaced, capture only what's actually present on the page:
 - Tenure (time in current role/company, if stated or inferable from dates shown)
 - LinkedIn link (or the profile URL from whichever platform)
 - Contact info — email/phone, only if visibly published on the page itself
+- Eligibility (`Eligible` or `Excluded`)
+- Evidence Status (`Verified`, `Unconfirmed`, `Conflicting`, or `Outdated`)
 
 Never invent or guess a value. If contact info isn't on the page, leave that field blank.
 Don't run extra lookups (Apollo, ZoomInfo, etc.) to fill gaps here — that's a separate
-enrichment step, not part of this skill. If Ja wants enrichment, point her to
-`recruitment-sourcing`.
+enrichment step, not part of this skill. `recruitment-sourcing` is not a packaged route in
+this repository. Stop and ask Ja before using an external enrichment capability.
 
 ### 6. Present the table — then STOP
 Render results as a markdown table with exactly these columns, in this order:
 
-| Full Name | Company | Tenure | LinkedIn Link | Contact Info |
+| Full Name | Company | Tenure | LinkedIn Link | Contact Info | Eligibility | Evidence Status |
 
 Then stop and wait. Do not generate the CSV yet. Ask Ja to review/edit/approve the list.
 She may ask to drop rows, add more via another search wave, or fix a field — handle that
 in the table before moving on.
+
+Each row must carry exactly one evidence status: `Verified`, `Unconfirmed`, `Conflicting`,
+or `Outdated`, before approval or export.
 
 ### 7. On approval, build the CSV
 Once Ja explicitly approves (e.g. "looks good", "export it", "go"), run
