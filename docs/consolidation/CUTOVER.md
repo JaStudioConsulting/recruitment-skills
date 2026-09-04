@@ -42,8 +42,19 @@ trees and failed validation stop the sync without replacing the active version.
 No background scheduler is installed. Newly loaded local skills use the shared
 version; an already-running task must reread the router after the check.
 
-Codex, Claude, Hermes, and Gemini local shared-path installation may expose a
-symlink to this one checkout. Register `recruiter` once per host. For Gemini,
+Codex, OpenCode, Claude, Hermes, and Gemini local shared-path installation may
+expose a symlink to this one checkout. Register `recruiter` once per host. For
+OpenCode, the canonical auto-loaded resolver root is `~/.agents/skills`; do not
+register the same skills through `~/.config/opencode/skills`, because duplicate
+sources create competing resolution paths. Verify with:
+
+```bash
+opencode debug skill
+```
+
+Acceptance requires one recruiter source and one tracker-manager compatibility
+source from the canonical shared repository, with the final resolved commit
+matching the verified installation receipt. For Gemini,
 the canonical resolver root is `~/.agents/skills`; do not expose the same skill
 through both `.agents/skills` and `.gemini/skills`, because Gemini loads both
 and the `.agents` registration overrides the duplicate. Verify the Gemini
