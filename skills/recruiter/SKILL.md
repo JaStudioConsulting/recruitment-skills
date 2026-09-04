@@ -49,6 +49,7 @@ Read the canonical `../_JA-RULES.md` returned by the authority check. Those styl
 - Legacy host names and standalone module aliases are historical evidence only. Do not route to them as active skills. Map every recruiting intent to this `recruiter` front door and its internal modules.
 - Call intake template: `templates/candidate-call-submission-template.md`.
 - Rules: `../_JA-RULES.md`.
+- Knowledge architecture and intake governance: [`../../docs/knowledge-architecture.md`](../../docs/knowledge-architecture.md).
 
 If an active authority path is missing, stop before producing a candidate artifact and report the missing path.
 
@@ -58,7 +59,7 @@ Truth comes only from: the resume, the call audio/transcript, recruiter notes th
 
 ## Workflow (one stage at a time unless Ja asks for the full package)
 
-1. **Audio first.** If input includes an mp3/m4a/wav, run `transcribe` before any claim is written.
+1. **Audio first.** If input includes an mp3/m4a/wav, run `transcribe` before any claim is written. If an expected recording or transcript is missing, follow [`references/call-recording-recovery.md`](references/call-recording-recovery.md) before declaring it unavailable.
 2. **Source audit.** Extract confirmed facts and conflicts. Tag each: resume, transcript, JD, call note, email, Loxo, Airtable, Gmail, or Ja-direct.
 3. **Vet / fast-fit.** Use `references/decision-framework.md` and `references/vetting-framework.md`. Assign confidence: High, Medium, or Low. Output GO, NO-GO, or NEEDS VERIFICATION.
    - High confidence: prepare a submission draft for human review.
@@ -165,3 +166,5 @@ Pre-consolidation sources remain outside this repository as rollback evidence, b
 - `references/jd-screening-guide.md` : JD pain buckets, screening questions, red flags.
 - `references/playbook-principles.md` : core recruiting mentality and optimization order.
 - `references/master-matching-prompt.md` : reusable strict yes/no candidate evaluation prompt.
+- `references/call-recording-recovery.md` : read-only recovery and identity checks for missing call evidence.
+- `references/consolidated-legacy-routes.md` : retired recruiting entrypoints and their current canonical owners.

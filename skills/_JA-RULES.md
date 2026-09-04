@@ -47,7 +47,7 @@ narrative rules to Tracker rows or rewrite completed events for style alone.
 - Do not restate bullets the client can already see on the resume.
 - 2 short sentences, 3 only if needed. Plain business terms.
 - Lead with the human "wow" from the transcript (for example "visa in hand and on the job seven days later"), not a category label like "hard worker".
-- Division of labor: the "Reason for Exploring" label owns why they are moving. The narrative owns why they are worth reviewing for this role. Never put move-motivation in the narrative.
+- Division of labor: the external `Reason for Leaving` label owns the confirmed departure reason. The narrative owns why they are worth reviewing for this role. `Reason for Exploring` is optional internal call-intake evidence only and never substitutes for the external field. Never put move-motivation in the narrative.
 
 ## 4. SUBMISSION EMAIL RULES
 
@@ -63,7 +63,8 @@ narrative rules to Tracker rows or rewrite completed events for style alone.
 ## 4b. REFINED EMAIL SPEC (Ja, Aug 5 2026)
 - Greeting: `Hi team,` then present with a bold inline mention of the configured account manager on the presenting line.
 - Labels bold. Use exact `Compensation Target:` and `Start Date / Notice Period:` (not "Compensation:"/"Start Date:").
-- `Reason for Exploring` = few words, never a sentence.
+- `Reason for Leaving` = confirmed source wording, kept concise. Leave it blank or omit it when unknown. Never substitute `Reason for Exploring`.
+- Preserve the external submission fields when supported: Name, Title, Compensation Target, Current Compensation, Vacation, Location, Work Status, Interview Availability, Start Date, Reason for Leaving, and Profile Summary.
 - Bold `CV attached.` on its own line. No signature (Gmail auto-appends).
 - Subject: `New Candidate Submission - [Role] - [Name] - [Client] - [City], ON`.
 - When Ja says no-Gmail, deliver as copy-paste chat text with markdown `**bold**` (Gmail renders it). Still apply all bold rules.

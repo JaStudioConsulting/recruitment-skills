@@ -5,6 +5,10 @@ description: Internal recruiter capability for a source-grounded candidate submi
 
 # Write-Up — Full Candidate Submission Bundle
 
+Use the canonical contracts in [`docs/templates/submission-data-contract.md`](../../../../docs/templates/submission-data-contract.md) and [`docs/templates/presentation-email-contract.md`](../../../../docs/templates/presentation-email-contract.md) before drafting.
+
+Preflight also checks long-dash, semicolon, tilde, education-date, immigration/PR, compensation-placement, exact-title, contact-removal, MPC filename/privacy, duplicate-output ownership, and missing-source stop conditions. These checks are not a second standalone skill.
+
 The deliverable is a complete submission package Ja can review and send:
 
 1. A **submission email**, drafted in Gmail in Ja's exact voice and format.
@@ -63,11 +67,13 @@ Location: [City, ON]  | [relocation / commute note]
 Compensation Target:
 Current Compensation:
 Vacation:
+Work Status:
 Interview Availability:
-Start Date / Notice Period:
-Reason for Exploring:
+Start Date:
+Reason for Leaving:
 ```
-- Include **Current Company** when known. Only include fields that have real values. Never invent.
+- Include the confirmed current employer naturally in the opening or Profile Summary when known, as required by `_JA-RULES.md`; do not add an extra label to the locked field block. Only include fields that have real values. Never invent.
+- `Reason for Exploring` may be captured internally from a call, but it never replaces `Reason for Leaving` in the external submission.
 
 **Contact info (opt-in toggle):** The branded and MPC **resumes never contain contact info** (no email, no phone) — hard rule, no exceptions. The submission **email** carries contact **only when contact-info is turned on for that run**. When on, add a bold **Contact** line right after the opening line, before the Name block, in this form: `Contact: <phone> | <email>` (phone, then ` | `, then email). When off, omit it entirely. Default off unless the run asks for it.
 

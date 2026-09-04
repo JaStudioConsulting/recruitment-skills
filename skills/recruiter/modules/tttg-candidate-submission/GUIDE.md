@@ -43,7 +43,8 @@ Use `modules/write-up/GUIDE.md` for current email structure. This historical mod
   Compensation:      # current actual figure only, e.g. "Currently $84K base plus bonus"
   Interview Availability:
   Start Date:        # e.g. "Two weeks' notice."
-  Reason for Exploring:  # factual; owns the "why moving"
+  Work Status:        # confirmed only; never infer
+  Reason for Leaving: # source-backed only; never substitute current motivation
   ```
 - **Profile Summary:** 2 short sentences max (3 only if forced). Owns the "why this
   role" fit; does NOT restate the label block or bullets; names THIS client's

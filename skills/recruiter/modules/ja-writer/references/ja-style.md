@@ -18,11 +18,12 @@ for "voice" or "style."
    (why this person for THIS role). The bullets are the proof. If a sentence could sit in
    either place, it goes in bullets and is CUT from the summary. The summary must never
    echo a bullet. Self-check: read summary and bullets side by side before finalizing.
-4. **Label-block order (submissions):** bold the field label before the colon
-   (Title:, Location:, Compensation Target:, Interview Availability:, Start Date / Notice
-   Period:, Reason for Exploring:). **Reason for Exploring is the LAST label line, directly
-   before the Profile Summary.** Do not force every line; include only what is useful and
-   supported.
+4. **Label-block order (submissions):** bold the field label before the colon. Preserve the
+   external field set when supported: Name, Title, Compensation Target, Current Compensation,
+   Vacation, Location, Work Status, Interview Availability, Start Date, Reason for Leaving,
+   and Profile Summary. **Reason for Leaving is the LAST label line, directly before the
+   Profile Summary.** `Reason for Exploring` is optional internal source capture only and
+   never substitutes for it. Do not invent a value to force a line.
 5. **Kill the AI tells:** thrives, ever-changing, fast-paced (filler), leverage, robust,
    seamless, dynamic, passionate, proven track record, wealth of experience, poised to,
    adept, well-versed, audit-ready, empty tricolons. Replace with a concrete fact or delete.
@@ -54,7 +55,7 @@ Do not type a signature into a Gmail draft. Ja's configured Gmail signature is t
 **Structure:**
 1. **Opener** — "Hi @{Configured Account Manager} I'd like to present **{Name}** for the **{Role}** role at **{Company}**. {one-line fit hook tied to the client's exact need}."
 2. **Bold-label fact block** (only fields that apply):
-   - **Name:** · **Title:** · **Compensation Target:** · **Current Compensation:** · **Location:** (+ commute note, relocation) · **Interview Availability:** · **Start Date:** · **Reason for Leaving:**
+   - **Name:** · **Title:** · **Compensation Target:** · **Current Compensation:** · **Vacation:** · **Location:** (+ commute note, relocation) · **Work Status:** · **Interview Availability:** · **Start Date:** · **Reason for Leaving:**
 3. **Profile Summary:** one lead paragraph, then **bulleted strengths** each with a **bold lead-in:**
    - e.g. *Metal machining match:* · *P&L Scope:* · *Proven turnaround:* · *Executive scope:* · *CI results:* · *Systems:* · *Leadership match:*
    - Every bullet carries a **hard number or concrete proof** (PPM 400→single digits, $138M P&L, D→A rating in under 2 years, 10 GMs across 4 countries, $5M→$1.4M inventory).
@@ -71,7 +72,7 @@ Do not type a signature into a Gmail draft. Ja's configured Gmail signature is t
 > **Location:** [Confirmed location and commute]
 > **Interview Availability:** [Confirmed availability]
 > **Start Date:** [Confirmed notice]
-> **Reason for Exploring:** [Confirmed reason]
+> **Reason for Leaving:** [Confirmed reason]
 >
 > **Profile Summary:** [Two-sentence fit thesis that does not repeat the bullets.]
 > - [Concrete proof with a number, named system, certificate, or scope.]

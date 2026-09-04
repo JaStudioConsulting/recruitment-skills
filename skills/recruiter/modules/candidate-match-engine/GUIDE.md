@@ -5,6 +5,8 @@ description: Use for Ja's Airtable Candidate Match Engine. Processes Quick Intak
 
 # Candidate Match Engine
 
+Reverse-market matching also follows `references/reverse-match-edge-rules.md`.
+
 Operating skill for Ja's six-table Airtable recruiting database. Turns internal candidates, open roles, Gmail submission evidence, and ownership rules into a daily call list.
 
 **Before touching any Airtable table, read `references/schema.md`.** It has every field name, allowed value, and table relationship. Never invent field names.

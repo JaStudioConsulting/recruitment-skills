@@ -84,6 +84,94 @@ test("all 23 manifest routes and internal backtick routes resolve", async () => 
   assert.deepEqual(await backtickRouteProblems(), []);
 });
 
+test("recruiter routes knowledge governance and provenance records", async () => {
+  const router = await readFile(path.join(skills, "recruiter/SKILL.md"), "utf8");
+  assert.match(router, /docs\/knowledge-architecture\.md/);
+  const knowledge = await readFile(path.join(root, "docs/knowledge-architecture.md"), "utf8");
+  assert.match(knowledge, /classify it before reuse/i);
+  const provenance = await readFile(path.join(root, "docs/consolidation/PROVENANCE.md"), "utf8");
+  assert.match(provenance, /2026-09-04 selective legacy consolidation/);
+  assert.match(provenance, /recruiter-consolidation-20260904T173500-0400/);
+  assert.match(provenance, /direct-send and reject scripts/i);
+});
+
+test("capability-guide local Markdown links resolve", async () => {
+  const problems = [];
+  async function walk(dir) {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const file = path.join(dir, entry.name);
+      if (entry.isDirectory()) await walk(file);
+      else if (entry.isFile() && entry.name.endsWith(".md")) {
+        const content = await readFile(file, "utf8");
+        for (const match of content.matchAll(/\[[^\]]+\]\(([^)\s]+)(?:\s+[^)]*)?\)/g)) {
+          const target = match[1];
+          if (/^(?:https?:|mailto:|#)/i.test(target)) continue;
+          const resolved = path.resolve(path.dirname(file), target.split("#")[0]);
+          if (!exists(resolved)) problems.push(`${path.relative(root, file)} -> ${target}`);
+        }
+      }
+    }
+  }
+  await walk(path.join(skills, "recruiter"));
+  assert.deepEqual(problems, []);
+});
+
+test("canonical template contracts exist and preserve the field-boundary rules", async () => {
+  const contracts = [
+    "docs/templates/README.md",
+    "docs/templates/submission-data-contract.md",
+    "docs/templates/branded-resume-contract.md",
+    "docs/templates/presentation-email-contract.md",
+  ];
+  for (const relative of contracts) assert.ok(exists(path.join(root, relative)), relative);
+  const mapping = await readFile(path.join(root, "docs/templates/submission-data-contract.md"), "utf8");
+  assert.match(mapping, /reason_for_exploring/);
+  assert.match(mapping, /reason_for_leaving/);
+  assert.match(mapping, /work_status/);
+  assert.match(mapping, /required external submission field/i);
+  assert.match(mapping, /never a substitute/i);
+  assert.match(mapping, /never infer/i);
+  const email = await readFile(path.join(root, "docs/templates/presentation-email-contract.md"), "utf8");
+  assert.match(email, /one unsent draft/i);
+  assert.match(email, /CV attached\./);
+  assert.match(email, /no em\/en dashes/i);
+  assert.match(email, /Reason for Leaving/);
+  assert.match(email, /Work Status/);
+  assert.match(email, /must never substitute/i);
+  assert.match(email, /Clarifier Note/);
+  assert.match(email, /never pad/i);
+});
+
+test("consolidated non-mutating guidance is routed and guarded", async () => {
+  const read = async (relative) => readFile(path.join(root, relative), "utf8");
+  const recovery = await read("skills/recruiter/references/call-recording-recovery.md");
+  assert.match(recovery, /raw per-call transcript JSON/i);
+  assert.match(recovery, /nonces/i);
+  const prospect = await read("skills/recruiter/modules/loxo/references/prospect-campaign-learning.md");
+  assert.match(prospect, /Sent mail read-only/i);
+  assert.match(prospect, /Sent state does not prove/i);
+  const reverse = await read("skills/recruiter/modules/candidate-match-engine/references/reverse-match-edge-rules.md");
+  assert.match(reverse, /salary floor from target/i);
+  assert.match(reverse, /staffing agencies/i);
+  const writeUp = await read("skills/recruiter/modules/write-up/GUIDE.md");
+  assert.match(writeUp, /MPC filename\/privacy/i);
+  assert.match(writeUp, /Work Status:/);
+  assert.match(writeUp, /Reason for Leaving:/);
+  assert.doesNotMatch(writeUp, /^Reason for Exploring:/m);
+  const emailTemplate = await read("skills/recruiter/modules/write-up/assets/submission_email_template.html");
+  assert.match(emailTemplate, /<b>Work Status:<\/b>/);
+  assert.match(emailTemplate, /<b>Reason for Leaving:<\/b>/);
+  assert.doesNotMatch(emailTemplate, /<b>Reason for Exploring:<\/b>/);
+  const router = await read("skills/recruiter/SKILL.md");
+  assert.match(router, /references\/call-recording-recovery\.md/);
+  const rules = await read("skills/_JA-RULES.md");
+  assert.match(rules, /external `Reason for Leaving`/);
+  assert.match(rules, /Work Status/);
+  const style = await read("skills/recruiter/modules/ja-writer/references/ja-style.md");
+  assert.match(style, /Reason for Leaving is the LAST label line/);
+  assert.match(style, /Reason for Exploring.*internal source capture only/);
+});
+
 test("every manifest capability exposes its capability-specific contract", async () => {
   const contracts = {
     "applicant-screening": [/Score each must-have 0[–-]3/i, /Score on job-related criteria only/i],

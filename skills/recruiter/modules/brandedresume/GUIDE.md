@@ -5,6 +5,8 @@ description: Internal recruiter capability for a source-grounded branded PDF res
 
 # Branded Resume
 
+Use the canonical contract in [`docs/templates/branded-resume-contract.md`](../../../../docs/templates/branded-resume-contract.md) alongside this guide.
+
 Take a candidate's raw material (resume, interview transcript, LinkedIn export, recruiter notes) and produce a **finished branded PDF resume** the user can download and send to a client.
 
 The deliverable is the PDF itself. The user does not want code or steps to run elsewhere, just the polished file. The bundled script builds it directly and the logo travels inside the skill, so it works on any machine, including Claude Cowork.

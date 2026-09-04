@@ -5,6 +5,8 @@ description: Use for Loxo ATS/CRM work for Ja and Top Tier Talent Group: jobs, c
 
 ## Interface
 
+Candidate prospecting and campaign learning follows `references/prospect-campaign-learning.md` and remains read-only unless the existing authorization gate is satisfied.
+
 This internal guide can run in any approved host that exposes a verified browser or read-only Loxo integration. Host-specific tools are adapters, not authority.
 
 When Ja gives a task:
