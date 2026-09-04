@@ -148,6 +148,11 @@ export function plan(input, config) {
         if (corrections.includes(h)) {
           if (!event.expected_previous || event.expected_previous[h] !== old.values[i]) fail(`${h}: repair precondition mismatch`);
           values[i] = desired[i];
+        } else if (h === "Submission Date") {
+          // Submission Date is the source event's historical date. Ordinary
+          // reconciliation must never backfill a blank or rewrite a value;
+          // date changes require an explicit authorized repair correction.
+          continue;
         } else if (old.values[i] === "" && desired[i] !== "") values[i] = desired[i];
       }
       if (values.every((v, i) => v === old.values[i])) { actions.push({type: "skip", key, row_number: old.row_number, reason: "existing event unchanged; no rewording or verification-date refresh"}); continue; }

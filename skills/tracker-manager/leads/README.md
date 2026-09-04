@@ -34,7 +34,7 @@ There are three distinct row archetypes:
 | **E** | **Posted** | Audit status: `Checked YYYY-MM-DD` | Posting status: `Current listing` | `[Blank]` | `Checked 2026-08-18`, `Current listing` |
 | **F** | **Compensation** | `[Blank]` | Pay rate / salary (or `Not listed`). | `[Blank]` | `$28–$30/hour`, `$56,389/year`, `Not listed` |
 | **G** | **Employment Type** | `[Blank]` | Work schedule / contract status. | `[Blank]` | `Full-time`, `Permanent, Full-time` |
-| **H** | **Date Added** | `[Blank]` (reserved for initial ingestion). | `[Blank]` | `[Blank]` | *(Leave empty unless date timestamped)* |
+| **H** | **Date Added** | Planner-generated `YYYY-MM-DD` date of first insertion. | Planner-generated `YYYY-MM-DD` date of first insertion. | Planner-generated `YYYY-MM-DD` date of first insertion. | `2026-09-04` |
 | **I** | **Source** | `Company summary` | Originating job board / platform. | `Company careers + job-board search` | `Indeed`, `LinkedIn`, `Company careers page` |
 | **J** | **Verification / Notes** | Summary text (e.g., `X confirmed jobs stored directly underneath.`). | Direct Job URL or listing notes / closing dates. | Standard audit note (see Section 3). | `https://ca.indeed.com/viewjob?jk=...` |
 | **K** | **Checked** | Verification date in `YYYY-MM-DD`. | Verification date in `YYYY-MM-DD`. | Verification date in `YYYY-MM-DD`. | `2026-08-21` |
@@ -68,7 +68,7 @@ To maintain semantic consistency across automated runs, use the following standa
    * Set `E` = `Checked YYYY-MM-DD`.
    * Set `I` = `Company summary`.
    * Set `J` = `X confirmed job(s) stored directly underneath.`
-   * Set `K` = Current Date (`YYYY-MM-DD`).
+   * Set `K` = Evidence check date (`YYYY-MM-DD`).
    * **Formatting:** Apply the soft green fill (`#E2EFE0` or `#D9EAD3`) across `A:K`.
 2. **Insert Child Row(s) Directly Below:**
    * Leave `A` completely **empty**.
@@ -79,7 +79,7 @@ To maintain semantic consistency across automated runs, use the following standa
    * Set `G` = Employment Type (`Full-time`, `Contract`).
    * Set `I` = Source platform (`Indeed`, `LinkedIn`, etc.).
    * Set `J` = Full application URL or specific posting notes.
-   * Set `K` = Date verified (`YYYY-MM-DD`).
+   * Set `K` = Evidence check date (`YYYY-MM-DD`).
    * **Formatting:** Default white background, no bold text.
 3. **Row Grouping:**
    * Group the child row(s) under the parent row using Google Sheets row grouping (`Data` > `Group rows`) so that they can be collapsed.
@@ -99,8 +99,9 @@ To maintain semantic consistency across automated runs, use the following standa
    * `B` = `N/A`.
    * `I` = `Company careers + job-board search`.
    * `J` = `Searched the exact company across current company-career and major job-board sources; no active listing could be confirmed.`
-   * `K` = Current Date (`YYYY-MM-DD`).
-   * Leave columns `C, D, E, F, G, H` blank.
+   * `K` = Evidence check date (`YYYY-MM-DD`).
+   * Leave columns `C, D, E, F, G` blank. Column `H` receives the
+     planner-generated `Date Added` insertion date.
 2. Background fill remains plain white / transparent.
 
 -----
@@ -119,5 +120,5 @@ To maintain semantic consistency across automated runs, use the following standa
 
 ## 6. Required Corrections
 
-* **Date Added (`Column H`):** Populate `Date Added` with the current date in `YYYY-MM-DD` format whenever a new parent, child, or inactive row is first inserted. Preserve the original value during every later verification or update; never overwrite or clear it.
+* **Date Added (`Column H`):** The planner generates the current `America/Toronto` calendar date in `YYYY-MM-DD` format whenever a new parent, child, or inactive row is first inserted. Caller manifests cannot provide or backdate this value. Preserve the original value during every later verification or update, including blanks on historical rows; never overwrite, clear, or backfill it.
 * **Expandable Table Boundary:** Do not use row 112 as a permanent boundary. Add records to the next valid row within the expanding Leads table, preserve the existing formatting and hierarchy, and never place scratchpad data outside the active table.

@@ -6,6 +6,12 @@
   "verification_results": ["current_job_confirmed", "no_current_job_found", "needs_review"],
   "employment_types": ["Full-time", "Part-time", "Contract", "Temporary", "Unknown"],
   "date_pattern": "yyyy-mm-dd",
+  "date_added": {
+    "owner": "planner",
+    "timezone": "America/Toronto",
+    "caller_supplied": false,
+    "preserve_existing": true
+  },
   "company_row": {
     "source": "Company summary",
     "posted_prefix": "Checked "

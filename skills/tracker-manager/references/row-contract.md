@@ -9,7 +9,7 @@ make the planner pass.
 
 | Field | Input and output rule |
 | --- | --- |
-| Submission Date / Source Verified Date | YYYY-MM-DD input, numeric Sheets date output, yyyy-mm-dd display. Use original event date and actual source review date respectively. |
+| Submission Date / Source Verified Date | YYYY-MM-DD input, numeric Sheets date output, yyyy-mm-dd display. Use original event date and actual source review date respectively. New rows use the original event date; ordinary reconciliation preserves an existing blank or nonblank Submission Date. Date changes require an explicitly authorized repair. |
 | Recruiter / Candidate Name | Exact source identity. Recruiter is the source sender, not mailbox owner. |
 | Current / Most Recent Title / Company | Supported source text, whitespace normalized; no invented target title/employer. |
 | License & Certifications | Ordered array of exact credential strings, joined with ` | `. Keep qualification and expiry language. |

@@ -85,10 +85,13 @@ writing those events. Valid independent events may continue within the request.
 - Legacy fallbacks require original source link plus candidate or the full
   date/recruiter/candidate/role/client/thread tuple. Ambiguity means HOLD.
 - Routine updates fill supported blanks and preserve existing nonblank values.
-  A complete existing event is skipped, including its verification date. Do
-  not reword old rows simply because the model prefers different language.
+  `Submission Date` is historical source-event data: ordinary reconciliation
+  preserves both blank and nonblank values and never backfills it. A complete
+  existing event is skipped, including its verification date. Do not reword
+  old rows simply because the model prefers different language.
 - Repairs require exact target identity, explicitly listed corrections and
-  expected previous values. Correct Candidate Name and Candidate Key together.
+  expected previous values. A `Submission Date` correction is permitted only
+  in that explicit repair path. Correct Candidate Name and Candidate Key together.
   Do not change an unconfirmed candidate to Submitted without source evidence.
 - Record Source Verified Date only after all required sources were reviewed,
   and only when adding/changing a row. Repeated input must produce zero writes.

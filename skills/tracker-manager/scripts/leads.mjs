@@ -16,6 +16,14 @@ export function sheetDate(value) {
   return value;
 }
 
+function torontoDate(clock = () => new Date()) {
+  const value = clock();
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) fail("clock must return a valid Date");
+  const parts = new Intl.DateTimeFormat("en-CA", {timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit"}).formatToParts(value);
+  const fields = Object.fromEntries(parts.filter(part => part.type !== "literal").map(part => [part.type, part.value]));
+  return sheetDate(`${fields.year}-${fields.month}-${fields.day}`);
+}
+
 export function canonicalUrl(value) {
   if (!nonempty(value)) return "";
   try {
@@ -37,7 +45,7 @@ export function companyKey(lead) {
 }
 
 export function jobKey(lead, job) {
-  const url = canonicalUrl(job.job_url || job.source_url || "");
+  const url = canonicalUrl(job.job_url || "");
   return url ? `${companyKey(lead)}|url:${url}` : `${companyKey(lead)}|job:${normalized(job.job_title)}|location:${normalized(job.job_location || lead.company_location)}`;
 }
 
@@ -62,10 +70,12 @@ function indexExisting(rows, headers) {
     const values = valueObject(row, headers);
     if (nonempty(values.Company)) {
       currentCompany = {row_number: row.row_number, values, links: row.links || {}, jobs: []};
-      const key = companyKey({company_name: values.Company, company_url: currentCompany.links.Company || ""});
-      const entries = companies.get(key) || [];
-      entries.push(currentCompany);
-      companies.set(key, entries);
+      const existingLead = {company_name: values.Company, company_url: currentCompany.links.Company || ""};
+      for (const key of [`name:${normalized(existingLead.company_name)}`, ...(host(existingLead.company_url) ? [`domain:${host(existingLead.company_url)}`] : [])]) {
+        const entries = companies.get(key) || [];
+        entries.push(currentCompany);
+        companies.set(key, entries);
+      }
     } else if (currentCompany && nonempty(values["Status / Job"]) && values.Posted === contract.job_row.posted) {
       currentCompany.jobs.push({row_number: row.row_number, values, links: row.links || {}});
     }
@@ -73,18 +83,43 @@ function indexExisting(rows, headers) {
   return companies;
 }
 
+function companyMatches(index, lead) {
+  const matches = new Set();
+  const incomingDomain = host(lead.company_url);
+  if (incomingDomain) for (const row of index.get(`domain:${incomingDomain}`) || []) matches.add(row);
+  for (const row of index.get(`name:${normalized(lead.company_name)}`) || []) {
+    if (!incomingDomain || !host(row.links.Company || "")) matches.add(row);
+  }
+  return [...matches];
+}
+
+function sameCompany(left, right) {
+  const leftDomain = host(left.company_url);
+  const rightDomain = host(right.company_url);
+  if (leftDomain && rightDomain) return leftDomain === rightDomain;
+  return normalized(left.company_name) === normalized(right.company_name);
+}
+
+function sameJob(leftLead, left, rightLead, right) {
+  const leftUrl = canonicalUrl(left.job_url || "");
+  const rightUrl = canonicalUrl(right.job_url || "");
+  if (leftUrl && rightUrl) return leftUrl === rightUrl;
+  return normalized(left.job_title) === normalized(right.job_title) &&
+    normalized(left.job_location || leftLead.company_location) === normalized(right.job_location || rightLead.company_location);
+}
+
 function rowValues(values) { return contract.headers.map(header => values[header] ?? ""); }
 
 function required(condition, message) { if (!condition) fail(message); }
 
-function validateLead(lead, checkedOn, dateAdded) {
+function validateLead(lead, checkedOn) {
   required(lead && typeof lead === "object", "lead must be an object");
   required(nonempty(lead.company_name), "company_name is required");
   if (nonempty(lead.company_url)) canonicalUrl(lead.company_url);
   required(contract.verification_results.includes(lead.verification_result), "verification_result is invalid");
   required(lead.company_source && nonempty(lead.company_source.source_name) && nonempty(lead.company_source.source_url), "company_source name and URL are required");
   canonicalUrl(lead.company_source.source_url);
-  sheetDate(checkedOn); sheetDate(dateAdded);
+  sheetDate(checkedOn);
   const jobs = lead.jobs || [];
   required(Array.isArray(jobs), "jobs must be an array");
   if (lead.verification_result === "current_job_confirmed") required(jobs.length > 0, "current_job_confirmed requires at least one job");
@@ -134,13 +169,16 @@ function jobRow(lead, job, checkedOn, dateAdded) {
   };
 }
 
-function currentJobs(existing, lead) {
-  const found = new Map();
-  for (const job of existing.jobs) {
-    const pseudo = {job_title: job.values["Status / Job"], job_location: job.values.Location, job_url: job.links["Status / Job"] || ""};
-    found.set(jobKey(lead, pseudo), job);
-  }
-  return found;
+function matchingJob(existingJobs, lead, job) {
+  const incomingUrl = canonicalUrl(job.job_url || "");
+  const incomingFallback = `${normalized(job.job_title)}|${normalized(job.job_location || lead.company_location)}`;
+  const matches = existingJobs.filter(existing => {
+    const existingUrl = canonicalUrl(existing.links["Status / Job"] || "");
+    if (incomingUrl && existingUrl) return incomingUrl === existingUrl;
+    return `${normalized(existing.values["Status / Job"])}|${normalized(existing.values.Location)}` === incomingFallback;
+  });
+  if (matches.length > 1) fail("multiple matching job rows require manual reconciliation");
+  return matches[0];
 }
 
 function companyChanges(existing, desired) {
@@ -151,39 +189,65 @@ function companyChanges(existing, desired) {
   return changes;
 }
 
-export function plan(input, config) {
+export function plan(input, config, options = {}) {
   if (!input || !["preview", "import"].includes(input.mode)) fail("mode must be preview or import");
   if (input.mode === "import" && input.authorization?.operation !== "import_leads") fail("explicit Leads import authorization is required");
   const snapshot = input.snapshot || {};
   ensureConfig(snapshot, config); ensureHeaders(snapshot.headers);
   const checkedOn = sheetDate(input.checked_on);
-  const dateAdded = sheetDate(input.date_added || checkedOn);
+  const clock = options.clock || (options.today ? () => new Date(`${options.today}T12:00:00Z`) : () => new Date());
+  if (typeof clock !== "function") fail("clock must be a function");
+  const dateAdded = torontoDate(clock);
   const leads = input.leads || [];
   required(Array.isArray(leads) && leads.length > 0, "at least one lead is required");
+  if (Object.hasOwn(input, "date_added")) {
+    return {mode: input.mode, writable: input.mode === "import", checked_on: checkedOn, date_added: dateAdded,
+      counts: {new: 0, update: 0, skip: 0, hold: leads.length},
+      actions: leads.map(lead => ({status: "hold", company_name: lead?.company_name || "", reason: "date_added is planner-managed and cannot be supplied", rows: []}))};
+  }
   const existing = indexExisting(snapshot.rows || [], snapshot.headers);
-  const seenCompanies = new Set();
+  const duplicateCompanies = new Set();
+  for (let i = 0; i < leads.length; i++) {
+    for (let j = i + 1; j < leads.length; j++) {
+      if (sameCompany(leads[i] || {}, leads[j] || {})) {
+        duplicateCompanies.add(i);
+        duplicateCompanies.add(j);
+      }
+    }
+  }
   const actions = [];
-  for (const lead of leads) {
+  for (let leadIndex = 0; leadIndex < leads.length; leadIndex++) {
+    const lead = leads[leadIndex];
     try {
-      validateLead(lead, checkedOn, dateAdded);
+      validateLead(lead, checkedOn);
+      if (duplicateCompanies.has(leadIndex)) fail("duplicate company in intake requires manual reconciliation");
       const key = companyKey(lead);
-      if (seenCompanies.has(key)) fail("duplicate company in intake");
-      seenCompanies.add(key);
       if (lead.verification_result === "needs_review") fail("lead needs review before import");
-      const matches = existing.get(key) || [];
+      const matches = companyMatches(existing, lead);
       if (matches.length > 1) fail("multiple matching company rows require manual reconciliation");
       const matched = matches[0];
       const status = lead.verification_result === "current_job_confirmed" ? "Active" : matched?.values["Status / Job"] === "Active" ? "Needs Recheck" : "N/A";
       const parent = companyRow(lead, status, checkedOn, dateAdded);
       const rows = [];
+      const current = matched ? matched.jobs : [];
+      const incomingJobs = lead.jobs || [];
+      for (let i = 0; i < incomingJobs.length; i++) {
+        for (let j = i + 1; j < incomingJobs.length; j++) {
+          if (sameJob(lead, incomingJobs[i], lead, incomingJobs[j])) fail("duplicate job in intake requires manual reconciliation");
+        }
+      }
+      const matchedJobs = incomingJobs.map(job => matchingJob(current, lead, job));
+      const exactRepeat = matched && lead.verification_result === "current_job_confirmed" && matchedJobs.every(Boolean);
       if (!matched) rows.push({kind: "company", ...parent});
-      else {
+      else if (!exactRepeat) {
         const changes = companyChanges(matched, parent);
         if (changes.length) rows.push({kind: "company_update", row_number: matched.row_number, changes});
+      } else {
+        const changes = companyChanges(matched, parent).filter(change => !["Posted", "Checked"].includes(change.header));
+        if (changes.length) rows.push({kind: "company_update", row_number: matched.row_number, changes});
       }
-      const current = matched ? currentJobs(matched, lead) : new Map();
-      for (const job of lead.jobs || []) {
-        if (!current.has(jobKey(lead, job))) rows.push({kind: "job", ...jobRow(lead, job, checkedOn, dateAdded)});
+      for (const job of incomingJobs) {
+        if (!matchingJob(current, lead, job)) rows.push({kind: "job", ...jobRow(lead, job, checkedOn, dateAdded)});
       }
       actions.push({status: rows.length ? (matched ? "update" : "new") : "skip", company_key: key, company_name: lead.company_name, rows});
     } catch (error) {

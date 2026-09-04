@@ -13,8 +13,10 @@ tab. It preserves the existing company-parent and child-job layout:
 - One company row contains company, status, location, primary contact, company
   verification summary, `Date Added`, and `Checked` date.
 - Each confirmed job is a child row directly beneath that company.
-- `Date Added` is assigned only when a row is first added. Existing dates are
-  never overwritten.
+- `Date Added` is assigned only by the planner, using the current
+  `America/Toronto` calendar date when the plan is created, and only when a row
+  is first added. It is never accepted from the caller manifest. Existing dates,
+  including blanks, are never overwritten or backfilled.
 
 Load [the Leads contract](../references/leads-contract.json) and run
 [the planner](../scripts/leads.mjs) before every proposed write. The planner
@@ -47,7 +49,12 @@ or `needs_review` all become `HOLD`.
 An exact repeat produces `skip` and no write. An existing company receives only
 the supported minimal status/check changes; a newly confirmed job becomes one
 new child row. Preserve existing primary contact, notes, manual follow-up work,
-and `Date Added` unless an explicitly approved repair says otherwise.
+and `Date Added`, including a blank value. A new child receives a planner-owned
+insertion date; the existing parent does not receive a date update. This workflow
+has no backfill path. `Checked`/`checked_on` is the evidence-check date and is
+separate from planner-owned `Date Added`.
+For deterministic API/test use, the planner may receive an injected clock as a
+runtime option; that option is not part of the caller intake manifest.
 
 ## Approved execution
 

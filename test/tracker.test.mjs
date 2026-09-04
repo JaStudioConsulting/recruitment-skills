@@ -71,6 +71,14 @@ test("a source-backed blank repair changes only that cell and its verification d
   assert.equal(result.actions[0].row_number, 8);
 });
 
+test("ordinary reconciliation never backfills a blank Submission Date", () => {
+  const old = row(event());
+  old[col("Submission Date")] = "";
+  const result = plan(input([event()], [{row_number: 8, values: old}]), config);
+  assert.deepEqual(result.counts, {new: 0, update: 0, skip: 1, hold: 0});
+  assert.equal(result.actions[0].values, undefined);
+});
+
 test("exact duplicates skip while real repeat candidate events remain separate", () => {
   const e = event(), next = event(); next.message_id = "synthetic-message-2"; next.link += "-2";
   const result = plan(input([e, e, next]), config);
