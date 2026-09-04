@@ -43,9 +43,12 @@ No background scheduler is installed. Newly loaded local skills use the shared
 version; an already-running task must reread the router after the check.
 
 Codex, Claude, Hermes, and Gemini local shared-path installation may expose a
-symlink to this one checkout. Register `recruiter` once per host. Do not expose
-the same skill through both a host's `.agents/skills` and `.gemini/skills`
-directories: that duplicate registration confuses Gemini's skill resolver.
+symlink to this one checkout. Register `recruiter` once per host. For Gemini,
+the canonical resolver root is `~/.agents/skills`; do not expose the same skill
+through both `.agents/skills` and `.gemini/skills`, because Gemini loads both
+and the `.agents` registration overrides the duplicate. Verify the Gemini
+installation with `gemini skills list`; acceptance requires exactly one
+`recruiter` entry, resolved through `.agents`, matching the verified receipt.
 Other machines, cloud chats and MCP consumers require their own verified adapter
 or package installation; this document does not claim they were repointed.
 
