@@ -84,6 +84,40 @@ test("all 23 manifest routes and internal backtick routes resolve", async () => 
   assert.deepEqual(await backtickRouteProblems(), []);
 });
 
+test("every manifest capability exposes its capability-specific contract", async () => {
+  const contracts = {
+    "applicant-screening": [/Score each must-have 0[–-]3/i, /Score on job-related criteria only/i],
+    brandedresume: [/validate-artifact-qa\.mjs/i, /Title must match/i],
+    "candidate-defense": [/Never fabricate titles, scope, comp/i, /Stop after each mode/i],
+    "candidate-match-engine": [/Hard Gates.*Run First/is, /Never assign Strong Fit unless every must-have/i],
+    "complete-reference-check": [/reference-check-template\.docx/i, /every page.*human\/vision/is],
+    "cover-letter": [/Use concrete evidence/i, /why \*this\* company/i],
+    "ja-candidate-vetting": [/Use only proven facts/i, /average must be 4\.0 or higher/i],
+    "ja-writer": [/Never invent.*salary, availability/is, /do not type a signature/i],
+    "job-loxo": [/obtain Ja's explicit approval before the first Loxo write/i, /status.*published.*separately/is],
+    legislator: [/explicitly types a manual override/i, /Do not approve partial compliance as complete/i],
+    "linkedin-posts": [/Publish-Ready Copy/i, /Short feed posts.*Login-gated/is],
+    loxo: [/read-only and draft-only/i, /loxo-candidate-fit-review\.md/i],
+    "loxo-automation": [/separate named authorization/i, /WAIT for approval/i],
+    "loxo-readonly-candidate-dashboard": [/strictly read-only/i, /candidate\.job\.id/i],
+    "offer-letter": [/Required Information/i, /ask before drafting/i],
+    "recruiting-hr": [/\$recruiter/i, /No external send/i],
+    sourcing: [/Verified.*Unconfirmed.*Conflicting.*Outdated/is, /Stop before outbound action/i],
+    tracker: [/Tracker Manager/i, /Recruiter must not write to the workbook directly/i],
+    "tttg-candidate-submission": [/Current delivery rule: one Gmail draft only/i, /Never invent facts/i],
+    "tttg-resume-engine-workspace": [/evaluation evidence/i, /not a production builder/i],
+    vet: [/Staged workflow.*Stop after each mode/is, /Never invent, assume, or include/i],
+    "web-sourcing": [/5 is a ceiling, not a quota/i, /Never invent or guess a value/i],
+    "write-up": [/exactly one unsent draft/i, /If anything is missing, STOP and ask Ja/i]
+  };
+  const manifest = JSON.parse(await readFile(path.join(skills, "capabilities.json"), "utf8"));
+  assert.equal(Object.keys(contracts).length, manifest.capabilities.length);
+  for (const capability of manifest.capabilities) {
+    const guide = await readFile(path.join(skills, capability.path), "utf8");
+    for (const contract of contracts[capability.id] || []) assert.match(guide, contract, `${capability.id} contract missing: ${contract}`);
+  }
+});
+
 function runPython(script, args) {
   return spawnSync("python3", [script, ...args], { encoding: "utf8" });
 }
