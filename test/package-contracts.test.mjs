@@ -89,10 +89,17 @@ test("recruiter routes knowledge governance and provenance records", async () =>
   assert.match(router, /docs\/knowledge-architecture\.md/);
   const knowledge = await readFile(path.join(root, "docs/knowledge-architecture.md"), "utf8");
   assert.match(knowledge, /classify it before reuse/i);
+  assert.match(knowledge, /2026-08-28T00:00:00-04:00/);
+  assert.match(knowledge, /newest explicit Ja correction wins/i);
+  assert.match(knowledge, /provenance only/i);
   const provenance = await readFile(path.join(root, "docs/consolidation/PROVENANCE.md"), "utf8");
   assert.match(provenance, /2026-09-04 selective legacy consolidation/);
   assert.match(provenance, /recruiter-consolidation-20260904T173500-0400/);
   assert.match(provenance, /direct-send and reject scripts/i);
+  assert.match(provenance, /dc1e3d1/);
+  assert.match(provenance, /bbf1bbf/);
+  assert.match(provenance, /interview-prep-material/);
+  assert.match(provenance, /candidate-opportunity-brief.*historical/i);
 });
 
 test("capability-guide local Markdown links resolve", async () => {
