@@ -1,6 +1,6 @@
 # @jastudioconsulting/recruitment-skills
 
-Private, versioned recruiting-skills authority for Ja Studio Consulting. GitHub `main` is the only source of recruiting rules. `$recruiter` is the sole front door for 23 capabilities. Tracker routes to the complete protected implementation in `skills/tracker-manager/GUIDE.md`, including its explicit, approval-gated Leads import contract. The `$tracker-manager` compatibility entry loads Recruiter first; it does not duplicate the rules.
+Private, versioned recruiting-skills authority for Ja Studio Consulting. GitHub `main` is the only source of recruiting rules. `$recruiter` is the sole front door for 24 capabilities. Tracker routes to the complete protected implementation in `skills/tracker-manager/GUIDE.md`, including its explicit, approval-gated Leads import contract. The `$tracker-manager` compatibility entry loads Recruiter first; it does not duplicate the rules.
 
 ## Consumer use
 

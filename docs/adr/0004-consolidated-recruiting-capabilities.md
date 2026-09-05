@@ -11,13 +11,17 @@ The current contract is [CUTOVER.md](../consolidation/CUTOVER.md). The validator
 now permits Recruiter's SKILL.md and one Tracker compatibility SKILL.md that
 routes back through Recruiter; all operational rules remain in one GUIDE.md.
 
+Amended 2026-09-04: added the role-specific `opportunity-brief` internal module,
+its generic PDF builder, source and asset controls, and release validators. The
+router now exposes 24 internal capabilities without adding another front door.
+
 ## Context
 
 Recruiting instructions, builders, and integration declarations had diverged across old local sources. The split keeps the reusable recruiting authority independently versioned, while a Workbench consumer owns gateway implementation, UI, credentials, and deployment.
 
 ## Decisions
 
-1. `skills/recruiter/SKILL.md` is the sole recruiting front door. Its 23 capabilities use internal `GUIDE.md` modules. Tracker routes to the protected repository-owned `skills/tracker-manager/GUIDE.md`; its SKILL.md compatibility entry returns through Recruiter.
+1. `skills/recruiter/SKILL.md` is the sole recruiting front door. Its 24 capabilities use internal `GUIDE.md` modules. Tracker routes to the protected repository-owned `skills/tracker-manager/GUIDE.md`; its SKILL.md compatibility entry returns through Recruiter.
 2. This private package owns the router, policies, manifests, sanitized deterministic builders/assets, and synthetic fixtures. Consumers provide runtime adapters and do not copy or fork this authority.
 3. Manifests remain router-first and declare the integration contract only. Gmail is draft-first; Loxo is read-only/draft-only unless separately authorized in a consumer. No send, candidate submission, Loxo write, approval decision, or external deletion is declared.
 4. The package contains no real candidate/client/referee records, staff email identities, account IDs, credentials, environment values, generated outputs, deployment code, or external symlinks. Runtime addresses, account identifiers, browser adapters, and output paths are host-supplied.
@@ -28,7 +32,7 @@ Recruiting instructions, builders, and integration declarations had diverged acr
 
 - Skills can be reviewed, tested, and versioned independently of the Workbench.
 - Consumers pin an exact private package version and use `getRecruiterAuthority()` or `resolveSkillPath()` to locate the router, manifests, and internal resources.
-- The package validator enforces the Recruiter entry and Tracker compatibility entry, 23 capabilities, required protected resources, manifest consistency, safe paths, sanitized DOCX placeholders, no packaged symlinks, and basic secret/privacy checks.
+- The package validator enforces the Recruiter entry and Tracker compatibility entry, 24 capabilities, required protected resources, manifest consistency, safe paths, sanitized DOCX placeholders, no packaged symlinks, and basic secret/privacy checks.
 
 ## Verification
 

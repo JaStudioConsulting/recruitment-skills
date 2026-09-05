@@ -74,9 +74,9 @@ function assertFullPackage({ drafts, pdf, attachment }) {
   if (attachment.state !== "verified") assert.ok(attachment.reason, "non-verified attachment state needs an explicit reason");
 }
 
-test("all 23 manifest routes and internal backtick routes resolve", async () => {
+test("all 24 manifest routes and internal backtick routes resolve", async () => {
   const manifest = JSON.parse(await readFile(path.join(skills, "capabilities.json"), "utf8"));
-  assert.equal(manifest.capabilities.length, 23);
+  assert.equal(manifest.capabilities.length, 24);
   for (const capability of manifest.capabilities) {
     assert.match(capability.path, /\/GUIDE\.md$/);
     assert.ok(exists(path.join(skills, capability.path)), capability.path);
@@ -189,6 +189,7 @@ test("every manifest capability exposes its capability-specific contract", async
     "loxo-automation": [/separate named authorization/i, /WAIT for approval/i],
     "loxo-readonly-candidate-dashboard": [/strictly read-only/i, /candidate\.job\.id/i],
     "offer-letter": [/Required Information/i, /ask before drafting/i],
+    "opportunity-brief": [/one exact company and one exact role/i, /approved_for_candidate_use/i, /validate_opportunity_brief\.py/i, /page-by-page visual inspection/i],
     "recruiting-hr": [/\$recruiter/i, /No external send/i],
     sourcing: [/Verified.*Unconfirmed.*Conflicting.*Outdated/is, /Stop before outbound action/i],
     tracker: [/Tracker Manager/i, /Recruiter must not write to the workbook directly/i],
@@ -270,6 +271,97 @@ test("full-package contract requires one draft, finished PDF, and explicit attac
     assert.throws(() => assertFullPackage({ drafts: [], pdf, attachment: { state: "verified" } }), /exactly one/);
     assert.throws(() => assertFullPackage({ drafts: [{ body: "Hello team" }], pdf, attachment: { state: "verified" } }), /CV attached/);
   } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test("synthetic opportunity brief builds and passes its automated release validator", async () => {
+  const dir = await mkdtemp(path.join(root, ".tmp-opportunity-brief-"));
+  try {
+    const logo = path.join(skills, "recruiter/modules/brandedresume/assets/tttg_logo.png");
+    const dataPath = path.join(dir, "brief-content.json");
+    const pdf = path.join(dir, "Synthetic_Opportunity_Brief.pdf");
+    const bounds = path.join(dir, "layout-bounds.json");
+    const sources = path.join(dir, "source-ledger.md");
+    const assets = path.join(dir, "asset-ledger.md");
+    const data = {
+      document: {
+        company: "Synthetic Manufacturing Ltd.", role: "Machine Reliability Manager", location: "Hamilton, Ontario",
+        title: "Synthetic Manufacturing Machine Reliability Manager Opportunity Brief",
+        subject: "Company, role, work context and location overview", author: "Top Tier Talent Group", footer: "Top Tier Talent Group"
+      },
+      source_control: {
+        as_of: "2026-09-04", publication_status: "approved_for_candidate_use",
+        role_status_evidence: "Synthetic recruiter confirmation dated 2026-09-04",
+        authoritative_sources: ["Synthetic current job description", "Synthetic official company profile"]
+      },
+      privacy: { banned_terms: ["Sample Candidate", "Private Interviewer"] },
+      cover: {
+        eyebrow: "The company", headline: "Industrial reliability with visible plant impact.",
+        deck: "An established manufacturer, a practical leadership mandate, and a role connected directly to safe production.",
+        image: logo, image_caption: "Synthetic visual used only for automated package testing.",
+        sections: [
+          { title: "A focused manufacturing business", body: "Synthetic Manufacturing produces engineered components for regulated industrial customers. The operation combines machining, assembly, maintenance, quality, and supply chain teams at one established Canadian site. Customer requirements make equipment condition, process control, and dependable delivery part of daily plant decisions." },
+          { title: "Why reliability matters now", body: "The company is strengthening the system used to plan preventive work, respond to breakdowns, control contractors, and learn from recurring failures. The role connects technical judgment with team leadership so maintenance effort supports safety, product quality, schedule stability, and responsible use of capital." }
+        ]
+      },
+      role: {
+        eyebrow: "The role", headline: "Machine Reliability Manager", intro: "Lead the people, systems, and practical decisions that keep critical production equipment ready for work.",
+        image: logo, image_caption: "Synthetic concept panel for automated validation only.",
+        at_a_glance: [
+          { label: "Work setting", value: "Plant-based leadership" },
+          { label: "Primary focus", value: "Reliability and maintenance" },
+          { label: "Key partners", value: "Operations and Engineering" }
+        ],
+        cards: [
+          { title: "The mandate", body: "Set a clear maintenance rhythm for critical assets, people, contractors, and spare parts. Balance immediate production needs with work that removes repeat failure." },
+          { title: "The actual work", body: "Review equipment risk, plan preventive tasks, coach the team through difficult faults, coordinate shutdown activity, and make repair or replacement recommendations." },
+          { title: "What success means", body: "Production sees fewer avoidable interruptions, overdue work becomes visible and controlled, and failure learning changes maintenance plans, parts strategy, and operating practice." },
+          { title: "How the role works", body: "Partner daily with Operations, Engineering, Quality, and Safety. Give trades and vendors clear priorities, then communicate risk, timing, cost, and follow-up to plant leadership." }
+        ],
+        note: "The final scope, team size, schedule, compensation, and available capital must come from the current confirmed role source."
+      },
+      context: {
+        eyebrow: "The work", headline: "A system built around the production floor.",
+        intro: "The strongest reliability leaders connect planning, technical depth, and disciplined follow-through.",
+        image: logo, image_caption: "Synthetic operating-context visual used only for package testing.",
+        columns: [
+          { title: "From signal to action", body: "Use work-order history, operator observations, inspections, and breakdown evidence to rank asset risk. Turn the ranking into scheduled work with named ownership, parts readiness, safe execution, and a documented return to service." },
+          { title: "From repair to learning", body: "A repair closes the immediate issue. Reliability work asks why it happened, whether the same pattern exists elsewhere, and what should change in preventive tasks, condition checks, training, spares, or equipment design." }
+        ],
+        note_title: "Questions worth exploring", note_body: "A useful first conversation should confirm the equipment mix, maintenance team, shift coverage, planning system, contractor model, major recurring losses, and which decisions this manager can make directly. Those facts determine whether the mandate matches the candidate's strongest experience."
+      },
+      decision: {
+        eyebrow: "The decision", headline: "Assess the work and the practical fit.",
+        intro: "A credible opportunity brief helps a candidate evaluate both professional scope and everyday realities.",
+        images: [
+          { path: logo, caption: "Synthetic city-context visual used only for automated testing." },
+          { path: logo, caption: "Synthetic regional-context visual used only for automated testing." }
+        ],
+        sections: [
+          { title: "Understand the operating challenge", body: "The role should be judged on the assets, failure patterns, team capability, planning maturity, and leadership support behind the title. A plant visit and direct discussion can show where the manager would spend time and which results matter first." },
+          { title: "Make the practical decision", body: "Confirm the work location, expected schedule, travel, compensation, and any relocation support through the recruiter. Compare those facts with the role's authority, learning opportunity, and connection to plant performance before deciding on next steps." }
+        ],
+        cta_title: "Explore the Machine Reliability Manager opportunity.",
+        cta_body: "Speak with Top Tier Talent Group about the role, company, and next conversation."
+      }
+    };
+    await writeFile(dataPath, JSON.stringify(data), "utf8");
+    await writeFile(sources, "# Source ledger\n\n- Synthetic current job description, reviewed 2026-09-04.\n- Synthetic official company profile, reviewed 2026-09-04.\n", "utf8");
+    await writeFile(assets, "# Asset ledger\n\n- Packaged Top Tier Talent Group synthetic test visual.\n- Used only for deterministic package validation.\n", "utf8");
+
+    const builder = runPython(path.join(skills, "recruiter/modules/opportunity-brief/scripts/build_opportunity_brief.py"), ["--data", dataPath, "--out", pdf, "--bounds", bounds]);
+    assert.equal(builder.status, 0, builder.stderr || builder.stdout);
+    assert.ok(exists(pdf) && statSync(pdf).size > 0);
+    assert.ok(exists(bounds));
+    const validator = runPython(path.join(skills, "recruiter/modules/opportunity-brief/scripts/validate_opportunity_brief.py"), ["--pdf", pdf, "--data", dataPath, "--bounds", bounds, "--sources", sources, "--assets", assets]);
+    assert.equal(validator.status, 0, validator.stderr || validator.stdout);
+    const summary = JSON.parse(validator.stdout);
+    assert.equal(summary.pages, 4);
+    assert.equal(summary.text_overlaps, 0);
+    assert.equal(summary.publication_status, "approved_for_candidate_use");
+  } finally {
+    if (process.env.KEEP_SYNTHETIC_OPPORTUNITY_BRIEF === "1") console.log(`synthetic opportunity brief retained at ${dir}`);
+    else await rm(dir, { recursive: true, force: true });
+  }
 });
 
 test("reference contract documents existing final PDF, intermediate DOCX, builder, and template paths", async () => {
