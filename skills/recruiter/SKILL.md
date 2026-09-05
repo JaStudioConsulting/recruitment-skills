@@ -1,6 +1,6 @@
 ---
 name: recruiter
-description: The single front door for all Top Tier Talent Group recruiting work. Use whenever Ja wants to vet, screen, match, source, defend, brand, write up, submit, MPC, blind, reference-check, package a candidate, or create a reusable company and role opportunity brief, asks who to call or whether someone fits, or wants to update, sync, audit, repair, search, or verify Tracker Submissions or Leads. Also fires on any upload of a resume, transcript, call notes, JD, or Loxo record with a recruiting ask. This is the ONE router. It owns workflow selection and routes Tracker work to the protected Tracker Manager authority.
+description: The single front door for all Top Tier Talent Group recruiting work. Use whenever Ja wants to vet, screen, match, source, defend, brand, write up, submit, MPC, blind, reference-check, package a candidate, create candidate-facing interview prep material, asks who to call or whether someone fits, or wants to update, sync, audit, repair, search, or verify Tracker Submissions or Leads. Also fires on any upload of a resume, transcript, call notes, JD, or Loxo record with a recruiting ask. This is the ONE router. It owns workflow selection and routes Tracker work to the protected Tracker Manager authority.
 ---
 
 # Recruiter (the one front door)
@@ -88,7 +88,7 @@ thin routing module, which then loads the repository-owned Tracker Manager.
 | Create LinkedIn recruiting posts, company-page copy, or image briefs | `modules/linkedin-posts/GUIDE.md` | none | publish-ready copy matches the correct LinkedIn format and recruiting facts |
 | Match candidates to roles, call list, intake | `modules/candidate-match-engine/GUIDE.md` | Airtable | list returned or blocker named |
 | Reference check PDF | `modules/complete-reference-check/GUIDE.md` | docx build + PDF render + `scripts/validate-artifact-qa.mjs` | final PDF exists, size > 0, every page human/vision-inspected with completed QA record and validator pass |
-| Reusable candidate opportunity PDF or presentation for one company and role | `modules/opportunity-brief/GUIDE.md` | role brief builder + opportunity validator + `scripts/validate-artifact-qa.mjs` | current role status and sources pass; no candidate-specific information; PDF exists; every page human/vision-inspected; both validators pass |
+| Candidate-facing interview prep material for one company and role | `modules/interview-prep-material/GUIDE.md` | interview prep material builder + material validator + `scripts/validate-artifact-qa.mjs` | current role status and sources pass; no candidate-specific information; PDF exists; every page human/vision-inspected; both validators pass |
 | Source / x-ray / find candidates on the web | `modules/web-sourcing/GUIDE.md`, `modules/sourcing/GUIDE.md` | web search | every row has `Eligibility` (`Eligible` or `Excluded`) and `Evidence Status` (`Verified`, `Unconfirmed`, `Conflicting`, or `Outdated`) with direct evidence |
 | Loxo ATS work, bullets, dashboards, Gmail reconciliation, or safe pipeline action manifest | `modules/loxo/GUIDE.md`, `modules/loxo-readonly-candidate-dashboard/GUIDE.md` | Loxo and Gmail read-only | findings or exact approval manifest returned; no implicit write |
 | Update, sync, audit, repair, search, or verify Tracker Submissions or import verified Tracker Leads | `modules/tracker/GUIDE.md` | protected `tracker-manager`, Gmail read, scoped Sheets adapter | Tracker Manager's operation-specific verification and final report pass |
@@ -102,6 +102,8 @@ thin routing module, which then loads the repository-owned Tracker Manager.
 | Resume layout/print rules | `modules/legislator/GUIDE.md`, `modules/tttg-resume-engine-workspace/GUIDE.md` | none | rules applied |
 | Campaign list / CSV / BD targets | this file, Output locations below | file write | `test -f` passes and row count matches |
 | Decision speed, 60-second manager snapshot | `references/submission-format.md` | none | snapshot returned |
+
+Routing discriminator: "interview prep material" means the reusable candidate-facing PDF in `modules/interview-prep-material/GUIDE.md`. "Interview plan," "interview questions," "how should we interview," and "scorecard" mean the interviewer evaluation kit in `modules/recruiting-hr/interview-prep/GUIDE.md`.
 
 ## Verification gate (mandatory, no exceptions)
 
@@ -155,7 +157,7 @@ prepared candidate package as a Tracker source event.
 
 24 specialist capabilities now live under `modules/`. Each keeps its own scripts, assets, and references. Their `SKILL.md` was renamed `GUIDE.md` so they no longer register as separate skills. Nothing was deleted.
 
-`applicant-screening, brandedresume, candidate-defense, candidate-match-engine, complete-reference-check, cover-letter, ja-candidate-vetting, ja-writer, job-loxo, legislator, linkedin-posts, loxo, loxo-automation, loxo-readonly-candidate-dashboard, offer-letter, opportunity-brief, recruiting-hr, sourcing, tttg-candidate-submission, tttg-resume-engine-workspace, vet, web-sourcing, write-up`
+`applicant-screening, brandedresume, candidate-defense, candidate-match-engine, complete-reference-check, cover-letter, interview-prep-material, ja-candidate-vetting, ja-writer, job-loxo, legislator, linkedin-posts, loxo, loxo-automation, loxo-readonly-candidate-dashboard, offer-letter, recruiting-hr, sourcing, tttg-candidate-submission, tttg-resume-engine-workspace, vet, web-sourcing, write-up`
 
 Pre-consolidation sources remain outside this repository as rollback evidence, but they are not runtime authority.
 

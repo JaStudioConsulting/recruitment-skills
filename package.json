@@ -1,6 +1,6 @@
 {
   "name": "@jastudioconsulting/recruitment-skills",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "description": "Private, router-first recruiting skills authority for Ja Studio Consulting.",
   "exports": {

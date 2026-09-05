@@ -12,6 +12,8 @@ explicit authorization and a verified adapter.
 
 Create structured interview plans to evaluate candidates consistently and fairly.
 
+Do not route the exact phrase "interview prep material" here. That phrase means the reusable candidate-facing company and role PDF in `modules/interview-prep-material/GUIDE.md`.
+
 ## Interview Design Principles
 
 1. **Structured**: Same questions for all candidates in the role

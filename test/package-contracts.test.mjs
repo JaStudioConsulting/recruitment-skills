@@ -189,7 +189,7 @@ test("every manifest capability exposes its capability-specific contract", async
     "loxo-automation": [/separate named authorization/i, /WAIT for approval/i],
     "loxo-readonly-candidate-dashboard": [/strictly read-only/i, /candidate\.job\.id/i],
     "offer-letter": [/Required Information/i, /ask before drafting/i],
-    "opportunity-brief": [/one exact company and one exact role/i, /approved_for_candidate_use/i, /validate_opportunity_brief\.py/i, /page-by-page visual inspection/i],
+    "interview-prep-material": [/one exact company and one exact role/i, /approved_for_candidate_use/i, /validate_interview_prep_material\.py/i, /page-by-page visual inspection/i],
     "recruiting-hr": [/\$recruiter/i, /No external send/i],
     sourcing: [/Verified.*Unconfirmed.*Conflicting.*Outdated/is, /Stop before outbound action/i],
     tracker: [/Tracker Manager/i, /Recruiter must not write to the workbook directly/i],
@@ -273,19 +273,19 @@ test("full-package contract requires one draft, finished PDF, and explicit attac
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
-test("synthetic opportunity brief builds and passes its automated release validator", async () => {
-  const dir = await mkdtemp(path.join(root, ".tmp-opportunity-brief-"));
+test("synthetic interview prep material builds and passes its automated release validator", async () => {
+  const dir = await mkdtemp(path.join(root, ".tmp-interview-prep-material-"));
   try {
     const logo = path.join(skills, "recruiter/modules/brandedresume/assets/tttg_logo.png");
     const dataPath = path.join(dir, "brief-content.json");
-    const pdf = path.join(dir, "Synthetic_Opportunity_Brief.pdf");
+    const pdf = path.join(dir, "Synthetic_Interview_Prep_Material.pdf");
     const bounds = path.join(dir, "layout-bounds.json");
     const sources = path.join(dir, "source-ledger.md");
     const assets = path.join(dir, "asset-ledger.md");
     const data = {
       document: {
         company: "Synthetic Manufacturing Ltd.", role: "Machine Reliability Manager", location: "Hamilton, Ontario",
-        title: "Synthetic Manufacturing Machine Reliability Manager Opportunity Brief",
+        title: "Synthetic Manufacturing Machine Reliability Manager Interview Prep Material",
         subject: "Company, role, work context and location overview", author: "Top Tier Talent Group", footer: "Top Tier Talent Group"
       },
       source_control: {
@@ -331,7 +331,7 @@ test("synthetic opportunity brief builds and passes its automated release valida
       },
       decision: {
         eyebrow: "The decision", headline: "Assess the work and the practical fit.",
-        intro: "A credible opportunity brief helps a candidate evaluate both professional scope and everyday realities.",
+        intro: "Credible interview prep material helps a candidate evaluate both professional scope and everyday realities.",
         images: [
           { path: logo, caption: "Synthetic city-context visual used only for automated testing." },
           { path: logo, caption: "Synthetic regional-context visual used only for automated testing." }
@@ -348,18 +348,18 @@ test("synthetic opportunity brief builds and passes its automated release valida
     await writeFile(sources, "# Source ledger\n\n- Synthetic current job description, reviewed 2026-09-04.\n- Synthetic official company profile, reviewed 2026-09-04.\n", "utf8");
     await writeFile(assets, "# Asset ledger\n\n- Packaged Top Tier Talent Group synthetic test visual.\n- Used only for deterministic package validation.\n", "utf8");
 
-    const builder = runPython(path.join(skills, "recruiter/modules/opportunity-brief/scripts/build_opportunity_brief.py"), ["--data", dataPath, "--out", pdf, "--bounds", bounds]);
+    const builder = runPython(path.join(skills, "recruiter/modules/interview-prep-material/scripts/build_interview_prep_material.py"), ["--data", dataPath, "--out", pdf, "--bounds", bounds]);
     assert.equal(builder.status, 0, builder.stderr || builder.stdout);
     assert.ok(exists(pdf) && statSync(pdf).size > 0);
     assert.ok(exists(bounds));
-    const validator = runPython(path.join(skills, "recruiter/modules/opportunity-brief/scripts/validate_opportunity_brief.py"), ["--pdf", pdf, "--data", dataPath, "--bounds", bounds, "--sources", sources, "--assets", assets]);
+    const validator = runPython(path.join(skills, "recruiter/modules/interview-prep-material/scripts/validate_interview_prep_material.py"), ["--pdf", pdf, "--data", dataPath, "--bounds", bounds, "--sources", sources, "--assets", assets]);
     assert.equal(validator.status, 0, validator.stderr || validator.stdout);
     const summary = JSON.parse(validator.stdout);
     assert.equal(summary.pages, 4);
     assert.equal(summary.text_overlaps, 0);
     assert.equal(summary.publication_status, "approved_for_candidate_use");
   } finally {
-    if (process.env.KEEP_SYNTHETIC_OPPORTUNITY_BRIEF === "1") console.log(`synthetic opportunity brief retained at ${dir}`);
+    if (process.env.KEEP_SYNTHETIC_INTERVIEW_PREP_MATERIAL === "1") console.log(`synthetic interview prep material retained at ${dir}`);
     else await rm(dir, { recursive: true, force: true });
   }
 });

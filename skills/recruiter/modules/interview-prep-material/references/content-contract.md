@@ -1,4 +1,4 @@
-# Opportunity brief content contract
+# Interview prep material content contract
 
 The builder accepts one UTF-8 JSON file. Paths are absolute or relative to the JSON file. Display text supports ReportLab paragraph tags only when needed for `<b>`, `<i>`, `<br/>`, and `<link href="https://...">`.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a four-page, role-specific candidate opportunity brief."""
+"""Build four-page, role-specific candidate interview prep material."""
 
 from __future__ import annotations
 
@@ -159,7 +159,7 @@ class BriefBuilder:
         self.canvas.setTitle(self.doc["title"])
         self.canvas.setAuthor(self.doc["author"])
         self.canvas.setSubject(self.doc["subject"])
-        self.canvas.setCreator("Top Tier Talent Group opportunity brief builder")
+        self.canvas.setCreator("Top Tier Talent Group interview prep material builder")
 
     @staticmethod
     def register_fonts() -> dict[str, str]:

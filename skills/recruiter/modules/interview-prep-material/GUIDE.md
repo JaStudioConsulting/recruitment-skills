@@ -1,11 +1,11 @@
 ---
-name: opportunity-brief
-description: Internal recruiter capability for a reusable, role-specific candidate opportunity PDF. The recruiter front door selects this guide when Ja asks for a polished company, role, work, location, or relocation presentation that can be sent to multiple candidates. It is not a standalone invocation.
+name: interview-prep-material
+description: Internal recruiter capability for reusable, role-specific candidate interview prep material in a polished PDF. The recruiter front door selects this guide when Ja asks for interview prep material, a candidate-facing company and role presentation, or a visual brief that can be sent to multiple candidates. It is not a standalone invocation.
 ---
 
-# Candidate Opportunity Brief
+# Interview Prep Material
 
-Create one polished, candidate-facing PDF for one exact company and one exact role. The brief is reusable across candidates for that role. Candidate fit, compensation, interviewer names, interview dates, meeting links, and personal logistics stay in the individual email or candidate record.
+Create one polished, candidate-facing interview prep PDF for one exact company and one exact role. The material is reusable across candidates for that role. Candidate fit, compensation, interviewer names, interview dates, meeting links, and personal logistics stay in the individual email or candidate record.
 
 This capability turns the proven presentation method into a client-neutral workflow. It must never carry facts, role names, images, or assumptions from an earlier brief into a new one.
 
@@ -71,9 +71,9 @@ qa/
 Keep editorial content separate from layout. Populate `brief-content.json` according to the content contract, then run:
 
 ```bash
-python3 modules/opportunity-brief/scripts/build_opportunity_brief.py \
+python3 modules/interview-prep-material/scripts/build_interview_prep_material.py \
   --data /absolute/work/brief-content.json \
-  --out /absolute/output/Company_Role_Opportunity_Brief.pdf \
+  --out /absolute/output/Company_Role_Interview_Prep_Material.pdf \
   --bounds /absolute/qa/layout-bounds.json
 ```
 
@@ -82,9 +82,9 @@ Use `--logo /absolute/path/logo.png` only when an approved replacement logo is r
 For an internal draft whose role status is not confirmed:
 
 ```bash
-python3 modules/opportunity-brief/scripts/build_opportunity_brief.py \
+python3 modules/interview-prep-material/scripts/build_interview_prep_material.py \
   --data /absolute/work/brief-content.json \
-  --out /absolute/output/Company_Role_Opportunity_Brief_DRAFT.pdf \
+  --out /absolute/output/Company_Role_Interview_Prep_Material_DRAFT.pdf \
   --bounds /absolute/qa/layout-bounds.json \
   --allow-draft
 ```
@@ -98,8 +98,8 @@ Render every page to PNG at a useful review size. Inspect every final page after
 Run the opportunity validator:
 
 ```bash
-python3 modules/opportunity-brief/scripts/validate_opportunity_brief.py \
-  --pdf /absolute/output/Company_Role_Opportunity_Brief.pdf \
+python3 modules/interview-prep-material/scripts/validate_interview_prep_material.py \
+  --pdf /absolute/output/Company_Role_Interview_Prep_Material.pdf \
   --data /absolute/work/brief-content.json \
   --bounds /absolute/qa/layout-bounds.json \
   --sources /absolute/work/source-ledger.md \

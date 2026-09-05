@@ -19,14 +19,14 @@
       "template": "recruiter/modules/complete-reference-check/assets/reference-check-template.docx"
     },
     {
-      "id": "candidate_opportunity_brief",
+      "id": "candidate_interview_prep_material",
       "router": "recruiter",
-      "capability": "opportunity-brief",
+      "capability": "interview-prep-material",
       "required_sources": ["confirmed_role_status", "authoritative_job_description", "current_company_site_location_sources", "approved_visual_assets"],
       "stages": ["authority_check", "scope_one_role", "source_audit", "editorial_plan", "asset_licence_audit", "pdf_build", "automated_validation", "page_render", "human_visual_qa", "artifact_qa_validation"],
-      "outputs": ["candidate_safe_role_opportunity_pdf", "source_ledger", "asset_ledger", "artifact_qa_record"],
+      "outputs": ["candidate_safe_interview_prep_pdf", "source_ledger", "asset_ledger", "artifact_qa_record"],
       "external_actions": "none",
-      "reference": "recruiter/modules/opportunity-brief/references/content-contract.md"
+      "reference": "recruiter/modules/interview-prep-material/references/content-contract.md"
     },
     {
       "id": "candidate_sourcing",

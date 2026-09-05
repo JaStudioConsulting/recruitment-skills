@@ -11,7 +11,7 @@ The current contract is [CUTOVER.md](../consolidation/CUTOVER.md). The validator
 now permits Recruiter's SKILL.md and one Tracker compatibility SKILL.md that
 routes back through Recruiter; all operational rules remain in one GUIDE.md.
 
-Amended 2026-09-04: added the role-specific `opportunity-brief` internal module,
+Amended 2026-09-04: added the role-specific `interview-prep-material` internal module,
 its generic PDF builder, source and asset controls, and release validators. The
 router now exposes 24 internal capabilities without adding another front door.
 

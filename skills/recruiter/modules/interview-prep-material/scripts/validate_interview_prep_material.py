@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate a finished role-specific candidate opportunity brief."""
+"""Validate finished role-specific candidate interview prep material."""
 
 from __future__ import annotations
 
