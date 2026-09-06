@@ -179,37 +179,13 @@ When activity exists only on another job, label it separately:
 
 ### 8. Produce the final row model
 
-Required columns:
-
-| Stage | 🟣 Applied | Candidate | Recent Employment Snapshot | Industry | Tickets / Licences | Activity / Outreach | Decision | Notes |
-|---|---|---|---|---|---|---|---|---|
-
-Use this JSON shape before generating HTML:
-
-```json
-{
-  "id": 123,
-  "stage": "Longlist",
-  "applied": true,
-  "candidate": "Synthetic Candidate I",
-  "employment": [
-    "Example Manufacturing Ltd. | Team Lead | Mar 2018 – Present"
-  ],
-  "employment_summary": "8+ years with Example Manufacturing Ltd.; progressed into frontline leadership.",
-  "industry": "Automotive manufacturing",
-  "tickets": "Forklift; First Aid",
-  "activity": "No job-specific outreach found",
-  "activity_type": "none"
-}
-```
-
-Allowed `activity_type` values:
-
-- `none`
-- `attempted`
-- `reached`
-- `bounced`
-- `replied`
+The required row columns and normalized input schema live in
+[`references/row-format.md`](references/row-format.md). A synthetic test-only
+payload for the builder is kept at
+[`../../../../tests/fixtures/synthetic-candidate-dashboard.json`](../../../../tests/fixtures/synthetic-candidate-dashboard.json);
+it is not production data.
+Allowed `activity_type` values are `none`, `attempted`, `reached`, `bounced`,
+and `replied`.
 
 ### 9. Generate the external HTML dashboard
 

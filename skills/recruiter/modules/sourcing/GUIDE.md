@@ -104,8 +104,9 @@ visibly published by the person or employer.
 
 - Resume/JD submission vetting and submission packages: use `vet`.
 - Loxo searches or writes: use `loxo` after this skill prepares criteria or approved rows.
-- Candidate or client messaging: no packaged `outreach` route exists in this repository.
-  Stop and ask Ja before using an external messaging capability.
+- Candidate or client messaging copy: route to the packaged
+  `modules/ja-writer/GUIDE.md`. Sending or activating outreach is not packaged;
+  stop and ask Ja before using an external messaging capability.
 - Existing-database role matching: use `candidate-match-engine`.
 - Scheduled or bulk Airtable match-engine runs: use `candidate-match-engine`; one-candidate
   opportunity mapping stays in this skill.

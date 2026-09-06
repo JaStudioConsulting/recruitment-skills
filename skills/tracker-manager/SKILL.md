@@ -10,8 +10,14 @@ Load `../recruiter/SKILL.md` first and follow its authority check. Then use
 is [GUIDE.md](GUIDE.md), with [Leads](leads/GUIDE.md) as its only approved
 non-Submissions write route, in this same repository version.
 
-For every Leads request, read [leads/README.md](leads/README.md) in full before
-planning or acting. Its data-entry and formatting rules are mandatory.
+For every Leads request, read [leads/GUIDE.md](leads/GUIDE.md) and
+[the Leads layout reference](leads/references/layout.md) before planning or
+acting. The JSON contract and protected planner remain authoritative for
+schema and writes.
+
+For `SF Jobs` lookup or Workbench Jobs read-through, load
+[the SF Jobs contract](references/sf-jobs-contract.md). It is read-only here;
+any write remains a separately authorized Tracker Manager operation.
 
 This entry preserves existing `$tracker-manager` invocations. It contains no
 independent schema, writing rules, or permissions. Do not load an older vault

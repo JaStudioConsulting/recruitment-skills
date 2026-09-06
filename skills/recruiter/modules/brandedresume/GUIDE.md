@@ -19,7 +19,8 @@ One shot beats a redo. Before building, scan the input for any missing or unclea
 
 1. **Read the raw candidate material** the user provides.
 2. **Extract and refine** it into clean, structured data (rules below).
-3. **Write a `candidate.json`** matching the schema in `assets/example_candidate.json`.
+3. **Write a `candidate.json`** matching the schema in
+   [`references/example-candidate.json`](references/example-candidate.json).
 4. **Run the builder.** From the skill's base directory:
 
    ```bash

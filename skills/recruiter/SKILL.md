@@ -1,6 +1,6 @@
 ---
 name: recruiter
-description: The single front door for all Top Tier Talent Group recruiting work. Use whenever Ja wants to vet, screen, match, source, defend, brand, write up, submit, MPC, blind, reference-check, package a candidate, create candidate-facing interview prep material, asks who to call or whether someone fits, or wants to update, sync, audit, repair, search, or verify Tracker Submissions or Leads. Also fires on any upload of a resume, transcript, call notes, JD, or Loxo record with a recruiting ask. This is the ONE router. It owns workflow selection and routes Tracker work to the protected Tracker Manager authority.
+description: The single recruiting front door for Ja. Routes candidate, job, sourcing, Loxo, writing, artifact, and Tracker requests to the canonical internal modules while enforcing source, approval, identity, and reread gates.
 ---
 
 # Recruiter (the one front door)
@@ -39,7 +39,8 @@ For a connector-only host, fetch current GitHub main and load this router and
 required resources from that same commit. Do not claim local sync or executable
 Tracker validation there unless that runtime is actually present.
 
-When a recruiting task arrives, start here, read only the module you need, and follow it. This file owns the workflow, the gates, and the routing.
+When a recruiting task arrives, start here, read only the module or reference you
+need, and follow it. This file owns the workflow, the gates, and the routing.
 
 Read the canonical `../_JA-RULES.md` returned by the authority check. Those style, resume, and submission rules override defaults and apply to every artifact.
 
@@ -59,7 +60,7 @@ Truth comes only from: the resume, the call audio/transcript, recruiter notes th
 
 ## Workflow (one stage at a time unless Ja asks for the full package)
 
-1. **Audio first.** If input includes an mp3/m4a/wav, run `transcribe` before any claim is written. If an expected recording or transcript is missing, follow [`references/call-recording-recovery.md`](references/call-recording-recovery.md) before declaring it unavailable.
+1. **Audio first.** If input includes an mp3/m4a/wav, use the active host's declared `transcribe` adapter before any claim is written. Transcription is not packaged here: when the host does not declare one, follow [`references/call-recording-recovery.md`](references/call-recording-recovery.md), report the unavailable adapter, and do not infer call facts.
 2. **Source audit.** Extract confirmed facts and conflicts. Tag each: resume, transcript, JD, call note, email, Loxo, Airtable, Gmail, or Ja-direct.
 3. **Vet / fast-fit.** Use `references/decision-framework.md` and `references/vetting-framework.md`. Assign confidence: High, Medium, or Low. Output GO, NO-GO, or NEEDS VERIFICATION.
    - High confidence: prepare a submission draft for human review.
@@ -80,6 +81,7 @@ thin routing module, which then loads the repository-owned Tracker Manager.
 
 | Ja wants | Read this module | Tool it uses | Done only when |
 |----------|------------------|--------------|----------------|
+| Open a Candidate Prep workspace for an active job | `references/candidate-prep-workspace.md` | host Workbench adapter + selected canonical modules | source provenance/conflicts reviewed; selected drafts are marked `draft_ready`; no send, submission, Tracker/Loxo write, or movement without separate authorization and reread |
 | Build the branded resume PDF ("brand this") | `modules/brandedresume/GUIDE.md` | `modules/brandedresume/scripts/build_resume.py` + `scripts/validate-artifact-qa.mjs` | PDF exists at requested path, size > 0, every page has explicit visual review by human/vision inspection with completed QA record, validator passes |
 | Vet / go-no-go / check fit | `modules/vet/GUIDE.md`, `modules/ja-candidate-vetting/GUIDE.md`; for a candidate inside a Loxo job pipeline also read `modules/loxo/GUIDE.md` and its `loxo-candidate-fit-review.md` route | none or verified Loxo read-only access | verdict is GO, NO-GO, or NEEDS VERIFICATION; no Loxo write |
 | Full package (submission email draft + PDF) | `modules/write-up/GUIDE.md` | Gmail draft + build_resume.py + `scripts/validate-artifact-qa.mjs` | exactly one saved unsent draft reread; PDF has completed human/vision per-page QA record and explicit visual review plus validator pass; attachment verified or explicitly unavailable/ready-to-attach |
@@ -171,3 +173,5 @@ Pre-consolidation sources remain outside this repository as rollback evidence, b
 - `references/master-matching-prompt.md` : reusable strict yes/no candidate evaluation prompt.
 - `references/call-recording-recovery.md` : read-only recovery and identity checks for missing call evidence.
 - `references/consolidated-legacy-routes.md` : retired recruiting entrypoints and their current canonical owners.
+- `references/candidate-prep-workspace.md` : active-job Candidate Prep workspace contract, flexible outputs, statuses, and authorization boundary.
+- `references/active-job-template-kit.md` : reusable job template bundle, token/source rules, and draft/send gates.

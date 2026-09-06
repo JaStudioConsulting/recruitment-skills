@@ -2,7 +2,6 @@
 name: loxo-automation
 description: Restricted Loxo browser action guide. Default output is read-only findings or an unsaved manual draft. A Loxo mutation requires separately named human authorization and a verified allowed browser tool in the current host.
 allowed-tools:
-  - chrome-devtools_*
   - Bash
   - Read
 ---
@@ -12,6 +11,14 @@ allowed-tools:
 ## Restricted-action gate
 
 This is not a general permission to operate Loxo. Without both (1) Ja's separate named authorization for the exact record and action and (2) a verified allowed browser tool in the active host, stop at read-only inspection or an unsaved draft. Never treat AI confirmation, a `confirm` field, or a pending approval record as human authorization.
+
+## Host adapter boundary
+
+This guide has no bundled browser client. A consumer must declare an approved
+browser adapter and supply the current Loxo URL, agency context, and target
+identity. Provider names, fixed agency URLs, and machine paths are not
+assumptions or allowed tools. If the active host has no declared
+adapter, stop at a read-only plan and report the capability as unavailable.
 
 ## When to Use This Skill
 
@@ -46,9 +53,8 @@ Use this skill when user wants to:
 
 ## Base URL
 
-Loxo login: `https://app.loxo.co`
-
-User's agency: `https://app.loxo.co/agencies/{agencyId}`
+The active host supplies the current Loxo base URL and agency context. This
+package does not publish account URLs or IDs.
 
 ## Tasks You Can Perform
 
@@ -98,15 +104,13 @@ User's agency: `https://app.loxo.co/agencies/{agencyId}`
 ## How to Execute Tasks
 
 ### Step 1: Open Browser
-```bash
-# Use only a browser adapter declared by the active host.
-# The agency URL must come from host configuration.
-```
+
+Use only the browser adapter declared by the active host. The Loxo URL and
+agency context must come from host configuration.
 
 ### Step 2: Navigate
-- Use chrome-devtools_navigate_page to go to URLs
-- Use chrome-devtools_click to click elements
-- Use chrome-devtools_take_snapshot to see current state
+- Use the host adapter's navigate, click, fill, snapshot, and screenshot
+  operations. Never name or assume a provider-specific tool in a run.
 
 ### Step 3: Verify
 - Take snapshots to verify you're on right page
@@ -147,11 +151,9 @@ Can you show me where [field] is in Loxo?"
 
 ## First Task Protocol
 
-For the VERY FIRST task with a new user:
-1. Ask user to log into Loxo manually first
-2. Ask which browser to use (confirmed: Atlas)
-3. Navigate to the relevant section together
-4. Ask user to point out key fields before proceeding
+For the first task with a new user, ask the user to log into Loxo manually,
+confirm the host-declared browser adapter, navigate to the relevant section,
+and point out any non-obvious fields before proceeding.
 
 ## Important Notes
 

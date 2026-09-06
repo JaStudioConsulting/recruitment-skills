@@ -1,0 +1,22 @@
+{
+  "job": {
+    "job_id": "synthetic-job-101",
+    "title": "Synthetic Machine Reliability Manager",
+    "company": "Synthetic Manufacturing Ltd.",
+    "location": "Hamilton, Ontario"
+  },
+  "candidates": [
+    {
+      "id": 101,
+      "stage": "Longlist",
+      "applied": true,
+      "candidate": "Synthetic Candidate I",
+      "employment": ["Example Manufacturing Ltd. | Team Lead | Mar 2018 - Present"],
+      "employment_summary": "Synthetic fixture only; no production record.",
+      "industry": "Automotive manufacturing",
+      "tickets": "Forklift; First Aid",
+      "activity": "No job-specific outreach found",
+      "activity_type": "none"
+    }
+  ]
+}

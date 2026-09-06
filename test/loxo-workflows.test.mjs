@@ -27,6 +27,8 @@ test("Loxo guide routes fit review and both protected workflow references", asyn
   const fit = await readSkillText("recruiter/modules/loxo/references/loxo-candidate-fit-review.md");
   const safe = await readSkillText("recruiter/modules/loxo/references/loxo-safe-pipeline-actions.md");
   const reconciliation = await readSkillText("recruiter/modules/loxo/references/gmail-loxo-candidate-reconciliation.md");
+  const archivalWorkflow = await readSkillText("recruiter/modules/loxo/references/ARCHIVAL-loxo-workflow.md");
+  const archivalBusinessDevelopment = await readSkillText("recruiter/modules/loxo/references/ARCHIVAL-loxo-business-development.md");
 
   assert.match(guide, /loxo-candidate-fit-review\.md/);
   assert.match(guide, /loxo-safe-pipeline-actions\.md/);
@@ -38,4 +40,31 @@ test("Loxo guide routes fit review and both protected workflow references", asyn
   assert.match(safe, /Unknown write results are unresolved\. Do not retry automatically/);
   assert.match(reconciliation, /An internal submission is not proof that the candidate reached the client/);
   assert.match(reconciliation, /does not authorize a Gmail send or a\s+Loxo write/);
+  assert.doesNotMatch(guide, /references\/loxo-workflow\.md|references\/loxo-business-development\.md/);
+  assert.match(guide, /exact record IDs.*immutable action manifest.*explicit approval.*precondition reread.*serialized host-adapter execution.*post-action reread.*no automatic retry/is);
+  assert.match(archivalWorkflow, /ARCHIVAL \/ NON-RUNNABLE/i);
+  assert.match(archivalBusinessDevelopment, /ARCHIVAL \/ NON-RUNNABLE/i);
+});
+
+test("active Loxo references cannot expose imperative mutation procedures", async () => {
+  const activeReferences = [
+    "recruiter/modules/loxo/references/gmail-loxo-candidate-reconciliation.md",
+    "recruiter/modules/loxo/references/loxo-candidate-fit-review.md",
+    "recruiter/modules/loxo/references/loxo-linkedin-candidate-vetting.md",
+    "recruiter/modules/loxo/references/loxo-outreach.md",
+    "recruiter/modules/loxo/references/loxo-platform-overview.md",
+    "recruiter/modules/loxo/references/loxo-safe-pipeline-actions.md",
+    "recruiter/modules/loxo/references/prospect-campaign-learning.md"
+  ];
+  const imperativeMutation = /^\s*(?:\d+[.)]\s*)?(?:add|create|edit|save|send|start|activate|upload|drag|tag|delete|cancel|retry|finalize|personalize)\b[^\n]*(?:campaign|list|person|tag|deal|activity|document|send|message|pipeline|candidate|resume|contact|company|pitch|import|submit)/im;
+  for (const relative of activeReferences) {
+    const content = await readSkillText(relative);
+    assert.doesNotMatch(content, imperativeMutation, `${relative} exposes an imperative mutation procedure`);
+  }
+  const outreach = await readSkillText("recruiter/modules/loxo/references/loxo-outreach.md");
+  assert.match(outreach, /read-only draft review/i);
+  assert.match(outreach, /exact person, campaign, job, company, or deal IDs/i);
+  assert.match(outreach, /serialized host-adapter execution/i);
+  assert.match(outreach, /post-action reread/i);
+  assert.match(outreach, /no automatic retry/i);
 });

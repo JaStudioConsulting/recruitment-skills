@@ -1,6 +1,6 @@
 ---
 name: loxo
-description: Use for Loxo ATS/CRM work for Ja and Top Tier Talent Group: jobs, candidates, contacts, companies, tags, filters, imports, intake notes, submissions, MPC/spec CVs, outreach campaigns, business development deals, and Loxo help-center workflows. Use when the user asks how to do something in Loxo, wants Loxo-ready steps, or wants recruiting workflow actions executed in Loxo via the browser.
+description: Use for read-only Loxo ATS/CRM orientation and draft preparation for Ja and Top Tier Talent Group. Use for source-grounded findings, exact-record review, or an approval manifest; live changes belong to the protected host adapter and safe pipeline contract.
 ---
 
 ## Interface
@@ -11,10 +11,10 @@ This internal guide can run in any approved host that exposes a verified browser
 
 When Ja gives a task:
 1. Identify the Loxo surface (job, person, company, deal, list, campaign).
-2. Load the relevant reference file (workflow / outreach / BD).
+2. Load the relevant read-only reference (platform map / outreach / BD orientation).
 3. Restate the task in one line and the planned action sequence.
-4. Keep this guide read-only or draft-only. Return navigation, source-grounded findings, or manual draft bullets only.
-5. Stop if the request would change Loxo. A separate named human authorization and a verified, allowed browser tool are both required before the restricted `loxo-automation` guide may be considered.
+4. Keep this guide read-only or draft-only. Return source-grounded findings or manual draft bullets only; do not execute browser/provider click paths.
+5. Any live change must route through `references/loxo-safe-pipeline-actions.md`: exact record IDs, an immutable action manifest, Ja's explicit approval, precondition reread, serialized host-adapter execution, post-action reread, and no automatic retry after an unknown result. The restricted `loxo-automation` guide is only a separately authorized consumer executor.
 6. Stop and ask if the surface or intent is unclear, or if the UI doesn't match expectations.
 
 # Loxo
@@ -35,14 +35,13 @@ Use this order:
 
 1. Start at `skills/recruiter/SKILL.md`, then read this `GUIDE.md` for the right lane and action pattern.
 2. Load the relevant reference file:
-   - `references/loxo-platform-overview.md` - the video-grounded platform map for translating Ja's wording into the correct Jobs, People, Source, pipeline, profile, extension, stage-automation, Outreach, Companies, Tasks, Schedule, or Reports surface. This is orientation only and never overrides approval, ownership, Activity, DNC, or read-only rules.
-   - `references/loxo-workflow.md` for jobs, people, candidates, submissions, resumes, status, tags, filtering, and imports.
+   - `references/loxo-platform-overview.md` - the read-only platform map for translating Ja's wording into the correct Jobs, People, Source, pipeline, profile, extension, stage-automation, Outreach, Companies, Tasks, Schedule, or Reports surface. Historical workflow research is retained in `references/ARCHIVAL-loxo-workflow.md` and is non-runnable; the map never overrides approval, ownership, Activity, DNC, or read-only rules.
    - `references/loxo-safe-pipeline-actions.md` for review, action manifests, independent audit, approval, precondition checks, serialized execution, and post-write verification.
    - `references/gmail-loxo-candidate-reconciliation.md` for evidence-based reconciliation of Gmail submission history, Loxo stages, job association, and structured candidate fields.
    - `references/loxo-candidate-fit-review.md` for the read-only, job-linked Profile, Resume, Activity, and optional LinkedIn sequence used to decide whether one pipeline candidate fits the exact role.
    - `references/loxo-linkedin-candidate-vetting.md` for read-only candidate vetting against the exact LinkedIn social-profile link visible on the Loxo profile before ranking or pitching.
    - `references/loxo-outreach.md` for campaigns, deliverability, personalization, metrics, A/B tests, scheduling, merge tags, and email/SMS behavior.
-   - `references/loxo-business-development.md` for companies, account-based prospecting, deals, MPC/spec CV, sales activities, and client BD.
+   - `references/ARCHIVAL-loxo-business-development.md` for dated BD provenance only; it is non-runnable. Use the read-only platform map for orientation and the safe action contract for any approved mutation.
 3. If article-level detail is needed, use current official Loxo Help Center documentation through an approved research adapter.
 4. If the live UI doesn't match what's documented, screenshot, stop, and report — do not guess at click paths.
 
@@ -79,56 +78,42 @@ Use this order:
 - Treat hiring managers and client-side people as `Contacts`, not candidates.
 - Treat placeable people as `Candidates`; client-side people remain `Contacts`.
 - Keep recruiting facts strict: do not invent candidate details, salary, availability, credentials, client interest, emails, or current roles.
-- For bulk contact work, prepare import-ready CSV first, then map into Loxo fields.
-- For outbound work, use tags, notes, list/campaign ownership, and a clear response-tracking surface.
+- For bulk contact work, prepare an import-ready draft first; do not import, associate, tag, list, campaign, or submit from this guide.
+- For outbound work, prepare copy and a proposed target/action manifest only; do not send or activate a campaign from this guide.
 - Log all candidate notes via the **Activity tab** (not the Intake tab). Use note types like `*Note` or `Candidate Intake - Recruiter Screening/Interview` as appropriate.
 - Compensation fields (Salary/Bonus/Equity Target and Current) live in the Profile tab Compensation section, not in notes.
 
 ## Historical Browser Reference (non-runnable)
 
 The detailed historical browser procedures are preserved in the [non-runnable archival browser procedures](references/ARCHIVAL-browser-procedures.md). They are evidence only, never an execution path.
-## Outreach Rules
+## Outreach Orientation
 
-> ARCHIVAL, NON-EXECUTABLE: The operational details below are historical
-> reference only. Do not start, send, or modify a campaign from this section.
-> Route any approved action through `loxo-automation/GUIDE.md`.
+`references/loxo-outreach.md` is a dated, non-authoritative reference for
+read-only terminology and draft review. This guide does not add people to
+lists or campaigns, modify campaign steps, activate a campaign, or send a
+message. Any approved outbound mutation must use the safe action contract with
+exact person/campaign/job IDs, an immutable manifest, Ja's explicit approval,
+precondition reread, serialized host-adapter execution, post-action reread,
+and no automatic retry.
 
-Load `references/loxo-outreach.md` for full detail.
+## Business Development Orientation
 
-Core rules:
-
-- Finalize the campaign (subject, body, schedule, sender, audience filter) before adding people.
-- Personalize subject/body when useful; use merge tags from the outreach reference.
-- Respect operating hours if enabled.
-- Check deliverability (SPF/DKIM/DMARC, warmup, complaint rate) before bulk sends.
-- Direct replies pause campaign behavior; link clicks or external bookings may not.
-- Keep volume ramp conservative on newer domains: 3-5/day to start, ≤10% daily increase.
-- **Never start a campaign send without Ja's yes plus a preview of the full message.**
-
-## Business Development Rules
-
-Load `references/loxo-business-development.md` for full detail.
-
-Core BD model:
-
-1. Build account/company list.
-2. Find decision-makers.
-3. Fetch or verify contact data.
-4. Add to list/campaign/job pipeline where appropriate.
-5. Create or update Deals for real opportunities.
-6. Use MPC/spec CV when pitching a candidate proactively.
-
-For deal creation/updates, gate before saving. For MPC outreach, gate before sending.
+Use the platform map for read-only orientation across Companies, Contacts, and
+Sales CRM. The historical BD note is provenance only. Prepare research,
+candidate-marketing copy, or a proposed deal/activity manifest as drafts; do
+not create or update deals, lists, activities, documents, pitches, campaigns,
+or messages here. Route any approved mutation through the safe action contract
+with exact IDs and the full reread/serialization/no-retry gate above.
 
 ## Output Shape For Ja
 
 For every Loxo task, structure the response:
 
 - **Task** — one-line restatement.
-- **Plan** — numbered steps you're about to execute in the browser.
-- **Gate** — what action needs Ja's yes (or "no gate, executing now").
-- **Result** — after execution, what changed, with screenshot reference.
-- **Verification** — what you confirmed (record persisted, count correct, etc.).
+- **Plan** — read-only inspection and draft/manifest preparation steps.
+- **Gate** — the exact mutation scope requiring Ja's explicit approval.
+- **Result** — findings or draft returned; no live change is claimed here.
+- **Verification** — source/identity/state checks completed before handoff.
 - **Open risks / human review** — anything Ja should double-check.
 
 For CSV work, columns that map cleanly into Loxo: `First Name`, `Last Name`, `Full Name`, `Title`, `Company`, `Location`, `LinkedIn`, `Email`, `Phone`, `Tags`, `Notes`.

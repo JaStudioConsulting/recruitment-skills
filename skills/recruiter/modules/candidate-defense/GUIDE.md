@@ -49,7 +49,7 @@ Do not start a mode until the required inputs are present.
 
 - **Never fabricate titles, scope, comp, credentials, tools, metrics, or achievements.** Every claim must trace to the resume, JD, or call notes.
 - **Never invent a number.** If the candidate said "improved efficiency" with no percentage, do not add one.
-- **Honest caveats are allowed and encouraged** — Ja's style surfaces gaps plainly (see ja-style.md: "surfaces caveats plainly; quotes the candidate's own words").
+- **Honest caveats are allowed and encouraged** — Ja's style surfaces gaps plainly (see [`ja-style.md`](../ja-writer/references/ja-style.md): "surfaces caveats plainly; quotes the candidate's own words").
 - **Suggested resume rewording** must be grounded in what the resume already says — tighten clarity, never add new facts.
 - **If the case cannot be made honestly, say so.** Do not force a defense.
 - **Bold labels before the colon, and key proof points inside bullets only.** Do not bold full sentences.

@@ -18,7 +18,8 @@ tab. It preserves the existing company-parent and child-job layout:
   is first added. It is never accepted from the caller manifest. Existing dates,
   including blanks, are never overwritten or backfilled.
 
-Load [the Leads contract](../references/leads-contract.json) and run
+Load [the Leads contract](../references/leads-contract.json) and [the layout
+reference](references/layout.md), then run
 [the planner](../scripts/leads.mjs) before every proposed write. The planner
 does not access Sheets; it accepts a live snapshot plus a validated intake.
 

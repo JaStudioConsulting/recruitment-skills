@@ -1,5 +1,9 @@
 # Loxo Automation Commands Reference
 
+This is a provider-neutral action vocabulary for a declared host browser
+adapter. It is not a runnable command list. The adapter must be identified by
+the host and the exact job/candidate/action must be authorized before use.
+
 ## Common Commands List
 
 ### Candidate Management
@@ -48,12 +52,8 @@
 
 ## How to Navigate
 
-### Navigation Commands
-- `chrome-devtools_navigate_page` - Go to URL
-- `chrome-devtools_click` - Click elements
-- `chrome-devtools_fill` - Enter text
-- `chrome-devtools_take_snapshot` - See current page
-- `chrome-devtools_take_screenshot` - Take screenshot
+- Navigation, click, fill, snapshot, and screenshot are generic adapter
+  operations. Do not substitute a provider-specific tool name here.
 
 ### Taking Breaks
 - After major actions, take snapshot to verify
@@ -63,10 +63,8 @@
 
 ## Browser Location
 
-- User's Loxo: `https://app.loxo.co/agencies/{agencyId}`
-- Jobs: `https://app.loxo.co/agencies/{agencyId}/jobs`
-- People: `https://app.loxo.co/agencies/{agencyId}/people`
-- Source: `https://app.loxo.co/agencies/{agencyId}/source`
+The host supplies the current Loxo base URL and agency context. Do not invent
+an agency ID or use a fixed machine/browser profile.
 
 ---
 
@@ -74,14 +72,9 @@
 
 | Page | URL Pattern |
 |------|------------|
-| Jobs | /jobs |
-| People | /people |
-| Companies | /companies |
-| Source | /source |
-| Outreach | /outreach |
-| Campaigns | /outreach/campaigns |
-| Settings | /settings |
-| Templates | /settings/templates |
+The host adapter resolves Jobs, People, Companies, Source, Outreach,
+Campaigns, Settings, and Templates from the current session. Do not assume a
+route is unchanged without a verified snapshot.
 
 ---
 

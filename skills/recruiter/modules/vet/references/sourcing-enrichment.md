@@ -12,7 +12,8 @@ LinkedIn), or when **sourcing** new candidates/companies before qualifying them.
 - Candidate qualifies but you lack a reachable **email/phone** → enrich before outreach/submission.
 - Need to **source** candidates at target companies (e.g. "find quality managers at Tier-1 auto plants").
 - Bulk: a CSV of names needs emails/phones filled before Loxo import.
-Output feeds: **Loxo** (CSV import per loxo map) and **ja-writer** (outreach voice).
+Output may feed an import-ready **Loxo draft** and **ja-writer** (outreach voice). This reference
+does not authorize an import, job association, submission, or message.
 
 ## Method (the non-negotiables)
 1. **Companies first, then people.** Discover the company set, THEN find people at them. Don't start
@@ -38,6 +39,10 @@ Output feeds: **Loxo** (CSV import per loxo map) and **ja-writer** (outreach voi
 2. Email waterfall (findymail → prospeo → leadmagic) → verify.
 3. Phone waterfall (datagma → enformion → trestle).
 4. Coalesce, keep `_metadata` lineage, write named CSV.
-5. Import to **Loxo** (CSV import). 6. Draft outreach via **ja-writer**; submit via **vet** Mode 2.
+5. Stop with an import-ready draft and evidence manifest. Any Loxo import, job association, or
+submission routes through `../../loxo/references/loxo-safe-pipeline-actions.md` with Ja's explicit
+authorization, exact current record IDs and expected state, serialized execution, post-action
+reread, and no automatic retry. Draft outreach via **ja-writer**; submit via **vet** Mode 2 only
+after its separate approval gate.
 
 Provider playbooks are optional external integrations. Do not install, authenticate, or invoke an enrichment provider from this guide. If a provider is not already authorized and available, return the missing-capability blocker.

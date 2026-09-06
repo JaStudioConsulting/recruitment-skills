@@ -1,6 +1,6 @@
 # @jastudioconsulting/recruitment-skills
 
-Private, versioned recruiting-skills authority for Ja Studio Consulting. GitHub `main` is the only source of recruiting rules. `$recruiter` is the sole front door for 24 capabilities. Tracker routes to the complete protected implementation in `skills/tracker-manager/GUIDE.md`, including its explicit, approval-gated Leads import contract. The `$tracker-manager` compatibility entry loads Recruiter first; it does not duplicate the rules.
+Private, versioned recruiting-skills authority for Ja Studio Consulting. GitHub `main` is the only source of recruiting rules. Package version `0.3.1` is the current authority. `$recruiter` is the sole front door for the internal capabilities. Tracker routes to the complete protected implementation in `skills/tracker-manager/GUIDE.md`, including its explicit, approval-gated Leads import contract. The `$tracker-manager` compatibility entry loads Recruiter first; it does not duplicate the rules.
 
 ## Consumer use
 
@@ -36,17 +36,18 @@ pnpm check:python
 pnpm pack:check
 ```
 
-The package uses pnpm exclusively. `pack:check` creates and removes a temporary pnpm tarball to prove the published file set. `0.2.0` adds the protected Tracker workflow and verified local installation. No public release is implied.
+The package uses pnpm exclusively. `pack:check` creates and removes a temporary pnpm tarball to prove the published file set. The protected Tracker workflow and verified local installation are part of package `0.3.1`. No public release is implied.
 
 ## Local use
 
 See [the cutover contract](docs/consolidation/CUTOVER.md). Codex, Claude,
-Hermes, and Gemini can each expose one symlink to one clean checkout.
-`authority:ensure` compares
-published main on every recruiting run, validates incoming changes before a
-fast-forward, and verifies the installation receipt. It does not overwrite
+Hermes, and Gemini can each expose one symlink to one clean checkout. A local
+copy is a disposable runtime materialization, never an authority. Run
+`pnpm authority:check` or the approved `authority:ensure` installer from the
+canonical checkout to verify repository, published-main, symlink, and receipt
+state before use. It fast-forwards only after validation and never overwrites
 unpublished local edits. Private profiles, backups and run records stay outside
-the repo. This is not an always-running background job.
+the repo; local cleanup must be recoverable and must not delete user data.
 
 ## Provenance
 

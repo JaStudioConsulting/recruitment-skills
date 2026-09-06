@@ -2,6 +2,15 @@
   "schema_version": 1,
   "workflows": [
     {
+      "id": "candidate_prep_workbench",
+      "router": "recruiter",
+      "required_sources": ["candidate_and_job_context"],
+      "stages": ["context_resolve", "source_select", "provenance_review", "case_output_selection", "draft_generation", "human_review", "authorization_handoff", "post_action_reread"],
+      "outputs": ["branded_resume_draft", "candidate_submission_draft", "presentation_email_draft", "loxo_update_bullets"],
+      "external_actions": "none_until_separately_authorized",
+      "reference": "recruiter/references/candidate-prep-workspace.md"
+    },
+    {
       "id": "after_call_full_package",
       "router": "recruiter",
       "required_sources": ["resume", "job_description", "transcript_or_call_notes"],

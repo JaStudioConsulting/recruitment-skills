@@ -44,7 +44,7 @@ read only the needed module. Tracker routes to the repository's protected
 | "write up the submission", "full package", "bundle this" | Full package | `modules/write-up/GUIDE.md` + `recruiter/scripts/validate-artifact-qa.mjs` | one saved unsent draft reread, PDF human/vision per-page QA and validator pass, attachment verified or explicitly unavailable/ready-to-attach |
 | "vet this", "is he worth submitting", "check fit" | Vet | `modules/vet/GUIDE.md`; if reviewing inside a Loxo job, also use `modules/loxo/GUIDE.md` and `modules/loxo/references/loxo-candidate-fit-review.md` | verdict is GO, NO-GO, or NEEDS VERIFICATION; no Loxo write |
 | "defend this", "they will reject him because X" | Defense | `modules/candidate-defense/GUIDE.md` | written case, every claim source-tagged |
-| "draft an email", "reach out to", "follow up with" | Ja voice | `modules/ja-writer/GUIDE.md` | no banned punctuation, no AI filler |
+| "draft an email", "reach out to", "follow up with" | Ja voice | `modules/ja-writer/GUIDE.md` | no banned punctuation, no AI filler; sending remains separately authorized |
 | "what do you think of this role", "is this worth working", JD pasted with no other ask | **Role read** | `references/jd-screening-guide.md` then `references/decision-framework.md` | pain buckets named, screening questions listed, red flags called |
 | "who should I call", "check matches", "process intake" | Match engine | `modules/candidate-match-engine/GUIDE.md` | list returned, or blocker named (see Known Issues in `_JA-RULES.md`) |
 | "find me candidates", "x-ray", "source" | Sourcing | `modules/web-sourcing/GUIDE.md` | every row has `Eligibility` (`Eligible` or `Excluded`) and `Evidence Status` (`Verified`, `Unconfirmed`, `Conflicting`, or `Outdated`) with direct evidence |
@@ -56,7 +56,10 @@ read only the needed module. Tracker routes to the repository's protected
 | Server, SSH, containers, m1 | Ops | Outside this package; no local guide is available | State unavailable and ask Ja before using an external capability |
 | Explain a tool or connection in plain words | Plain talk | Outside this package; no local guide is available | State unavailable and ask Ja before using an external capability |
 
-**Audio first.** If input has mp3/m4a/wav, run `transcribe` before writing any claim, in every lane.
+**Audio first.** If input has mp3/m4a/wav, use the current host's declared
+`transcribe` adapter before writing any claim. Transcription is not packaged;
+when unavailable, follow `recruiter/references/call-recording-recovery.md` and
+report the hold rather than infer call facts.
 
 ---
 

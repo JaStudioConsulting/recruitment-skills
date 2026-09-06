@@ -1,25 +1,27 @@
 {
-  "skill_name": "tttg-resume-engine",
+  "skill_name": "brandedresume",
+  "contract_version": 2,
+  "runner": "scripts/build_resume.py",
   "evals": [
     {
       "id": 0,
       "name": "messy-resume-odd-skills",
-      "prompt": "Build the resume for this synthetic candidate.\n\nSYNTHETIC CANDIDATE K\nCNC Machinist / Manufacturing Tech\nExampleton MI\n\nProfile: 9 yrs running CNC mills and lathes, good with GD&T, lean guy, trained other operators.\n\nSkills: CNC Milling, CNC Turning, GD&T, Lean Manufacturing, Mastercam, Quality Inspection, Blueprint Reading\n\nWork:\nExample Precision Parts Co, Exampleton MI, 2018-now, Senior CNC Machinist. cut scrap rate from 8% to 3%, ran lights-out program saving like 15 hrs a week, trained 4 new operators.\nExample Tooling Co, Sampleville MI, 2015 to 2018, CNC Operator. ran 3 machines at once, hit 98% on time.\n\nSchool: Associates in Machine Tool Technology, Example Community College",
-      "expected_output": "A complete Google Apps Script with the CANDIDATE block filled in. Skills must be refined to an EVEN count (input has 7). Dates in mmm-yyyy. Logo ID and 467.71 tab stop preserved. Single code block plus brief run note.",
-      "files": []
+      "prompt": "Build a branded PDF for this synthetic candidate using the repository Python builder. Preserve only supported facts, keep the current title exact, use Mmm-YYYY dates, and produce a balanced skills list without padding.",
+      "expected_output": "A non-empty PDF produced by build_resume.py. The output has no long dashes, hyperlinks, or placeholders; source facts are preserved; no page squeeze is used.",
+      "files": ["references/example-candidate.json"]
     },
     {
       "id": 1,
       "name": "unstructured-interview-notes",
-      "prompt": "Turn my call notes into a resume PDF for this synthetic candidate.\n\nTalked to Synthetic Candidate F today. Mechanical engineer, about 12 years. Currently at Example Industrial Ltd. in Exampleton as a Manufacturing Engineering Manager, been there since early 2019. Before that she was a Process Engineer at Example Process Systems Ltd. in Sampleville from 2013 to 2019. She leads a team of 8 now. Big wins: led a plant automation project that cut cycle time 22%, ran the ISO 9001 recert, owns the capital equipment budget around 4 million. She's a Six Sigma Black Belt. Degree is BSME from Example University. Really strong on lean, process optimization, automation, project management, and she does a lot of cross functional leadership. Target role is Operations / Plant Manager.",
-      "expected_output": "Apps Script with CANDIDATE filled from unstructured notes. Summary written (2-4 sentences), even skill count, two roles most-recent-first with mmm-yyyy dates, quantified bullets, education line. Fixed format constants untouched.",
+      "prompt": "Turn explicitly stated synthetic call notes into a branded PDF. Resolve facts from the notes, keep the most recent role first, and write a concise summary with supported metrics.",
+      "expected_output": "A non-empty PDF produced by build_resume.py with source-grounded content, no long dashes, no hyperlinks, and no invented facts.",
       "files": []
     },
     {
       "id": 2,
-      "name": "missing-data-no-invent",
-      "prompt": "Make this into a resume for me.\n\nSynthetic Candidate G - Quality Manager. Worked at a Tier 1 auto supplier (can't remember exact name, will confirm) running the quality department. Did APQP, PPAP, managed the audit program, ISO/TS 16949. Reduced customer complaints a lot. Has an engineering degree. Not sure on exact employment dates yet.",
-      "expected_output": "Apps Script that does NOT fabricate the employer name, dates, or degree details. Uses clearly bracketed [confirm ...] placeholders for missing facts and flags them to the user. Skills even-numbered. Format constants preserved.",
+      "name": "missing-data-fail-closed",
+      "prompt": "Attempt to build a branded PDF from synthetic material with an unknown employer, incomplete dates, and an unspecified degree.",
+      "expected_output": "The workflow stops for missing facts; build_resume.py exits non-zero when unresolved placeholders are supplied, and no client-facing PDF is released until Ja resolves or removes the fields.",
       "files": []
     }
   ]

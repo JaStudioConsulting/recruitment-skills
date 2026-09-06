@@ -20,6 +20,11 @@ try {
   for (const required of ["skills/recruiter/SKILL.md", "skills/recruiter/scripts/authority.mjs", "skills/tracker-manager/SKILL.md", "skills/tracker-manager/GUIDE.md", "skills/tracker-manager/references/contract.json", "skills/tracker-manager/scripts/tracker.mjs", "scripts/sync-local.mjs", "scripts/install-local.mjs"]) {
     if (!files.has(`package/${required}`)) throw new Error(`missing packed authority resource: ${required}`);
   }
+  for (const file of files) {
+    if (file === "package/tests" || file.startsWith("package/tests/") || file.includes("synthetic-candidate-dashboard.json")) {
+      throw new Error(`test fixture leaked into package: ${file}`);
+    }
+  }
   for (const file of files) if (/(?:^|\/)(?:installation\.json|tracker\.json|host\.json|backups|node_modules|\.env)(?:\/|$)/.test(file)) throw new Error(`private runtime resource leaked into package: ${file}`);
   console.log(`verified packed archive: ${archives[0]}`);
 } finally {

@@ -10,7 +10,8 @@ Do not reconstruct either from memory or reuse a previous run's row numbers.
 1. Complete Recruiter's authority check. Use its returned canonical paths and
    private `tracker_config` file. That file supplies workbook ID, sheet ID,
    owner names, and any approved live vocabulary; it contains no credentials.
-2. State the mode: check, search, ownership, update, column audit, or repair.
+2. State the mode: check, search, ownership, update, column audit, repair, or
+   `SF Jobs` read-through.
    Check/search/audit/ownership are read-only. An explicit update/sync request
    permits Submissions updates; a repair request permits the specified fixes.
    Candidate packaging and Gmail drafts confer no Tracker-write permission.
@@ -27,6 +28,11 @@ Do not reconstruct either from memory or reuse a previous run's row numbers.
    frozen header, column validation, formatting, and nearest complete exemplar.
    Map columns by header text. If the 21-field set changed, pause writes for a
    schema review; never silently shift fields or rebuild the sheet.
+
+For an `SF Jobs` read-through, load [the SF Jobs contract](references/sf-jobs-contract.md)
+and return the resolved workbook/tab/sheet identity with exact source-backed
+role fields and readback state. Workbench consumes this read-only result; it is
+not an alternate writer.
 
 Use the primary agent for a routine task. If Ja asks for multiple independent
 Tracker tasks or a broad historical investigation, temporary read-only scouts

@@ -1,6 +1,6 @@
 ---
 name: linkedin-posts
-description: When the user wants to create LinkedIn post copy or optimize for LinkedIn. Also use when the user mentions "LinkedIn post," "LinkedIn article," "professional post," "post to LinkedIn," "LinkedIn content," "LinkedIn copy," "B2B LinkedIn," "LinkedIn engagement," "LinkedIn feed," "share box," "document post," "poll," "Newsletter," "reshare," or "LinkedIn marketing." For LinkedIn ads, use linkedin-ads.
+description: Create or optimize LinkedIn post and article copy, including professional recruiting and B2B content. Publishing and paid promotion are external actions and are not packaged here.
 metadata:
   version: 1.2.0
 ---
@@ -166,13 +166,10 @@ When generating LinkedIn copy, provide:
 
 ## Related Skills
 
-- **linkedin-ads**: Paid promotion; same professional tone as organic
-- **open-graph**: Link share previews (Facebook, LinkedIn, etc.)
-- **entity-seo**: People/org **sameAs** and entity consistency
-- **generative-engine-optimization**: AI search / answer visibility (cross-platform; not only LinkedIn)
-- **influencer-marketing**: LinkedIn influencers for B2B
-- **about-page-generator**: Professional brand alignment
-- **visual-content**: Cross-channel visual planning; LinkedIn image specs in context
+- The following are external, non-packaged capabilities and are not internal
+  routes: linkedin-ads, open-graph, entity-seo,
+  generative-engine-optimization, influencer-marketing,
+  about-page-generator, and visual-content. Do not claim to invoke them.
 
 ## Official references (index)
 

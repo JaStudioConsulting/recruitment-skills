@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kits": [
+    {
+      "id": "active-job",
+      "available_when": "job_created_or_started",
+      "flexible_single_step": true,
+      "default_state": "one_unsent_draft",
+      "templates": [
+        {"id": "outreach", "asset": "recruiter/assets/job-template-kit/outreach.md", "required_tokens": ["{{first_name}}", "{{job_title}}", "{{company_name}}", "{{job_location}}", "{{role_focus}}", "{{job_link}}"]},
+        {"id": "rejection", "asset": "recruiter/assets/job-template-kit/rejection.md", "required_tokens": ["{{first_name}}", "{{job_title}}", "{{company_name}}"]},
+        {"id": "candidate-submission", "asset": "recruiter/assets/job-template-kit/candidate-submission.md", "required_tokens": ["{{recipient_name}}", "{{candidate_name}}", "{{job_title}}", "{{company_name}}", "{{candidate_location}}", "{{candidate_compensation_target}}", "{{candidate_interview_availability}}", "{{candidate_start_date}}", "{{candidate_profile_summary}}", "{{resume_link}}"]},
+        {"id": "scheduling-availability", "asset": "recruiter/assets/job-template-kit/scheduling-availability.md", "required_tokens": ["{{recipient_name}}", "{{candidate_name}}", "{{job_title}}", "{{company_name}}", "{{candidate_interview_windows}}", "{{meeting_link}}"]},
+        {"id": "candidate-follow-up", "asset": "recruiter/assets/job-template-kit/candidate-follow-up.md", "required_tokens": ["{{first_name}}", "{{job_title}}", "{{company_name}}", "{{job_location}}", "{{role_focus}}", "{{job_link}}"]},
+        {"id": "client-follow-up", "asset": "recruiter/assets/job-template-kit/client-follow-up.md", "required_tokens": ["{{recipient_name}}", "{{candidate_name}}", "{{job_title}}", "{{company_name}}", "{{candidate_status}}"]},
+        {"id": "campaign-step", "asset": "recruiter/assets/job-template-kit/campaign-step.md", "required_tokens": ["{{campaign_subject}}", "{{first_name}}", "{{campaign_body}}", "{{job_link}}"]}
+      ]
+    }
+  ]
+}

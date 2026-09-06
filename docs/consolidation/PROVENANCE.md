@@ -8,7 +8,7 @@ Excluded: gateway and UI/deployment code, external runtime integrations, credent
 
 ## 2026-09-04 selective legacy consolidation
 
-Standalone recruiting front doors were selectively routed into existing recruiter modules and moved to the recoverable archive at `/Users/TTTG/Obsidian Vault/skills/.archive/recruiter-consolidation-20260904T173500-0400/`. Complete mappings and original paths are recorded in that archive's `MANIFEST.md`. Direct-send and reject scripts, transcripts, private/runtime data, and vault-ingest logic were explicitly excluded from the canonical package. Generic connector/tool dependencies were retained outside the recruiter front door. The archive is rollback evidence, not active policy.
+Standalone recruiting front doors were selectively routed into existing recruiter modules and moved to the recoverable external archive `recruiter-consolidation-20260904T173500-0400`. Complete mappings and original paths are recorded in that archive's `MANIFEST.md`. Direct-send and reject scripts, transcripts, private/runtime data, and vault-ingest logic were explicitly excluded from the canonical package. Generic connector/tool dependencies were retained outside the recruiter front door. The archive is rollback evidence, not active policy.
 
 ## 2026-08-28 through 2026-09-04 correction audit
 

@@ -183,8 +183,10 @@ If a candidate qualifies but is **missing a reachable email/phone/LinkedIn**, or
 **source** candidates before vetting, load `references/sourcing-enrichment.md` — the Deepline GTM
 method folded into vet (waterfall contact-finding, email verification, one-row pilots, provider
 ROI order). Requires the Deepline engine + API keys to run; otherwise fall back to Loxo's built-in
-**Find Contact / Fetch Email**. Enriched output → Loxo CSV import → submission. Never invent contact
-data; only use verified results.
+**Find Contact / Fetch Email**. Enriched output may be an import-ready draft only. Actual Loxo
+import, job association, or submission must route through the current Loxo safe-action contract
+with Ja's explicit authorization, exact record IDs, serialized execution, post-action reread, and
+no automatic retry. Never invent contact data; only use verified results.
 
 ---
 
