@@ -67,10 +67,11 @@ Refine the raw input into a polished, client-ready resume rather than copying it
 - **One single title under the name** (the candidate's strongest current or target role), not two stacked together.
 - **Lean toward manufacturing, engineering, and technical terminology.** This format places technical and industrial talent.
 - **Summary:** 2 to 4 sentences, professional and concise, strongest positioning first.
-- **Experience bullets:** action plus a number wherever the source supports it. Most recent role first; dates as `Mmm-YYYY` (for example `Mar-2019 - Present`).
+- **Experience bullets:** action plus a number wherever the source supports it. Most recent role first; dates as `Mmm-YYYY` (for example `Mar-2019 - Present`). **Bold the single proof point** by wrapping it in `**...**` (for example `Cut unplanned downtime **22%** across three lines.`). Bold only the specific proof point (a number, employer, system, cert, or skill), never the whole lead sentence.
 - **Title must match the candidate's current role title exactly.** No creative interpretations. No combining two titles. "Production Supervisor" not "Production Operations Supervisor."
 - **Combine same-company roles into ONE timeline entry** when a candidate held multiple positions at the same employer. Show all titles under one company header, not separate entries.
-- **Education: institution name only, no dates.** Include degree/diploma and institution. Omit the year column entirely.
+- **Education and certifications are ONE combined section**, titled "Education & Certifications". Put degrees, diplomas, and certifications together in the single `education[]` list, most relevant first. Do not split education and certifications into two groups or two sections.
+- **Bold the credential in each entry** so it matches the emphasis used in the rest of the resume. Wrap the degree, diploma, or certification name in `**...**`, then the institution or issuer follows in regular weight (for example `**B.S. Mechanical Engineering** - Example University`, `**433A Industrial Millwright License**`). Institution name only, no dates, omit the year column entirely.
 - **No compensation information in any bullet point.** Compensation goes in the submission email only, never on the resume.
 - **Profile Summary must DEFEND fit for THIS role** — why this candidate is worth interviewing. It must NOT repeat the resume content. Pull new information from transcript/call notes. The reader should learn something they could not see on the resume.
 - **Anonymize for client submission:** drop personal contact info (email, phone, LinkedIn) unless told otherwise.
@@ -81,6 +82,7 @@ Refine the raw input into a polished, client-ready resume rather than copying it
 - **No em dashes, en dashes, or double hyphens anywhere.** Reword with commas, "and", or restructure. Regular hyphens in compound words (cost-reduction) and the date format (`Dec-2025 - Present`) are fine. The builder aborts if it finds a long dash, so keep the source data clean.
 - **No hyperlinks** in the resume.
 - **Logo centered** at the top; **black text only**, Arial throughout; clean and print-ready.
+- **Emphasis:** wrap text in `**...**` to bold it inside experience bullets and Education & Certifications entries. The builder renders it as real bold in both engines. Use it for the bullet proof point and the education credential, nowhere else.
 
 ## The format (what the PDF contains)
 

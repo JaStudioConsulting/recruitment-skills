@@ -24,13 +24,14 @@
       "company": "Example Tooling Ltd.",
       "location": "Warren, MI, USA",
       "bullets": [
-        "Led root-cause analysis and tooling changes for recurring scrap issues.",
+        "Led root-cause analysis and tooling changes, cutting recurring scrap **18%**.",
         "Designed fixtures and SOPs for consistent first-pass inspection."
       ]
     }
   ],
   "education": [
-    "B.S. Mechanical Engineering, Example University",
-    "Six Sigma Black Belt, Example Certification Body"
+    "**B.S. Mechanical Engineering** - Example University",
+    "**Six Sigma Black Belt** - Example Certification Body",
+    "**Lean Manufacturing Certificate** - Example Institute"
   ]
 }
