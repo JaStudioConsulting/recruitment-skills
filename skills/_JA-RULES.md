@@ -72,7 +72,7 @@ narrative rules to Tracker rows or rewrite completed events for style alone.
 
 ## 5. KNOWN ISSUES (do not rediscover these)
 
-- candidate-match-engine: the Airtable connector in these sessions exposes automation-configuration tools only, NOT record read/write (no search_bases, list_records_for_table, create/update record). The match workflow cannot read or write Airtable until the real Airtable data connector is authorized. Do not pretend it worked.
+- Airtable is obsolete and the Airtable candidate-match-engine is retired. Do not read from or write to Airtable, and do not restore it as a capability. Candidate matching and call-list work route to vet and sourcing. The Submissions record is the Google Sheets Tracker through the tracker route.
 - Old multi-machine deployment notes are historical only. Current cutover instructions live in `docs/consolidation/CUTOVER.md` and must be reverified before use.
 
 ## 6. MODE NOTES

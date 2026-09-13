@@ -46,7 +46,7 @@ read only the needed module. Tracker routes to the repository's protected
 | "defend this", "they will reject him because X" | Defense | `modules/candidate-defense/GUIDE.md` | written case, every claim source-tagged |
 | "draft an email", "reach out to", "follow up with" | Ja voice | `modules/ja-writer/GUIDE.md` | no banned punctuation, no AI filler; sending remains separately authorized |
 | "what do you think of this role", "is this worth working", JD pasted with no other ask | **Role read** | `references/jd-screening-guide.md` then `references/decision-framework.md` | pain buckets named, screening questions listed, red flags called |
-| "who should I call", "check matches", "process intake" | Match engine | `modules/candidate-match-engine/GUIDE.md` | list returned, or blocker named (see Known Issues in `_JA-RULES.md`) |
+| "who should I call", "check matches", "process intake" | Fit + sourcing | `modules/vet/GUIDE.md` (fit) and `modules/sourcing/GUIDE.md` (find and map) | fit verdict or a mapped candidate list, or blocker named. Airtable match-engine retired |
 | "find me candidates", "x-ray", "source" | Sourcing | `modules/web-sourcing/GUIDE.md` | every row has `Eligibility` (`Eligible` or `Excluded`) and `Evidence Status` (`Verified`, `Unconfirmed`, `Conflicting`, or `Outdated`) with direct evidence |
 | "reference check" | Reference check | `modules/complete-reference-check/GUIDE.md` + `recruiter/scripts/validate-artifact-qa.mjs` | final PDF exists, every page human/vision-inspected with completed QA record, validator passes |
 | Loxo work, bullets, dashboards | Loxo | `modules/loxo/GUIDE.md` | read-only, no write performed |
@@ -70,7 +70,6 @@ report the hold rather than infer call facts.
 | Read/write local files, shell | yes | yes | |
 | Gmail draft, Drive, Sheets, Calendar | yes (gws) | yes (gws) | Always draft, never send |
 | Web search / scrape | yes (firecrawl) | yes (SerpApi MCP, search only after new session) | Use `mcp_serpapi_search`/`mcp_serpapi_raw_search`; no general page scrape |
-| Airtable records | **no** | **no** | Connector exposes automation config only. Do not pretend it worked. |
 | Loxo | browser only | **no** | Read-only unless Ja authorizes a write |
 | Browser automation | yes (agent-browser, playwright) | limited | |
 | Blender, iMessage | no | yes (blender, bluebubbles) | |

@@ -7,7 +7,7 @@ description: >
   candidates", "source", "x-ray search", "boolean search", "find me [role] on LinkedIn",
   "search Indeed for", "pull profiles for [role]", or gives sourcing criteria (title,
   location, must-haves) and wants a list of people. Also trigger when she says "scrape
-  LinkedIn/Indeed for X" or wants candidates found outside Loxo/Airtable/Apollo. Picks
+  LinkedIn/Indeed for X" or wants candidates found outside Loxo/Apollo. Picks
   Firecrawl, Playwright (via agent-browser), or Crawlee per site automatically — Ja does
   not need to name a tool. Tactical and token-efficient by design: capped boolean strings,
   capped pages per string, no brute-force crawling.
