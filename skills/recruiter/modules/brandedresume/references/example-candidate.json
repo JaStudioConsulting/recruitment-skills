@@ -30,8 +30,23 @@
     }
   ],
   "education": [
-    "**B.S. Mechanical Engineering** - Example University",
-    "**Six Sigma Black Belt** - Example Certification Body",
-    "**Lean Manufacturing Certificate** - Example Institute"
+    "**B.S. Mechanical Engineering** - Example University"
+  ],
+  "education_heading": "Education",
+  "sections": [
+    {
+      "heading": "Certifications",
+      "items": [
+        "**Six Sigma Black Belt** - Example Certification Body",
+        "**Lean Manufacturing Certificate** - Example Institute"
+      ]
+    },
+    {
+      "heading": "Additional Information",
+      "items": [
+        "Languages: English, French",
+        "Available for travel across North America"
+      ]
+    }
   ]
 }

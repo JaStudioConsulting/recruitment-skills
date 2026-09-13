@@ -25,11 +25,23 @@ candidate.json schema:
     {"title": "...", "dates": "Mmm-YYYY - Mmm-YYYY", "company": "...",
      "location": "City, ST, Country", "bullets": ["...", "..."]}
   ],
-  "education": ["...", "..."]     # degrees and certs in ONE list
+  "education": ["...", "..."],            # optional
+  "education_heading": "Education & Certifications",  # optional, override the label
+  "sections": [                           # optional, ANY extra resume section
+    {"heading": "Certifications", "items": ["...", "..."]},
+    {"heading": "Additional Information", "items": ["...", "..."]}
+  ]
 }
 
-Emphasis: wrap text in **double asterisks** inside experience bullets and
-education entries to render it bold (for example "downtime **22%**" or
+Preserve everything: the four core fields cover a common resume. Put ANY other
+section the original resume has (Certifications on its own, Licenses, Professional
+Development, Additional Information, Awards, Languages, Affiliations, Volunteer,
+Projects, Publications) into "sections" with its original heading and lines. The
+builder renders them in order after Education. Never merge sections together or
+drop lines unless the user says to.
+
+Emphasis: wrap text in **double asterisks** inside experience bullets, education
+entries, and section items to render it bold (for example "downtime **22%**" or
 "**433A Millwright License**"). Bold only the proof point or the credential,
 never the whole line. Both engines render it. Text without ** is unchanged.
 
@@ -95,6 +107,11 @@ def check_dashes(data):
             scan(f"experience[{i}].bullets[{b}]", bt)
     for i, e in enumerate(data.get("education", [])):
         scan(f"education[{i}]", e)
+    scan("education_heading", data.get("education_heading", ""))
+    for i, sec in enumerate(data.get("sections", [])):
+        scan(f"sections[{i}].heading", sec.get("heading", ""))
+        for j, it in enumerate(sec.get("items", [])):
+            scan(f"sections[{i}].items[{j}]", it)
     return offenders
 
 def check_placeholders(data):
@@ -118,6 +135,10 @@ def check_placeholders(data):
             scan(f"experience[{i}].bullets[{b}]", bt)
     for i, e in enumerate(data.get("education", [])):
         scan(f"education[{i}]", e)
+    for i, sec in enumerate(data.get("sections", [])):
+        scan(f"sections[{i}].heading", sec.get("heading", ""))
+        for j, it in enumerate(sec.get("items", [])):
+            scan(f"sections[{i}].items[{j}]", it)
     return offenders
 
 # ---------------------------------------------------------------- Chrome engine
@@ -145,7 +166,19 @@ def build_html(data, logo_b64):
             f"<span class='r'>{esc(j.get('location',''))}</span></div>"
             f"<ul>{bl}</ul></div>"
         )
-    edu_html = "".join(f"<div class='edu'>{rich(e)}</div>" for e in data.get("education", []))
+    edu_html = ""
+    if data.get("education"):
+        edu_heading = esc(data.get("education_heading", "Education & Certifications"))
+        edu_items = "".join(f"<div class='edu'>{rich(e)}</div>" for e in data.get("education", []))
+        edu_html = f"<h2>{edu_heading}</h2>{edu_items}"
+    # Preserve any additional section the original resume has, in order, with its
+    # own heading. Nothing from the source is merged away or dropped.
+    extra_html = ""
+    for sec in data.get("sections", []):
+        heading = esc(sec.get("heading", ""))
+        items = "".join(f"<div class='edu'>{rich(it)}</div>" for it in sec.get("items", []))
+        if heading or items:
+            extra_html += f"<h2>{heading}</h2>{items}"
     headline = data.get("headline", "")
     headline_html = f"<div class='headline'>{esc(headline)}</div>" if headline else ""
     summary = data.get("summary", "")
@@ -178,7 +211,7 @@ li {{ margin:0 0 2px 0; text-align:justify; }}
 {summary_html}
 <h2>Core Skills</h2><div class="skills">{skills_cells}</div>
 <h2>Professional Experience</h2>{exp_html}
-<h2>Education &amp; Certifications</h2>{edu_html}
+{edu_html}{extra_html}
 </body></html>"""
 
 def render_chrome(data, logo_path, out, chrome):
@@ -304,9 +337,19 @@ def render_reportlab(data, logo_path, out):
 
     edu = data.get("education", [])
     if edu:
-        story += section("Education & Certifications")
+        story += section(data.get("education_heading", "Education & Certifications"))
         for e in edu:
             story.append(Paragraph(rich(e), edu_st))
+
+    # Preserve any additional section the original resume has, in order, with its
+    # own heading. Nothing from the source is merged away or dropped.
+    for sec in data.get("sections", []):
+        heading = sec.get("heading", "")
+        items = sec.get("items", [])
+        if heading or items:
+            story += section(heading)
+            for it in items:
+                story.append(Paragraph(rich(it), edu_st))
 
     if os.path.exists(out):
         os.remove(out)
