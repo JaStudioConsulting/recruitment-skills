@@ -74,9 +74,9 @@ function assertFullPackage({ drafts, pdf, attachment }) {
   if (attachment.state !== "verified") assert.ok(attachment.reason, "non-verified attachment state needs an explicit reason");
 }
 
-test("all 24 manifest routes and internal backtick routes resolve", async () => {
+test("all 23 manifest routes and internal backtick routes resolve", async () => {
   const manifest = JSON.parse(await readFile(path.join(skills, "capabilities.json"), "utf8"));
-  assert.equal(manifest.capabilities.length, 24);
+  assert.equal(manifest.capabilities.length, 23);
   for (const capability of manifest.capabilities) {
     assert.match(capability.path, /\/GUIDE\.md$/);
     assert.ok(exists(path.join(skills, capability.path)), capability.path);
@@ -157,9 +157,6 @@ test("consolidated non-mutating guidance is routed and guarded", async () => {
   const prospect = await read("skills/recruiter/modules/loxo/references/prospect-campaign-learning.md");
   assert.match(prospect, /Sent mail read-only/i);
   assert.match(prospect, /Sent state does not prove/i);
-  const reverse = await read("skills/recruiter/modules/candidate-match-engine/references/reverse-match-edge-rules.md");
-  assert.match(reverse, /salary floor from target/i);
-  assert.match(reverse, /staffing agencies/i);
   const writeUp = await read("skills/recruiter/modules/write-up/GUIDE.md");
   assert.match(writeUp, /MPC filename\/privacy/i);
   assert.match(writeUp, /Work Status:/);
@@ -184,7 +181,6 @@ test("every manifest capability exposes its capability-specific contract", async
     "applicant-screening": [/Score each must-have 0[–-]3/i, /Score on job-related criteria only/i],
     brandedresume: [/validate-artifact-qa\.mjs/i, /Title must match/i],
     "candidate-defense": [/Never fabricate titles, scope, comp/i, /Stop after each mode/i],
-    "candidate-match-engine": [/Hard Gates.*Run First/is, /Never assign Strong Fit unless every must-have/i],
     "complete-reference-check": [/reference-check-template\.docx/i, /every page.*human\/vision/is],
     "cover-letter": [/Use concrete evidence/i, /why \*this\* company/i],
     "ja-candidate-vetting": [/Use only proven facts/i, /average must be 4\.0 or higher/i],

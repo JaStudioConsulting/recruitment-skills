@@ -82,7 +82,7 @@ Truth comes only from: the resume, the call audio/transcript, recruiter notes th
 ## Workflow (one stage at a time unless Ja asks for the full package)
 
 1. **Audio first.** If input includes an mp3/m4a/wav, use the active host's declared `transcribe` adapter before any claim is written. Transcription is not packaged here: when the host does not declare one, follow [`references/call-recording-recovery.md`](references/call-recording-recovery.md), report the unavailable adapter, and do not infer call facts.
-2. **Source audit.** Extract confirmed facts and conflicts. Tag each: resume, transcript, JD, call note, email, Loxo, Airtable, Gmail, or Ja-direct.
+2. **Source audit.** Extract confirmed facts and conflicts. Tag each: resume, transcript, JD, call note, email, Loxo, Gmail, or Ja-direct.
 3. **Vet / fast-fit.** Use `references/decision-framework.md` and `references/vetting-framework.md`. Assign confidence: High, Medium, or Low. Output GO, NO-GO, or NEEDS VERIFICATION.
    - High confidence: prepare a submission draft for human review.
    - Medium: prepare cautiously, flag follow-ups, omit unknown deal-breakers.
@@ -113,7 +113,6 @@ full form for each shape lives in the Output contracts section below.
 | Defend a borderline candidate | `modules/candidate-defense/GUIDE.md` | Written case: claim, then source-cited evidence per point, gaps named honestly | none | written case cites sources |
 | Write in Ja's voice (email, outreach, follow-up) | `modules/ja-writer/GUIDE.md` | Draft text in Ja's voice, no banned punctuation, no AI tells | none | no banned punctuation, no AI tells |
 | Create LinkedIn recruiting posts, company-page copy, or image briefs | `modules/linkedin-posts/GUIDE.md` | Publish-ready post copy in the named LinkedIn format, plus optional image brief | none | publish-ready copy matches the correct LinkedIn format and recruiting facts |
-| Match candidates to roles, call list, intake | `modules/candidate-match-engine/GUIDE.md` | Ranked match list with per-candidate fit basis, or a named blocker | Airtable | list returned or blocker named |
 | Reference check PDF | `modules/complete-reference-check/GUIDE.md` | Reference-check PDF on the TTTG template, source-grounded answers | docx build + PDF render + `scripts/validate-artifact-qa.mjs` | final PDF exists, size > 0, every page human/vision-inspected with completed QA record and validator pass |
 | Candidate-facing interview prep material for one company and role | `modules/interview-prep-material/GUIDE.md` | Company-and-role prep PDF, no candidate-specific data | interview prep material builder + material validator + `scripts/validate-artifact-qa.mjs` | current role status and sources pass; no candidate-specific information; PDF exists; every page human/vision-inspected; both validators pass |
 | Source / x-ray / find candidates on the web | `modules/web-sourcing/GUIDE.md`, `modules/sourcing/GUIDE.md` | Row table, each row with `Eligibility` and `Evidence Status` plus direct evidence link | web search | every row has `Eligibility` (`Eligible` or `Excluded`) and `Evidence Status` (`Verified`, `Unconfirmed`, `Conflicting`, or `Outdated`) with direct evidence |
@@ -131,6 +130,8 @@ full form for each shape lives in the Output contracts section below.
 | Decision speed, 60-second manager snapshot | `references/submission-format.md` | The fixed 60-second snapshot block | none | snapshot returned |
 
 Routing discriminator: "interview prep material" means the reusable candidate-facing PDF in `modules/interview-prep-material/GUIDE.md`. "Interview plan," "interview questions," "how should we interview," and "scorecard" mean the interviewer evaluation kit in `modules/recruiting-hr/interview-prep/GUIDE.md`.
+
+Match / call-list / intake note: the Airtable candidate-match-engine is retired and Airtable is obsolete. Route "who fits this role," matching, and call-list intent to `modules/vet/GUIDE.md` (fit) and `modules/sourcing/GUIDE.md` (find and map). The Submissions record is the Google Sheets Tracker via `modules/tracker/GUIDE.md`, not a matcher.
 
 ## Output contracts (the shape you show before producing)
 
@@ -198,9 +199,11 @@ prepared candidate package as a Tracker source event.
 
 ## Modules (absorbed 2026-07-29, formerly standalone skills)
 
-24 specialist capabilities now live under `modules/`. Each keeps its own scripts, assets, and references. Their `SKILL.md` was renamed `GUIDE.md` so they no longer register as separate skills. Nothing was deleted.
+23 specialist capabilities now live under `modules/`. Each keeps its own scripts, assets, and references. Their `SKILL.md` was renamed `GUIDE.md` so they no longer register as separate skills.
 
-`applicant-screening, brandedresume, candidate-defense, candidate-match-engine, complete-reference-check, cover-letter, interview-prep-material, ja-candidate-vetting, ja-writer, job-loxo, legislator, linkedin-posts, loxo, loxo-automation, loxo-readonly-candidate-dashboard, offer-letter, recruiting-hr, sourcing, tttg-candidate-submission, tttg-resume-engine-workspace, vet, web-sourcing, write-up`
+`applicant-screening, brandedresume, candidate-defense, complete-reference-check, cover-letter, interview-prep-material, ja-candidate-vetting, ja-writer, job-loxo, legislator, linkedin-posts, loxo, loxo-automation, loxo-readonly-candidate-dashboard, offer-letter, recruiting-hr, sourcing, tttg-candidate-submission, tttg-resume-engine-workspace, vet, web-sourcing, write-up`
+
+The Airtable candidate-match-engine was retired. Airtable is obsolete. Candidate matching, call-list, and intake now route to `modules/vet/GUIDE.md` and `modules/sourcing/GUIDE.md`, and the Submissions record lives in the Google Sheets Tracker via `modules/tracker/GUIDE.md`.
 
 Pre-consolidation sources remain outside this repository as rollback evidence, but they are not runtime authority.
 

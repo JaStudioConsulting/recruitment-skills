@@ -12,7 +12,6 @@
     { "id": "applicant-screening", "path": "recruiter/modules/applicant-screening/GUIDE.md", "group": "on_demand", "status": "active" },
     { "id": "brandedresume", "path": "recruiter/modules/brandedresume/GUIDE.md", "group": "daily_core", "status": "active" },
     { "id": "candidate-defense", "path": "recruiter/modules/candidate-defense/GUIDE.md", "group": "on_demand", "status": "active" },
-    { "id": "candidate-match-engine", "path": "recruiter/modules/candidate-match-engine/GUIDE.md", "group": "daily_core", "status": "active" },
     { "id": "complete-reference-check", "path": "recruiter/modules/complete-reference-check/GUIDE.md", "group": "on_demand", "status": "active", "required_assets": ["recruiter/modules/complete-reference-check/assets/reference-check-template.docx"] },
     { "id": "cover-letter", "path": "recruiter/modules/cover-letter/GUIDE.md", "group": "on_demand", "status": "active" },
     { "id": "ja-candidate-vetting", "path": "recruiter/modules/ja-candidate-vetting/GUIDE.md", "group": "daily_core", "status": "active" },

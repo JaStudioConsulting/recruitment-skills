@@ -5,7 +5,7 @@ import { getRecruiterAuthority, getSkillsRoot, readSkillText, resolveSkillPath }
 test("resolver exposes the recruiter-only authority without node_modules assumptions", async () => {
   const authority = await getRecruiterAuthority();
   assert.equal(authority.id, "recruiter");
-  assert.equal(authority.capabilities.length, 24);
+  assert.equal(authority.capabilities.length, 23);
   assert.match(authority.routerFile, /skills\/recruiter\/SKILL\.md$/);
   assert.equal(resolveSkillPath("recruiter/SKILL.md"), authority.routerFile);
   assert.match(await readSkillText("recruiter/SKILL.md"), /ONLY recruiting entrypoint/);

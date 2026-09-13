@@ -51,7 +51,7 @@ right one.
 
 **Finding people**
 - Search the web for candidates: the sourcing and web-sourcing workflows.
-- Match candidates to open roles: the match-engine workflow.
+- Match candidates to open roles: the vetting workflow (is this person a fit) plus the sourcing workflow (find and map people). The old Airtable match engine has been retired.
 - Screen and rank a list of applicants: the applicant-screening workflow.
 
 **Loxo (the recruiting database)**

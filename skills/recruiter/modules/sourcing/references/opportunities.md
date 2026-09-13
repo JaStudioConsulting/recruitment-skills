@@ -15,7 +15,7 @@ person`, `scan our jobs`, or asks for a candidate-to-job market map.
 If the requested internal source is unavailable, state that clearly. Do not silently replace an
 internal-role request with a public-web search.
 
-This mode is read-only. It may inspect accessible Loxo, Airtable, job files, or public postings,
+This mode is read-only. It may inspect accessible Loxo, job files, or public postings,
 but it does not update records, add candidates, apply to jobs, or send messages.
 
 ## Candidate Preference Card

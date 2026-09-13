@@ -107,9 +107,9 @@ visibly published by the person or employer.
 - Candidate or client messaging copy: route to the packaged
   `modules/ja-writer/GUIDE.md`. Sending or activating outreach is not packaged;
   stop and ask Ja before using an external messaging capability.
-- Existing-database role matching: use `candidate-match-engine`.
-- Scheduled or bulk Airtable match-engine runs: use `candidate-match-engine`; one-candidate
-  opportunity mapping stays in this skill.
+- Candidate-to-role matching and call-list work: the Airtable match-engine is retired and
+  Airtable is obsolete. Assess fit in `modules/vet/GUIDE.md`; find and map candidates here.
+  The Submissions record is the Google Sheets Tracker via `modules/tracker/GUIDE.md`.
 - Full company or pre-call intelligence beyond sourcing: no packaged `account-research` or
   `deep-research` route exists in this repository. Stop and ask Ja before using an external
   capability and state that the work is outside this package.
