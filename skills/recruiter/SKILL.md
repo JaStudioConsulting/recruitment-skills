@@ -14,6 +14,27 @@ through `modules/tracker/GUIDE.md` to `../tracker-manager/GUIDE.md`. Its existin
 skill name is a compatibility entry back through Recruiter. Keep its row
 contract and operational rules in that one protected implementation.
 
+## What this front door guarantees
+
+Every recruiting request gets three answers before any real work is spent. This
+is the whole job of the front door.
+
+1. **WHERE to go.** Read the request, pick exactly one row in the Mode routing
+   table below, and open that module or capability. One intent, one route.
+2. **WHAT to do.** Follow the workflow in that routed `GUIDE.md` (or reference).
+   The front door owns the gates and the routing. The module owns the steps.
+3. **WHAT THE OUTPUT LOOKS LIKE.** State the output shape you are about to
+   produce, taken from the routed contract, BEFORE you produce the real thing.
+   The shape lives in the `Output shape` column and the Output contracts section.
+
+**Show the shape, then produce, in the same turn.** For a direct single-artifact
+ask where Ja handed the sources and named the deliverable (for example
+"brand this"), the shape is one line and you build immediately after it. Showing
+the shape is never a new approval gate and never a reason to stall. It exists so
+Ja sees the form and can correct it, and so the output is grounded in the
+contract instead of invented. The existing Hard gates (send, Loxo write, Tracker
+write, missing facts) are the only things that pause for Ja.
+
 ## Load the active repository version first
 
 For local Codex, Claude, Hermes, and Gemini, run this before any recruiting operation:
@@ -67,8 +88,9 @@ Truth comes only from: the resume, the call audio/transcript, recruiter notes th
    - Medium: prepare cautiously, flag follow-ups, omit unknown deal-breakers.
    - Low: do not submit, pivot to targeted search.
 4. **Mode choice.** Pick the narrowest: resume only, vet only, defense only, full package, MPC, reference check, match engine, sourcing, Loxo bullets, or Tracker operations.
-5. **Specialist stage.** Route to the module or protected capability in the table below.
-6. **Final verify.** Check source integrity, PDF layout and privacy, the single unsent Gmail draft, and any missing facts before calling it done.
+5. **Show the output shape.** Before producing, state the shape from the routed row's `Output shape` column and its Output contracts entry. One line for a direct single-artifact ask, a short block for a full package. Same turn as the build, not a wait state.
+6. **Specialist stage.** Route to the module or protected capability in the table below and follow its workflow.
+7. **Final verify.** Check source integrity, PDF layout and privacy, the single unsent Gmail draft, and any missing facts before calling it done.
 
 ## UI Action Runbook
 
@@ -79,33 +101,52 @@ Legacy UI action boards and their external scripts were not imported because the
 All module paths are relative to this skill folder. Tracker operations use the
 thin routing module, which then loads the repository-owned Tracker Manager.
 
-| Ja wants | Read this module | Tool it uses | Done only when |
-|----------|------------------|--------------|----------------|
-| Open a Candidate Prep workspace for an active job | `references/candidate-prep-workspace.md` | host Workbench adapter + selected canonical modules | source provenance/conflicts reviewed; selected drafts are marked `draft_ready`; no send, submission, Tracker/Loxo write, or movement without separate authorization and reread |
-| Build the branded resume PDF ("brand this") | `modules/brandedresume/GUIDE.md` | `modules/brandedresume/scripts/build_resume.py` + `scripts/validate-artifact-qa.mjs` | PDF exists at requested path, size > 0, every page has explicit visual review by human/vision inspection with completed QA record, validator passes |
-| Vet / go-no-go / check fit | `modules/vet/GUIDE.md`, `modules/ja-candidate-vetting/GUIDE.md`; for a candidate inside a Loxo job pipeline also read `modules/loxo/GUIDE.md` and its `loxo-candidate-fit-review.md` route | none or verified Loxo read-only access | verdict is GO, NO-GO, or NEEDS VERIFICATION; no Loxo write |
-| Full package (submission email draft + PDF) | `modules/write-up/GUIDE.md` | Gmail draft + build_resume.py + `scripts/validate-artifact-qa.mjs` | exactly one saved unsent draft reread; PDF has completed human/vision per-page QA record and explicit visual review plus validator pass; attachment verified or explicitly unavailable/ready-to-attach |
-| Defend a borderline candidate | `modules/candidate-defense/GUIDE.md` | none | written case cites sources |
-| Write in Ja's voice (email, outreach, follow-up) | `modules/ja-writer/GUIDE.md` | none | no banned punctuation, no AI tells |
-| Create LinkedIn recruiting posts, company-page copy, or image briefs | `modules/linkedin-posts/GUIDE.md` | none | publish-ready copy matches the correct LinkedIn format and recruiting facts |
-| Match candidates to roles, call list, intake | `modules/candidate-match-engine/GUIDE.md` | Airtable | list returned or blocker named |
-| Reference check PDF | `modules/complete-reference-check/GUIDE.md` | docx build + PDF render + `scripts/validate-artifact-qa.mjs` | final PDF exists, size > 0, every page human/vision-inspected with completed QA record and validator pass |
-| Candidate-facing interview prep material for one company and role | `modules/interview-prep-material/GUIDE.md` | interview prep material builder + material validator + `scripts/validate-artifact-qa.mjs` | current role status and sources pass; no candidate-specific information; PDF exists; every page human/vision-inspected; both validators pass |
-| Source / x-ray / find candidates on the web | `modules/web-sourcing/GUIDE.md`, `modules/sourcing/GUIDE.md` | web search | every row has `Eligibility` (`Eligible` or `Excluded`) and `Evidence Status` (`Verified`, `Unconfirmed`, `Conflicting`, or `Outdated`) with direct evidence |
-| Loxo ATS work, bullets, dashboards, Gmail reconciliation, or safe pipeline action manifest | `modules/loxo/GUIDE.md`, `modules/loxo-readonly-candidate-dashboard/GUIDE.md` | Loxo and Gmail read-only | findings or exact approval manifest returned; no implicit write |
-| Update, sync, audit, repair, search, or verify Tracker Submissions or import verified Tracker Leads | `modules/tracker/GUIDE.md` | protected `tracker-manager`, Gmail read, scoped Sheets adapter | Tracker Manager's operation-specific verification and final report pass |
-| Offer letter | `modules/offer-letter/GUIDE.md` | none | file exists if a file was promised |
-| Cover letter | `modules/cover-letter/GUIDE.md` | none | source-grounded draft returned |
-| Job-ad drafting and salary research | `modules/job-loxo/GUIDE.md` | Adzuna read-only when configured | draft returned, no Loxo write |
-| Approved restricted Loxo browser action | `modules/loxo-automation/GUIDE.md` | external browser integration | named human approval and screenshot verification |
-| Recruiting HR support | `modules/recruiting-hr/GUIDE.md` | none by default | internal child guide used, no external HR action |
-| Historical candidate-submission alias | `modules/tttg-candidate-submission/GUIDE.md` | none | rerouted to current write-up/brandedresume guides |
-| Screen a list, rank applicants | `modules/applicant-screening/GUIDE.md` | none | ranked list returned |
-| Resume layout/print rules | `modules/legislator/GUIDE.md`, `modules/tttg-resume-engine-workspace/GUIDE.md` | none | rules applied |
-| Campaign list / CSV / BD targets | this file, Output locations below | file write | `test -f` passes and row count matches |
-| Decision speed, 60-second manager snapshot | `references/submission-format.md` | none | snapshot returned |
+The `Output shape` cell is what you state before producing (guarantee 3). The
+full form for each shape lives in the Output contracts section below.
+
+| Ja wants | Read this module | Output shape (show first) | Tool it uses | Done only when |
+|----------|------------------|---------------------------|--------------|----------------|
+| Open a Candidate Prep workspace for an active job | `references/candidate-prep-workspace.md` | Workspace with source-tagged facts and selected drafts marked `draft_ready`, no sends | host Workbench adapter + selected canonical modules | source provenance/conflicts reviewed; selected drafts are marked `draft_ready`; no send, submission, Tracker/Loxo write, or movement without separate authorization and reread |
+| Build the branded resume PDF ("brand this") | `modules/brandedresume/GUIDE.md` | `Downloads/<Name> - Top Tier Talent Group.pdf`: Name, Title, Summary, Core Skills (even count, two columns), Experience, Education, Certifications. Contact stripped, source-backed percentages kept, proof-point bolded | `modules/brandedresume/scripts/build_resume.py` + `scripts/validate-artifact-qa.mjs` | PDF exists at requested path, size > 0, every page has explicit visual review by human/vision inspection with completed QA record, validator passes |
+| Vet / go-no-go / check fit | `modules/vet/GUIDE.md`, `modules/ja-candidate-vetting/GUIDE.md`; for a candidate inside a Loxo job pipeline also read `modules/loxo/GUIDE.md` and its `loxo-candidate-fit-review.md` route | Verdict block: `[Name] - [Role @ Client]`, GO / NO-GO / NEEDS VERIFICATION, strengths, gaps, confidence High/Medium/Low | none or verified Loxo read-only access | verdict is GO, NO-GO, or NEEDS VERIFICATION; no Loxo write |
+| Full package (submission email draft + PDF) | `modules/write-up/GUIDE.md` | Two deliverables: one unsent Gmail draft (subject pattern, label block, Profile Summary fit thesis, four bolded bullets, ends `CV attached.`) plus the branded PDF | Gmail draft + build_resume.py + `scripts/validate-artifact-qa.mjs` | exactly one saved unsent draft reread; PDF has completed human/vision per-page QA record and explicit visual review plus validator pass; attachment verified or explicitly unavailable/ready-to-attach |
+| Defend a borderline candidate | `modules/candidate-defense/GUIDE.md` | Written case: claim, then source-cited evidence per point, gaps named honestly | none | written case cites sources |
+| Write in Ja's voice (email, outreach, follow-up) | `modules/ja-writer/GUIDE.md` | Draft text in Ja's voice, no banned punctuation, no AI tells | none | no banned punctuation, no AI tells |
+| Create LinkedIn recruiting posts, company-page copy, or image briefs | `modules/linkedin-posts/GUIDE.md` | Publish-ready post copy in the named LinkedIn format, plus optional image brief | none | publish-ready copy matches the correct LinkedIn format and recruiting facts |
+| Match candidates to roles, call list, intake | `modules/candidate-match-engine/GUIDE.md` | Ranked match list with per-candidate fit basis, or a named blocker | Airtable | list returned or blocker named |
+| Reference check PDF | `modules/complete-reference-check/GUIDE.md` | Reference-check PDF on the TTTG template, source-grounded answers | docx build + PDF render + `scripts/validate-artifact-qa.mjs` | final PDF exists, size > 0, every page human/vision-inspected with completed QA record and validator pass |
+| Candidate-facing interview prep material for one company and role | `modules/interview-prep-material/GUIDE.md` | Company-and-role prep PDF, no candidate-specific data | interview prep material builder + material validator + `scripts/validate-artifact-qa.mjs` | current role status and sources pass; no candidate-specific information; PDF exists; every page human/vision-inspected; both validators pass |
+| Source / x-ray / find candidates on the web | `modules/web-sourcing/GUIDE.md`, `modules/sourcing/GUIDE.md` | Row table, each row with `Eligibility` and `Evidence Status` plus direct evidence link | web search | every row has `Eligibility` (`Eligible` or `Excluded`) and `Evidence Status` (`Verified`, `Unconfirmed`, `Conflicting`, or `Outdated`) with direct evidence |
+| Loxo ATS work, bullets, dashboards, Gmail reconciliation, or safe pipeline action manifest | `modules/loxo/GUIDE.md`, `modules/loxo-readonly-candidate-dashboard/GUIDE.md` | Read-only findings, draft bullets, or an exact approval manifest naming each write. No implicit write | Loxo and Gmail read-only | findings or exact approval manifest returned; no implicit write |
+| Update, sync, audit, repair, search, or verify Tracker Submissions or import verified Tracker Leads | `modules/tracker/GUIDE.md` | Whatever Tracker Manager's row contract returns for that operation, plus its final report | protected `tracker-manager`, Gmail read, scoped Sheets adapter | Tracker Manager's operation-specific verification and final report pass |
+| Offer letter | `modules/offer-letter/GUIDE.md` | Source-grounded offer letter draft or file | none | file exists if a file was promised |
+| Cover letter | `modules/cover-letter/GUIDE.md` | Source-grounded cover letter draft | none | source-grounded draft returned |
+| Job-ad drafting and salary research | `modules/job-loxo/GUIDE.md` | Job-ad draft plus salary range with source, no Loxo write | Adzuna read-only when configured | draft returned, no Loxo write |
+| Approved restricted Loxo browser action | `modules/loxo-automation/GUIDE.md` | Named-approval action with screenshot verification | external browser integration | named human approval and screenshot verification |
+| Recruiting HR support | `modules/recruiting-hr/GUIDE.md` | Whatever the internal child guide returns, no external HR action | none by default | internal child guide used, no external HR action |
+| Historical candidate-submission alias | `modules/tttg-candidate-submission/GUIDE.md` | Reroute notice pointing to write-up or brandedresume shape | none | rerouted to current write-up/brandedresume guides |
+| Screen a list, rank applicants | `modules/applicant-screening/GUIDE.md` | Ranked list with per-applicant keep/cut basis | none | ranked list returned |
+| Resume layout/print rules | `modules/legislator/GUIDE.md`, `modules/tttg-resume-engine-workspace/GUIDE.md` | The applied layout/print rule set | none | rules applied |
+| Campaign list / CSV / BD targets | this file, Output locations below | CSV or table: Company, Contact, Title, LinkedIn, Location, Source, Verified. Every row web-verified or marked unverified | file write | `test -f` passes and row count matches |
+| Decision speed, 60-second manager snapshot | `references/submission-format.md` | The fixed 60-second snapshot block | none | snapshot returned |
 
 Routing discriminator: "interview prep material" means the reusable candidate-facing PDF in `modules/interview-prep-material/GUIDE.md`. "Interview plan," "interview questions," "how should we interview," and "scorecard" mean the interviewer evaluation kit in `modules/recruiting-hr/interview-prep/GUIDE.md`.
+
+## Output contracts (the shape you show before producing)
+
+This is guarantee 3. The `Output shape` cell above is the short form you state in
+the turn. The authority for the full form is the routed module's `GUIDE.md` and
+the canonical contract docs. Show the shape, then build in the same turn. Never
+invent a shape, and never widen one past its contract.
+
+- **Branded resume PDF** - full form in [`../../docs/templates/branded-resume-contract.md`](../../docs/templates/branded-resume-contract.md) and `modules/brandedresume/GUIDE.md`. File `Downloads/<Name> - Top Tier Talent Group.pdf`. Sections in order: Name, Title, Professional Summary, Core Skills (even count, two columns), Professional Experience (most recent first, two header lines per role), Education, Certifications. Contact info stripped for client-facing copies. Source-backed percentages kept, invented ones removed. Proof point bolded inside the bullet, never the whole lead sentence.
+- **Submission email draft** - full form in [`../../docs/templates/presentation-email-contract.md`](../../docs/templates/presentation-email-contract.md) and [`../../docs/templates/submission-data-contract.md`](../../docs/templates/submission-data-contract.md) and `modules/write-up/GUIDE.md`. Subject pattern, greeting, presenting line, label block, Profile Summary as a fit thesis, four bolded bullets, ends `CV attached.` with no typed signature. Exactly one unsent draft in the correct mailbox.
+- **Vet verdict** - full form in `modules/vet/GUIDE.md`. `[Name] - [Role @ Client]`, then GO / NO-GO / NEEDS VERIFICATION, strengths, gaps, and confidence High / Medium / Low. No submission or resume unless a further mode is asked.
+- **Call brief companion (`.txt`)** - produced alongside a resume when a call recording exists: call summary, the wow factor mined from the conversation, and the problems or objections pre-empted for the client. Recovery rules in [`references/call-recording-recovery.md`](references/call-recording-recovery.md).
+- **Sourcing / web-sourcing rows** - one table, each row carrying `Eligibility` (`Eligible` or `Excluded`) and `Evidence Status` (`Verified`, `Unconfirmed`, `Conflicting`, or `Outdated`) with direct evidence. Contract in `modules/sourcing/GUIDE.md` and `modules/web-sourcing/GUIDE.md`.
+- **Loxo output** - read-only findings, draft bullets, or an exact approval manifest that names every intended write. No implicit write. Contract in `modules/loxo/GUIDE.md`.
+- **BD / campaign target list** - Loxo-ready table: Company, Contact, Title, LinkedIn, Location, Source, Verified. Every row web-verified or explicitly marked unverified.
+- **Tracker operation** - the shape is owned by Tracker Manager's row contract for that operation. Recruiter passes intent and authorization through `modules/tracker/GUIDE.md` and never defines the Tracker shape itself.
 
 ## Verification gate (mandatory, no exceptions)
 
