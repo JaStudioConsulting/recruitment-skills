@@ -1,6 +1,6 @@
 # @jastudioconsulting/recruitment-skills
 
-**New here, or an AI assistant reading this cold? Read [START-HERE.md](START-HERE.md) first** for a plain-language map of what this is, how the front door works, and what each route does. Agents begin at `skills/recruiter/SKILL.md`.
+**New here, or an AI assistant reading this cold? Read [START-HERE.md](START-HERE.md) first** for a plain-language map of what this is, how the front door works, and what each route does. Agents begin at `skills/recruiter/SKILL.md`. To add a skill, tool, or connector, follow [CONTRIBUTING.md](CONTRIBUTING.md) so the skills-vs-tools split stays intact.
 
 Private, versioned recruiting-skills authority for Ja Studio Consulting. GitHub `main` is the only source of recruiting rules. Package version `0.3.1` is the current authority. `$recruiter` is the sole front door for the internal capabilities. Tracker routes to the complete protected implementation in `skills/tracker-manager/GUIDE.md`, including its explicit, approval-gated Leads import contract. The `$tracker-manager` compatibility entry loads Recruiter first; it does not duplicate the rules.
 
