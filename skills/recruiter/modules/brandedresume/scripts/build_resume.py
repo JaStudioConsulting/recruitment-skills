@@ -25,8 +25,13 @@ candidate.json schema:
     {"title": "...", "dates": "Mmm-YYYY - Mmm-YYYY", "company": "...",
      "location": "City, ST, Country", "bullets": ["...", "..."]}
   ],
-  "education": ["...", "..."]
+  "education": ["...", "..."]     # degrees and certs in ONE list
 }
+
+Emphasis: wrap text in **double asterisks** inside experience bullets and
+education entries to render it bold (for example "downtime **22%**" or
+"**433A Millwright License**"). Bold only the proof point or the credential,
+never the whole line. Both engines render it. Text without ** is unchanged.
 
 House rules enforced here (so a client never sees a slip):
   - NO em dashes / en dashes / double hyphens anywhere in the text. The script
@@ -36,7 +41,7 @@ House rules enforced here (so a client never sees a slip):
   - Logo centered at the top; exactly one title line under the name.
   - No hyperlinks are ever added.
 """
-import argparse, base64, html, json, os, subprocess, sys, tempfile
+import argparse, base64, html, json, os, re, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_LOGO = os.path.join(HERE, "..", "assets", "tttg_logo.png")
@@ -119,12 +124,19 @@ def check_placeholders(data):
 def esc(s):
     return html.escape(s)
 
+def rich(s):
+    # Escape first, then render **proof point** as bold. Lets Education and
+    # bullet text carry the same emphasis as the rest of the resume, and lets
+    # the bullet bold only the specific proof point instead of a whole line.
+    # Both engines understand <b>: HTML renders it, reportlab Paragraph parses it.
+    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", html.escape(s))
+
 def build_html(data, logo_b64):
     skills = data.get("skills", [])
     skills_cells = "".join(f"<div class='skill'>{esc(s)}</div>" for s in skills)
     exp_html = ""
     for j in data.get("experience", []):
-        bl = "".join(f"<li>{esc(b)}</li>" for b in j.get("bullets", []))
+        bl = "".join(f"<li>{rich(b)}</li>" for b in j.get("bullets", []))
         exp_html += (
             f"<div class='job'>"
             f"<div class='row'><span class='l b'>{esc(j.get('title',''))}</span>"
@@ -133,7 +145,7 @@ def build_html(data, logo_b64):
             f"<span class='r'>{esc(j.get('location',''))}</span></div>"
             f"<ul>{bl}</ul></div>"
         )
-    edu_html = "".join(f"<div class='edu'>{esc(e)}</div>" for e in data.get("education", []))
+    edu_html = "".join(f"<div class='edu'>{rich(e)}</div>" for e in data.get("education", []))
     headline = data.get("headline", "")
     headline_html = f"<div class='headline'>{esc(headline)}</div>" if headline else ""
     summary = data.get("summary", "")
@@ -282,7 +294,7 @@ def render_reportlab(data, logo_path, out):
                 ]))
             block += [hdr, sub, Spacer(1, 2)]
             for b in j.get("bullets", []):
-                block.append(Paragraph(esc(b), bullet_st, bulletText="•"))
+                block.append(Paragraph(rich(b), bullet_st, bulletText="•"))
             block.append(Spacer(1, 7))
             # Keep the header lines with at least the first bullet.
             head_keep = block[:3] + (block[3:4] if len(block) > 3 else [])
@@ -294,7 +306,7 @@ def render_reportlab(data, logo_path, out):
     if edu:
         story += section("Education & Certifications")
         for e in edu:
-            story.append(Paragraph(esc(e), edu_st))
+            story.append(Paragraph(rich(e), edu_st))
 
     if os.path.exists(out):
         os.remove(out)
