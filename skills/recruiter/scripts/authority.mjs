@@ -40,7 +40,11 @@ export function inspectInstallation(remote = true) {
 }
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   try {
-    if (process.argv[2] === "ensure") execFileSync(process.execPath, [path.join(root, "scripts/sync-local.mjs")], {stdio: "inherit", timeout: 180000});
+    if (process.argv[2] === "ensure") {
+      const syncPath = path.join(root, "scripts/sync-local.mjs");
+      if (existsSync(syncPath)) execFileSync(process.execPath, [syncPath], {stdio: "inherit", timeout: 180000});
+      else { console.error("local sync runtime not present; standalone/connector install, skipping"); process.exit(0); }
+    }
     console.log(JSON.stringify(inspectInstallation(true), null, 2));
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }

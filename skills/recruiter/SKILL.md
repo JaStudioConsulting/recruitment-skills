@@ -35,35 +35,40 @@ Ja sees the form and can correct it, and so the output is grounded in the
 contract instead of invented. The existing Hard gates (send, Loxo write, Tracker
 write, missing facts) are the only things that pause for Ja.
 
-## Load the active repository version first
+## Version and authority
 
-For local Codex, Claude, Hermes, and Gemini, run this before any recruiting operation:
+The authority for every recruiting operation is the skill content you have
+loaded, published on GitHub main (`JaStudioConsulting/recruitment-skills`). Read
+the routed module and the files it references, and proceed. **Never block a
+recruiting task on local tooling.** The only things that ever pause a task are
+the Hard gates below (send, Loxo write, Tracker write, missing facts).
+
+**Standalone or connector install (browser, ChatGPT, Codex cloud, or any host
+without a local Git checkout of this repo).** This is the common case. The
+authority scripts (authority.mjs, sync-local.mjs), the installation
+receipt, and the private host config are **not expected to exist**. Do **not**
+run `authority.mjs`, do **not** treat its absence or failure as a blocker, and
+do **not** stop. The loaded skill files are the authority. Go straight to the
+request. (Tracker and Gmail-recipient operations still need the private host
+config; a branded resume, vet, write-up, or sourcing task does not.)
+
+**Optional local integrity check (only when loaded from a local Git clone that
+has the installer runtime).** If, and only if, the local sync script
+(sync-local.mjs at the repo root) and a local Git repo are actually present, you
+may verify the checkout is clean and matches published main:
 
 ```
 node <loaded-recruiter-folder>/scripts/authority.mjs ensure
 ```
 
-`<loaded-recruiter-folder>` is the directory of this SKILL.md, including when
-loaded through a shared-skills symlink. The command checks installed links,
-clean repository, installation receipt and published main commit. Authorized
-routine updates fast-forward only after validating the incoming version in an
-isolated worktree. Never overwrite local changes or invent a fallback skill.
-If it fails, stop the affected recruiting action and report the exact cause.
-
-Use the **canonical paths returned by the command** for this router, rules,
-tool map, Tracker guide and private host/Tracker config. If the command updated
-the commit, reread the router and needed guide before continuing. Do not mix
-repository modules with older shared-vault policy files. The private host
-config supplies output paths and internal recipients, never reusable rules.
-
-For a connector-only host, fetch current GitHub main and load this router and
-required resources from that same commit. Do not claim local sync or executable
-Tracker validation there unless that runtime is actually present.
+Run it only when that runtime exists. If it runs and reports a genuinely mixed or
+dirty local version, stop and report that specific cause. If the script is not
+present, skip it silently and proceed. Missing local tooling is never a failure.
 
 When a recruiting task arrives, start here, read only the module or reference you
 need, and follow it. This file owns the workflow, the gates, and the routing.
 
-Read the canonical `../_JA-RULES.md` returned by the authority check. Those style, resume, and submission rules override defaults and apply to every artifact.
+Read the canonical `../_JA-RULES.md` alongside this router. Those style, resume, and submission rules override defaults and apply to every artifact.
 
 ## Canonical sources
 
