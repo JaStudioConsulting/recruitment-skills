@@ -1,61 +1,51 @@
 # Install
 
-How to install this recruiting system into each AI. Honest note up front: the
-three are not the same. Claude Code has a real one-click install. Codex installs
-skills from a repo. The ChatGPT app has no "install a repo" mechanism.
+How to install this recruiting system into each AI. All three can install it from
+this GitHub repo. Claude uses one plug-in format; Codex and the ChatGPT app share
+another. Every install pulls the whole repo, because the front door references its
+sibling files (Global Rules, Tool Conventions, capabilities), so they must travel
+together.
 
-## Claude (Code / Desktop) — one-click
+## Claude (Code / Desktop)
 
-This repo is its own plugin marketplace. Install once and it stays on.
+This repo is its own plug-in marketplace. Install once and it stays on.
 
 ```
 /plugin marketplace add JaStudioConsulting/recruitment-skills
 /plugin install recruitment-skills@jastudio-recruitment
 ```
 
-Then the front door and Tracker load as skills (namespaced), and you just ask,
-for example "brand this resume" or "write the submission". Update later with
-`/plugin marketplace update jastudio-recruitment`. The whole repo installs, so the
-front door's sibling files (Global Rules, Tool Conventions, capabilities) come with
-it and everything resolves.
+Then the front door and Tracker load as skills, and you just ask, for example
+"brand this resume" or "write the submission". Update later with
+`/plugin marketplace update jastudio-recruitment`.
 
-To run the branded-resume PDF builder, the machine needs Python and, for best
-fidelity, headless Chrome. Claude Code has a shell, so this works locally.
-
-## Codex — skills install (whole repo)
-
-Codex loads skills from `~/.codex/skills/`. Install the recruiting skills from
-this repo, then use them.
-
-Clone the repo somewhere and point Codex at it, or copy it into the Codex skills
-area:
+## Codex (CLI)
 
 ```
-git clone https://github.com/JaStudioConsulting/recruitment-skills.git
+codex plugin marketplace add JaStudioConsulting/recruitment-skills --ref main
+codex plugin add recruitment-skills@jastudio-recruitment
 ```
 
-Then make the recruiter and tracker-manager skills available to Codex (copy or
-reference `skills/recruiter` and `skills/tracker-manager` under `~/.codex/skills/`,
-keeping the rest of the repo alongside so the front door's sibling files resolve).
-Codex's `$skill-installer` can also pull a skill folder from GitHub, but the front
-door references files outside its own folder, so install the whole repo, not just
-the `recruiter` folder on its own.
+Do not pass a narrow `--sparse` path. The plug-in is the whole repo, so a narrow
+sparse checkout would drop the skills. Verify with `codex plugin list` (it shows
+`recruitment-skills@jastudio-recruitment  installed, enabled`).
 
-Codex has a runtime, so the branded-resume PDF builder (Python plus Chrome) runs.
+## ChatGPT (app and browser)
 
-## ChatGPT (the app) — no repo install
+In ChatGPT, open **Plugins**, then **Add plugin marketplace**, and fill in:
+- **Source:** `JaStudioConsulting/recruitment-skills`
+- **Git ref:** `main`
+- **Sparse paths:** leave empty (the plug-in is the whole repo; a narrow sparse
+  path would drop the skills).
 
-The ChatGPT app cannot install a GitHub skills repo. It has custom GPTs and
-connectors, not this skill format, and it cannot run the PDF builder. Two honest
-options:
-- Use **Codex** (OpenAI's coding agent) for the full flow, which is the OpenAI path
-  that actually runs this.
-- Or paste a skill's guide text into ChatGPT for the content only. It can produce
-  the wording and structured data, but not the finished PDF.
+Add the marketplace, then install **TTTG Recruiting** (`recruitment-skills`) from it.
 
-If a hosted, always-on ChatGPT option is wanted later, the route is to expose this
-system as an MCP server (Apps SDK), which ChatGPT can connect to. That is a
-separate build, not an install of this repo.
+## Running the branded-resume PDF builder
+
+Only the branded-resume PDF needs a runtime with Python and, for best fidelity,
+headless Chrome. Claude Code and Codex have a shell, so it runs there. The ChatGPT
+app has the skills and can produce the content and structured data, but cannot run
+the builder itself, so the finished PDF comes from Claude Code or Codex.
 
 ## What always applies
 - GitHub `main` is the single authority. A local copy is a working copy, never the
