@@ -35,8 +35,12 @@ import uuid
 
 try:
     from mcp.server.fastmcp import FastMCP
-except ImportError:
-    sys.exit("Missing dependency: pip install -r requirements.txt (needs the 'mcp' package)")
+except ImportError as _err:  # show the real cause (e.g. wrong mcp major version)
+    sys.exit(
+        "Cannot import FastMCP from mcp.server.fastmcp: "
+        f"{_err}. Install pinned deps: pip install -r requirements.txt "
+        "(this server needs the mcp 1.x API)."
+    )
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILDER = os.path.join(

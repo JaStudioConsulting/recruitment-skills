@@ -1,4 +1,5 @@
-mcp>=1.2.0
+# Pinned to the 1.x line: mcp 2.x moved FastMCP out of mcp.server.fastmcp.
+mcp>=1.9.0,<2.0.0
 uvicorn>=0.30.0
 reportlab>=4.0.0
 pillow>=10.0.0
