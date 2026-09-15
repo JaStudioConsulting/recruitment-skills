@@ -124,6 +124,16 @@ The package is not ready, and the draft must not be called ready for handoff, un
 validator exits 0 successfully. Automated tests or a render manifest must leave the
 human-inspection field false and are not completion proof.
 
+## Send checklist (run this, nothing drifts)
+
+- Subject, Named: `New Candidate Submission - [Role] - [Name] - [Client] - [City, ON]`
+- Subject, MPC: `MPC - New Candidate Submission - [Title] - [Name] - [City, ON]`
+- Named: use the host-configured account-manager address and the optional internal-team address. MPC: use only the configured internal-team mailbox.
+- One Gmail draft, never sent, Ja reviews.
+- Body ends `CV attached.` on its own line, with no typed signature.
+- MPC to the team attaches the NAMED resume with real employers. The blinded MPC PDF is only for an external-client speculative send.
+- Blinded PDF passes the anonymity gate: no name, contact, or real employer in the text, the filename, or the PDF metadata (the builder sets the PDF title from the `name` field, so the name slot must hold the title, not the person). When a long title sits in the name slot, set `name_size` to 15 so it renders cleanly.
+
 ## Done conditions
 
 - Exactly one Gmail draft exists for this run and remains unsent.
