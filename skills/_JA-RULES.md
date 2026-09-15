@@ -28,7 +28,7 @@ narrative rules to Tracker rows or rewrite completed events for style alone.
 - Concrete over abstract. Anchor every claim to a number, system, plant type, or named tool. If a sentence could describe any candidate, cut it or make it specific.
 - Kill AI filler: thrives, fast-paced, leverage, robust, seamless, dynamic, passionate, proven track record, wealth of experience, poised to, adept, well-versed. Replace with a real fact or delete.
 - Regular hyphens are fine in compounds (cost-reduction) and date ranges (Dec-2025 - Present).
-- No percentage-improvement bullets, on principle, evidence or not. Ja does not want them (Aug 10 2026). Use concrete ownership, scope, systems, or equipment language instead. Counts, headcount, dollar figures, and system names are fine. Percent-improvement claims are not.
+- Percentages must be real and candidate-sourced. Keep a percentage when it comes from the candidate's own resume or what they stated, especially for metric-driven roles where numbers are the natural language (continuous improvement, CNC, quality, production, maintenance). Never invent, estimate, round up, or pad a percent claim the source does not support. When there is no real number, use concrete ownership, scope, systems, headcount, dollar figures, or equipment language instead. (Updated Sep 14 2026; supersedes the Aug 10 2026 blanket no-percentage rule.)
 
 ## 2. RESUME RULES (TTTG format)
 
