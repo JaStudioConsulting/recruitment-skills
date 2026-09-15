@@ -1,8 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "true",
-  "outputDirectory": ".",
   "rewrites": [
+    { "source": "/", "destination": "/api/index" },
     { "source": "/mcp", "destination": "/api/index" },
     { "source": "/mcp/(.*)", "destination": "/api/index" }
   ]
