@@ -9,7 +9,24 @@
     "./manifests/*": "./skills/manifests/*",
     "./package.json": "./package.json"
   },
-  "files": ["lib", "skills", "scripts", "test", "docs", ".claude-plugin", ".codex-plugin", ".agents", "README.md", "START-HERE.md", "AGENT-INSTRUCTIONS.md", "INSTALL.md", "CONTRIBUTING.md", "SECURITY.md", "NOTICE.md"],
+  "files": [
+    "lib",
+    "skills",
+    "scripts",
+    "test",
+    "docs",
+    "server",
+    ".claude-plugin",
+    ".codex-plugin",
+    ".agents",
+    "README.md",
+    "START-HERE.md",
+    "AGENT-INSTRUCTIONS.md",
+    "INSTALL.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "NOTICE.md"
+  ],
   "scripts": {
     "validate": "node scripts/validate-package.mjs",
     "test": "node --test test/*.test.mjs",
@@ -21,7 +38,9 @@
     "sync:local": "node scripts/sync-local.mjs"
   },
   "packageManager": "pnpm@10.33.0",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",
     "access": "restricted"

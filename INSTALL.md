@@ -47,6 +47,15 @@ headless Chrome. Claude Code and Codex have a shell, so it runs there. The ChatG
 app has the skills and can produce the content and structured data, but cannot run
 the builder itself, so the finished PDF comes from Claude Code or Codex.
 
+## Optional: MCP server (for scheduled or hosted use, e.g. ChatGPT tasks)
+
+The three installs above load the skills into a host. If you also want callable
+**tools** (like `build_pdf`) or **unattended scheduled runs**, deploy the MCP server
+in [`server/`](server/README.md). It exposes `build_pdf` for real; Gmail, Calendar,
+and Loxo actions are stubs you wire to your own connectors and OAuth. Host it over
+HTTPS, then point `.mcp.json` at its URL. Full steps: `server/README.md`. This is
+optional and separate from the plug-in installs.
+
 ## What always applies
 - GitHub `main` is the single authority. A local copy is a working copy, never the
   source of truth.
