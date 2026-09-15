@@ -46,6 +46,25 @@ DASHBOARD_URI = "ui://tttg/candidate-dashboard"
 
 mcp = FastMCP("tttg-recruiting")
 
+# OAuth / connector config is read from the environment, never from the repo.
+# See server/.env.example for the variable names. The host (ChatGPT) drives the
+# OAuth handshake using the client_id in .mcp.json; downstream connector
+# credentials (Gmail, Loxo) come from these variables when you wire the stubs.
+OAUTH = {
+    "client_id": os.environ.get("OAUTH_CLIENT_ID", ""),
+    "authorization_url": os.environ.get("OAUTH_AUTHORIZATION_URL", ""),
+    "token_url": os.environ.get("OAUTH_TOKEN_URL", ""),
+    "redirect_uri": os.environ.get("OAUTH_REDIRECT_URI", ""),
+    "scopes": os.environ.get("OAUTH_SCOPES", "").split(),
+}
+
+
+def oauth_configured() -> bool:
+    """True when the minimum OAuth env vars are present. Tools that need user
+    auth should check this and return a clear 'connect your account' message
+    rather than acting unauthenticated."""
+    return bool(OAUTH["client_id"] and OAUTH["token_url"])
+
 
 def _dashboard_html() -> str:
     try:
