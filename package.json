@@ -16,6 +16,7 @@
     "test",
     "docs",
     "server",
+    "ui",
     ".claude-plugin",
     ".codex-plugin",
     ".agents",
