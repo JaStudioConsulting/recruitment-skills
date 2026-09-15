@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "tttg-recruiting": {
+      "type": "http",
+      "url": "https://YOUR-DEPLOYED-HOST/mcp",
+      "oauth": {
+        "client_id": "<YOUR_OAUTH_CLIENT_ID>"
+      }
+    }
+  }
+}
