@@ -31,6 +31,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import uuid
 
 try:
     from mcp.server.fastmcp import FastMCP
@@ -43,6 +44,12 @@ BUILDER = os.path.join(
 )
 DASHBOARD_HTML = os.path.join(REPO_ROOT, "ui", "candidate-dashboard.html")
 DASHBOARD_URI = "ui://tttg/candidate-dashboard"
+
+# Where generated PDFs are written, and the public base used to build download
+# links. Render sets RENDER_EXTERNAL_URL automatically.
+FILES_DIR = os.environ.get("FILES_DIR", os.path.join(tempfile.gettempdir(), "tttg-files"))
+PUBLIC_BASE = (os.environ.get("PUBLIC_BASE_URL") or os.environ.get("RENDER_EXTERNAL_URL") or "").rstrip("/")
+_FILE_NAMES: dict = {}
 
 mcp = FastMCP("tttg-recruiting", stateless_http=True, json_response=True)
 
@@ -93,32 +100,37 @@ def candidate_dashboard_component() -> str:
 )
 def build_pdf(candidate: dict, filename: str | None = None) -> dict:
     """candidate is the candidate.json schema (name, headline, summary, skills[],
-    experience[], education[], education_heading?, sections[]). Returns the PDF as
-    base64 plus its filename and page count."""
+    experience[], education[], education_heading?, sections[]). Builds the PDF and
+    returns a download link the user can click, plus the filename and size."""
     name = (candidate.get("name") or "Candidate").strip()
     out_name = filename or f"{name} - Top Tier Talent Group.pdf"
+    token = uuid.uuid4().hex
+    stored_path = os.path.join(FILES_DIR, token + ".pdf")
+    os.makedirs(FILES_DIR, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         data_path = os.path.join(tmp, "candidate.json")
-        out_path = os.path.join(tmp, out_name)
         with open(data_path, "w", encoding="utf-8") as fh:
             json.dump(candidate, fh)
+        # reportlab engine: hosted runtimes have no headless Chrome.
         result = subprocess.run(
-            [sys.executable, BUILDER, "--data", data_path, "--out", out_path],
+            [sys.executable, BUILDER, "--data", data_path, "--out", stored_path,
+             "--engine", "reportlab"],
             capture_output=True, text=True, timeout=180,
         )
-        if not os.path.exists(out_path):
-            return {
-                "ok": False,
-                "error": "builder did not produce a PDF",
-                "detail": (result.stderr or result.stdout)[-1000:],
-            }
-        with open(out_path, "rb") as fh:
-            pdf_bytes = fh.read()
+    if not os.path.exists(stored_path):
+        return {
+            "ok": False,
+            "error": "builder did not produce a PDF",
+            "detail": (result.stderr or result.stdout)[-1000:],
+        }
+    size = os.path.getsize(stored_path)
+    _FILE_NAMES[token] = out_name
     return {
         "ok": True,
         "filename": out_name,
-        "pdf_base64": base64.b64encode(pdf_bytes).decode(),
-        "bytes": len(pdf_bytes),
+        "download_url": f"{PUBLIC_BASE}/files/{token}.pdf" if PUBLIC_BASE else f"/files/{token}.pdf",
+        "bytes": size,
+        "message": f"Branded resume ready: {out_name}. Click the download link to save it.",
         "builder_output": (result.stdout or "").strip()[-400:],
     }
 
@@ -190,13 +202,44 @@ def show_candidates(candidates: list | None = None) -> dict:
     }
 
 
-# ASGI app for hosted runtimes (Vercel serverless imports this).
+# ---------------------------------------------------------------- ASGI app
+# Hosted runtimes serve this app. It carries the MCP endpoint at /mcp plus two
+# plain HTTP routes: /health (uptime ping) and /files/<token>.pdf (downloads).
+def _build_app():
+    from starlette.responses import FileResponse, JSONResponse, PlainTextResponse
+    from starlette.routing import Route
+
+    application = mcp.streamable_http_app()
+
+    async def health(_request):
+        return JSONResponse({"ok": True, "service": "tttg-recruiting"})
+
+    async def download(request):
+        token = (request.path_params.get("token") or "").replace("/", "").replace("..", "")
+        path = os.path.join(FILES_DIR, token + ".pdf")
+        if not token or not os.path.exists(path):
+            return PlainTextResponse("Not found or expired.", status_code=404)
+        return FileResponse(
+            path,
+            media_type="application/pdf",
+            filename=_FILE_NAMES.get(token, "resume.pdf"),
+        )
+
+    application.router.routes.append(Route("/health", health, methods=["GET"]))
+    application.router.routes.append(
+        Route("/files/{token}.pdf", download, methods=["GET"])
+    )
+    return application
+
+
 try:
-    app = mcp.streamable_http_app()
+    app = _build_app()
 except Exception:  # noqa: BLE001
     app = None
 
 
 if __name__ == "__main__":
-    # Streamable HTTP transport; serves the MCP endpoint at /mcp.
+    # Local/hosted run. Render supplies PORT and requires binding 0.0.0.0.
+    mcp.settings.host = os.environ.get("HOST", "0.0.0.0")
+    mcp.settings.port = int(os.environ.get("PORT", "8000"))
     mcp.run(transport="streamable-http")

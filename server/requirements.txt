@@ -1,8 +1,4 @@
-# TTTG Recruiting MCP server dependencies.
-# The mcp SDK provides the FastMCP server and streamable HTTP transport.
 mcp>=1.2.0
-
-# The branded-resume builder uses these when headless Chrome is not present.
-# Chrome (if installed) is preferred automatically; these are the fallback.
+uvicorn>=0.30.0
 reportlab>=4.0.0
 pillow>=10.0.0
