@@ -20,6 +20,24 @@ this; use it only when you want callable tools or unattended runs.
 - Secrets: never commit real tokens. Supply OAuth client id/secret and any API
   keys as environment variables in the deploy environment.
 
+## OAuth setup
+
+OAuth is scaffolded, not filled. No real secret is in the repo.
+
+1. Copy `server/.env.example` to `server/.env` (gitignored) and fill your values,
+   or set the same variables in your host's environment.
+2. Create the OAuth app with your identity provider to get `OAUTH_CLIENT_ID` and
+   `OAUTH_CLIENT_SECRET`, and set `OAUTH_AUTHORIZATION_URL`, `OAUTH_TOKEN_URL`,
+   `OAUTH_REDIRECT_URI`, and `OAUTH_SCOPES`.
+3. Put the same `client_id` into `.mcp.json` (see `server/mcp.json.example`) so the
+   host (ChatGPT) can run the OAuth handshake when the connector is added.
+4. For the downstream connector stubs (Gmail, Calendar, Loxo), set their own
+   credentials (`GMAIL_OAUTH_CLIENT_ID`, `LOXO_API_KEY`, etc.) when you implement
+   them. Keep write actions gated behind an explicit human yes.
+
+The server reads these at startup (`OAUTH` in `server.py`) and never stores them in
+the repo.
+
 ## Run locally to test
 ```
 pip install -r requirements.txt
