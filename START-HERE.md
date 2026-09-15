@@ -80,7 +80,7 @@ Each layer maps to a real place in the repo.
 | Global Rules | Rules every agent follows | `skills/GLOBAL-RULES.md` |
 | Voice Principles | How outputs should sound | `skills/recruiter/modules/ja-writer/references/ja-style.md` |
 | Tool Conventions | How tools should be used | `skills/TOOL-CONVENTIONS.md` |
-| Plugins / MCPs / Connectors | What capabilities the agent has | `skills/manifests/plugins.json`, `skills/manifests/tools.json` (install wrapper is the open item, see below) |
+| Plugins / MCPs / Connectors | What capabilities the agent has | `skills/manifests/plugins.json`, `skills/manifests/tools.json`; install as a plug-in via [`INSTALL.md`](INSTALL.md) (`.claude-plugin/` makes this a one-click Claude Code plugin) |
 | Skills | Repeatable workflows | `skills/recruiter/modules/` |
 | Routing Map | Where relevant context lives | `skills/recruiter/SKILL.md`, the front door |
 | Folders / Files | Actual knowledge and project context | this repository |
@@ -89,9 +89,9 @@ Each layer maps to a real place in the repo.
 Two notes on this model:
 - **Agent Instructions** here is a clean "how to use this repo" layer. It is not
   the personal or finance workspace material, which stays out of this repository.
-- **Plugins / MCPs / Connectors**: the connections are declared, but the one-click
-  plug-in install wrapper is not built yet. That is the remaining open item to make
-  this a single installable plug-in.
+- **Plugins / MCPs / Connectors**: Claude Code installs this as a one-click plug-in
+  (see [`INSTALL.md`](INSTALL.md)). Codex installs it as skills from the repo. The
+  ChatGPT app has no repo-install and is used through Codex or an MCP server.
 
 ## Who can use this
 

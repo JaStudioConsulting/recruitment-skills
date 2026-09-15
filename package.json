@@ -9,7 +9,7 @@
     "./manifests/*": "./skills/manifests/*",
     "./package.json": "./package.json"
   },
-  "files": ["lib", "skills", "scripts", "test", "docs", "README.md", "START-HERE.md", "AGENT-INSTRUCTIONS.md", "CONTRIBUTING.md", "SECURITY.md", "NOTICE.md"],
+  "files": ["lib", "skills", "scripts", "test", "docs", ".claude-plugin", "README.md", "START-HERE.md", "AGENT-INSTRUCTIONS.md", "INSTALL.md", "CONTRIBUTING.md", "SECURITY.md", "NOTICE.md"],
   "scripts": {
     "validate": "node scripts/validate-package.mjs",
     "test": "node --test test/*.test.mjs",
