@@ -44,7 +44,7 @@ BUILDER = os.path.join(
 DASHBOARD_HTML = os.path.join(REPO_ROOT, "ui", "candidate-dashboard.html")
 DASHBOARD_URI = "ui://tttg/candidate-dashboard"
 
-mcp = FastMCP("tttg-recruiting")
+mcp = FastMCP("tttg-recruiting", stateless_http=True, json_response=True)
 
 # OAuth / connector config is read from the environment, never from the repo.
 # See server/.env.example for the variable names. The host (ChatGPT) drives the
@@ -188,6 +188,13 @@ def show_candidates(candidates: list | None = None) -> dict:
         "content": [{"type": "text", "text": f"Showing {len(candidates or [])} candidate(s)."}],
         "_meta": {"ui": {"resourceUri": DASHBOARD_URI}, "openai/outputTemplate": DASHBOARD_URI},
     }
+
+
+# ASGI app for hosted runtimes (Vercel serverless imports this).
+try:
+    app = mcp.streamable_http_app()
+except Exception:  # noqa: BLE001
+    app = None
 
 
 if __name__ == "__main__":
