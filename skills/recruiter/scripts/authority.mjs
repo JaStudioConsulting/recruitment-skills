@@ -35,7 +35,7 @@ export function inspectInstallation(remote = true) {
   if (!existsSync(trackerConfig) || !existsSync(hostConfig)) throw new Error("private recruiting configuration is missing");
   return {status: "verified", commit, repository: "JaStudioConsulting/recruitment-skills", root,
     recruiter: path.join(root, "skills/recruiter/SKILL.md"),
-    rules: path.join(root, "skills/_JA-RULES.md"), tool_map: path.join(root, "skills/_TOOL-MAP.md"),
+    rules: path.join(root, "skills/GLOBAL-RULES.md"), tool_map: path.join(root, "skills/TOOL-CONVENTIONS.md"),
     tracker: path.join(root, "skills/tracker-manager/GUIDE.md"), tracker_config: trackerConfig, host_config: hostConfig};
 }
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {

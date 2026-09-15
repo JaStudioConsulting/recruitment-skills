@@ -5,8 +5,8 @@
     "path": "recruiter/SKILL.md"
   },
   "policies": [
-    "_JA-RULES.md",
-    "_TOOL-MAP.md"
+    "GLOBAL-RULES.md",
+    "TOOL-CONVENTIONS.md"
   ],
   "capabilities": [
     { "id": "applicant-screening", "path": "recruiter/modules/applicant-screening/GUIDE.md", "group": "on_demand", "status": "active" },

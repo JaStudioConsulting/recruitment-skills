@@ -1,17 +1,17 @@
 ---
-title: Ja Tool Map
+title: Tool Conventions
 tags: [governance, tool-map, routing, skills, hermes]
 ---
 
-# JA TOOL MAP (read with _JA-RULES.md)
+# Tool Conventions (read with GLOBAL-RULES.md)
 
-Companion: `_JA-RULES.md` (how to write).
+Companion: `GLOBAL-RULES.md` (how to write).
 
 
 How to decide WHAT TO DO and WHICH TOOL when Ja asks for something.
 Ships inside this package so every declared host routes the same way.
 
-Companion file: `_JA-RULES.md` owns HOW to write. This file owns WHAT to run.
+Companion file: `GLOBAL-RULES.md` owns HOW to write. This file owns WHAT to run.
 
 ---
 

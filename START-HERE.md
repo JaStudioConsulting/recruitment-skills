@@ -66,30 +66,32 @@ right one.
 **Records and rules**
 - Update the Tracker (the submissions and leads record): the tracker route, which hands off to the protected Tracker keeper.
 - Resume layout and print rules: the legislator and resume-engine workflows.
-- The house writing and formatting rules everything obeys: `skills/_JA-RULES.md`.
-- Which outside tools exist and how they behave: `skills/_TOOL-MAP.md`.
+- The house writing and formatting rules everything obeys: `skills/GLOBAL-RULES.md`.
+- Which outside tools exist and how they behave: `skills/TOOL-CONVENTIONS.md`.
 
-## Where this sits in the bigger system
+## The layers (Ja's model, exact names)
 
-Ja's full assistant setup is a larger stack. This repository is the recruiting
-slice of it, kept on its own so it stays clean and portable. Here is the map,
-and what is here versus deliberately left out.
+This repository is organized as the layers below, using Ja's own terminology.
+Each layer maps to a real place in the repo.
 
-| Layer in the full system | In this repo? | Where / note |
+| Layer | Meaning | Where it lives |
 |---|---|---|
-| Assistant instructions (the outer shell) | No, on purpose | lives at the workspace level, not here |
-| House rules everyone follows | Yes, recruiting only | `skills/_JA-RULES.md` |
-| Voice principles (how writing should sound) | Yes | `modules/ja-writer/references/ja-style.md` |
-| Tool conventions (how tools behave) | Yes | `skills/_TOOL-MAP.md`, `skills/capabilities.json` |
-| Capabilities (what tools connect) | Yes | `skills/capabilities.json`, `skills/manifests/` |
-| Skills (repeatable workflows) | Yes | `skills/recruiter/modules/` |
-| Routing map (where context lives) | Yes | `skills/recruiter/SKILL.md`, the front door |
-| Actual knowledge and project files | Yes | this repository |
-| Improve-skill (turn corrections into rules) | Partly | dated-correction rules inside the guides |
+| Agent Instructions | How an AI enters and operates inside the workspace | [`AGENT-INSTRUCTIONS.md`](AGENT-INSTRUCTIONS.md) |
+| Global Rules | Rules every agent follows | `skills/GLOBAL-RULES.md` |
+| Voice Principles | How outputs should sound | `skills/recruiter/modules/ja-writer/references/ja-style.md` |
+| Tool Conventions | How tools should be used | `skills/TOOL-CONVENTIONS.md` |
+| Plugins / MCPs / Connectors | What capabilities the agent has | `skills/manifests/plugins.json`, `skills/manifests/tools.json` (install wrapper is the open item, see below) |
+| Skills | Repeatable workflows | `skills/recruiter/modules/` |
+| Routing Map | Where relevant context lives | `skills/recruiter/SKILL.md`, the front door |
+| Folders / Files | Actual knowledge and project context | this repository |
+| Improve Skill | Turns corrections into proposed reusable rules | [`CONTRIBUTING.md`](CONTRIBUTING.md) and the dated-correction rules in `skills/GLOBAL-RULES.md` |
 
-The outer layers (the workspace shell, the personal and finance areas) are on
-purpose not in here. This repository is built to plug under that larger system
-later without dragging any of it in now.
+Two notes on this model:
+- **Agent Instructions** here is a clean "how to use this repo" layer. It is not
+  the personal or finance workspace material, which stays out of this repository.
+- **Plugins / MCPs / Connectors**: the connections are declared, but the one-click
+  plug-in install wrapper is not built yet. That is the remaining open item to make
+  this a single installable plug-in.
 
 ## Who can use this
 
