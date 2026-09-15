@@ -41,8 +41,26 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILDER = os.path.join(
     REPO_ROOT, "skills", "recruiter", "modules", "brandedresume", "scripts", "build_resume.py"
 )
+DASHBOARD_HTML = os.path.join(REPO_ROOT, "ui", "candidate-dashboard.html")
+DASHBOARD_URI = "ui://tttg/candidate-dashboard"
 
 mcp = FastMCP("tttg-recruiting")
+
+
+def _dashboard_html() -> str:
+    try:
+        with open(DASHBOARD_HTML, "r", encoding="utf-8") as fh:
+            return fh.read()
+    except OSError:
+        return "<div>Candidate dashboard component missing.</div>"
+
+
+@mcp.resource(DASHBOARD_URI, mime_type="text/html;profile=mcp-app")
+def candidate_dashboard_component() -> str:
+    """The in-chat candidate dashboard UI (renders inside ChatGPT via the Apps
+    bridge). Hosting note: you can also host ui/candidate-dashboard.html on
+    ChatGPT Sites and point the resourceUri at that URL instead of inlining."""
+    return _dashboard_html()
 
 
 @mcp.tool(
@@ -131,6 +149,26 @@ def create_calendar_event(title: str, start: str, end: str, attendees: list | No
 )
 def update_loxo_record(record_id: str, fields: dict) -> dict:
     return _not_configured("update_loxo_record", "Loxo")
+
+
+@mcp.tool(
+    title="Show candidate dashboard",
+    description=(
+        "Render the in-chat candidate dashboard: one card per candidate with name, "
+        "title, location, compensation, status, and skill tags. Use when the user wants "
+        "to see their candidates or a pipeline overview."
+    ),
+    annotations={"readOnlyHint": True, "openWorldHint": False},
+)
+def show_candidates(candidates: list | None = None) -> dict:
+    """Pass a list of candidate summaries to display. Each item may include name,
+    title, location, comp, status, and tags[]. The dashboard component reads this
+    structuredContent and renders it. Data is treated as untrusted by the UI."""
+    return {
+        "structuredContent": {"candidates": candidates or []},
+        "content": [{"type": "text", "text": f"Showing {len(candidates or [])} candidate(s)."}],
+        "_meta": {"ui": {"resourceUri": DASHBOARD_URI}, "openai/outputTemplate": DASHBOARD_URI},
+    }
 
 
 if __name__ == "__main__":

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TTTG Candidate Dashboard</title>
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b6b; --line: #e4e4e4; --bg: #ffffff;
+    --chip: #f2f2f2; --accent: #111111;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: var(--ink);
+    background: var(--bg); font-size: 14px; line-height: 1.4; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
+  header.top { display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 14px; }
+  .brand { font-weight: bold; letter-spacing: .3px; font-size: 15px; }
+  .brand small { display:block; font-weight: normal; color: var(--muted); font-size: 11px; letter-spacing: .5px; }
+  .count { color: var(--muted); font-size: 12px; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  @media (min-width: 620px) { .grid { grid-template-columns: 1fr 1fr; } }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 14px; background: #fff; }
+  .name { font-size: 15px; font-weight: bold; margin: 0; }
+  .title { color: var(--muted); margin: 2px 0 8px 0; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .chip { background: var(--chip); border-radius: 999px; padding: 3px 9px; font-size: 12px; }
+  .status { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: .4px;
+    padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line); }
+  .status.go { background:#eaf6ea; border-color:#bfe3bf; }
+  .status.review { background:#fbf3e2; border-color:#ecd9a8; }
+  .status.new { background:#eef2f7; border-color:#cdd8e6; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  button { font-family: inherit; font-size: 12px; border: 1px solid var(--accent); background: #fff;
+    color: var(--accent); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; }
+  button:hover { opacity: .85; }
+  .empty { color: var(--muted); text-align: center; padding: 30px; border: 1px dashed var(--line); border-radius: 10px; }
+  .hint { color: var(--muted); font-size: 11px; margin-top: 14px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Top Tier Talent Group<small>CANDIDATE DASHBOARD</small></div>
+    <div class="count" id="count"></div>
+  </header>
+  <div id="grid" class="grid"></div>
+  <div class="hint" id="hint"></div>
+</div>
+
+<script type="module">
+  // Renders the candidate dashboard from the tool result (structuredContent).
+  // Treat all incoming data as untrusted; text is inserted via textContent only.
+  const SAMPLE = {
+    candidates: [
+      { name: "Synthetic Candidate J", title: "Maintenance Manager",
+        location: "Aurora, ON", comp: "$85K to $95K", status: "GO",
+        tags: ["433A Millwright", "SAP PM", "PLC/VFD", "Team of 9"] },
+      { name: "Synthetic Candidate K", title: "Welder-Fitter",
+        location: "Cambridge, ON", comp: "$30/hr", status: "REVIEW",
+        tags: ["CWB MIG", "FCAW", "Carbon Steel", "Blueprint reading"] }
+    ]
+  };
+
+  function statusClass(s) {
+    const t = String(s || "").toUpperCase();
+    if (t.startsWith("GO") || t === "YES") return "go";
+    if (t.includes("REVIEW") || t.includes("CONDITION")) return "review";
+    return "new";
+  }
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  function render(data) {
+    const grid = document.getElementById("grid");
+    const list = Array.isArray(data && data.candidates) ? data.candidates : [];
+    grid.innerHTML = "";
+    document.getElementById("count").textContent = list.length
+      ? list.length + (list.length === 1 ? " candidate" : " candidates") : "";
+    if (!list.length) {
+      const e = el("div", "empty", "No candidates yet. Ask the recruiter to add or vet candidates.");
+      grid.appendChild(e);
+      return;
+    }
+    for (const c of list) {
+      const card = el("div", "card");
+      const head = el("div");
+      head.style.display = "flex";
+      head.style.justifyContent = "space-between";
+      head.style.alignItems = "flex-start";
+      const left = el("div");
+      left.appendChild(el("p", "name", c.name || "Unnamed"));
+      left.appendChild(el("p", "title", c.title || ""));
+      head.appendChild(left);
+      if (c.status) head.appendChild(el("span", "status " + statusClass(c.status), c.status));
+      card.appendChild(head);
+
+      const row = el("div", "row");
+      if (c.location) row.appendChild(el("span", null, c.location));
+      if (c.comp) row.appendChild(el("span", null, c.comp));
+      card.appendChild(row);
+
+      if (Array.isArray(c.tags) && c.tags.length) {
+        const chips = el("div", "chips");
+        c.tags.forEach(t => chips.appendChild(el("span", "chip", t)));
+        card.appendChild(chips);
+      }
+
+      const actions = el("div", "actions");
+      const mk = (label, tool, primary) => {
+        const b = el("button", primary ? "primary" : null, label);
+        b.addEventListener("click", () => callTool(tool, { name: c.name }));
+        return b;
+      };
+      actions.appendChild(mk("Brand resume", "build_pdf", true));
+      actions.appendChild(mk("Vet", "vet"));
+      actions.appendChild(mk("Write-up", "write_up"));
+      card.appendChild(actions);
+      grid.appendChild(card);
+    }
+  }
+
+  // Ask the ChatGPT host to run a tool, via the MCP Apps bridge (postMessage).
+  function callTool(tool, args) {
+    try {
+      window.parent.postMessage({ type: "openai:tool", tool, arguments: args }, "*");
+    } catch (e) { /* preview mode, no host */ }
+  }
+
+  // Receive tool results from the host and re-render.
+  window.addEventListener("message", (ev) => {
+    const d = ev && ev.data;
+    if (d && (d.type === "ui/notifications/tool-result" || d.toolResult)) {
+      const payload = (d.toolResult && d.toolResult.structuredContent) || d.structuredContent;
+      if (payload) render(payload);
+    }
+  });
+
+  // Initial render: use host-provided data if present, else sample for preview.
+  const bootstrap = (window.__MCP_TOOL_RESULT__ && window.__MCP_TOOL_RESULT__.structuredContent) || SAMPLE;
+  render(bootstrap);
+  document.getElementById("hint").textContent =
+    "Live data replaces this sample when opened inside ChatGPT.";
+</script>
+</body>
+</html>
