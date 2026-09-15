@@ -17,6 +17,7 @@
     "docs",
     "server",
     "ui",
+    "assets",
     ".claude-plugin",
     ".codex-plugin",
     ".agents",
