@@ -81,7 +81,7 @@ Reason for Leaving:
 Two parts, and it must add NEW information — **no redundancy** with the label block above (don't restate title/location/comp).
 
 - **Narrative (2 short sentences, 3 only when needed), human and by name.** Lead with the person. Pull in supported call context without repeating labels. Only external-client blind MPC omits the name.
-- **Bullets: 4 by default. 5 max. 6 is the hard ceiling — never 7.** Each bullet a fresh fact (resume OR transcript), lead-in phrase, and a number wherever the source supports it. No overlap with the narrative or the labels.
+- **Bullets: not a fixed count. Scale them to the role.** Four is a good baseline for an individual-contributor or single-scope role. Senior, management, and leadership roles carry more when the fit genuinely needs it, so add bullets to cover the real scope (ownership, team size, systems, budgets, sites, cross-functional reach). Never pad to hit a number, and never stretch a thin candidate. Each bullet is a fresh, source-backed fact with a lead-in phrase and a number wherever the source supports it, with no overlap with the narrative or the labels.
 
 ### What to bold (JD-driven, not blanket)
 Bold only what makes the reader's eye land on the match — the specific skills, certs, systems, metrics, and experience **this client's job description is asking for**. Most text stays plain. The right keywords change per role and industry (OEM names for automotive, food-safety/GFSI for food, etc.); let the JD decide. Do not bold everything.
