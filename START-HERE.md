@@ -89,9 +89,10 @@ Each layer maps to a real place in the repo.
 Two notes on this model:
 - **Agent Instructions** here is a clean "how to use this repo" layer. It is not
   the personal or finance workspace material, which stays out of this repository.
-- **Plugins / MCPs / Connectors**: Claude Code installs this as a one-click plug-in
-  (see [`INSTALL.md`](INSTALL.md)). Codex installs it as skills from the repo. The
-  ChatGPT app has no repo-install and is used through Codex or an MCP server.
+- **Plugins / MCPs / Connectors**: this installs as a plug-in in Claude Code, Codex,
+  and the ChatGPT app (and browser), all from this repo. See [`INSTALL.md`](INSTALL.md)
+  for the exact steps per host. Claude uses `.claude-plugin/`; Codex and ChatGPT share
+  `.codex-plugin/plugin.json` plus `.agents/plugins/marketplace.json`.
 
 ## Who can use this
 
