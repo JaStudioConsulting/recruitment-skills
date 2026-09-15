@@ -8,6 +8,8 @@
     "displayName": "TTTG Recruiting",
     "category": "Productivity",
     "developerName": "Ja Studio Consulting",
+    "logo": "./assets/logo.png",
+    "composerIcon": "./assets/logo.png",
     "shortDescription": "Recruiting front door: resumes, submissions, vetting, sourcing, Loxo, Tracker.",
     "longDescription": "The Top Tier Talent Group recruiting system. One front door routes each request to the right workflow (branded resume, submission write-up, vetting, sourcing, Loxo, Tracker) and shows the output shape before producing it. GitHub main is the single authority."
   }
