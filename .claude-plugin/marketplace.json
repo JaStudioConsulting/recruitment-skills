@@ -1,0 +1,16 @@
+{
+  "name": "jastudio-recruitment",
+  "owner": {
+    "name": "Ja Studio Consulting"
+  },
+  "metadata": {
+    "description": "Top Tier Talent Group recruiting skills: the recruiter front door and Tracker, installable as one plug-in."
+  },
+  "plugins": [
+    {
+      "name": "recruitment-skills",
+      "source": "./",
+      "description": "Top Tier Talent Group recruiting front door and all its skills. Install once, enter through the recruiter skill."
+    }
+  ]
+}
