@@ -13,12 +13,12 @@ metadata:
 # TTTG Candidate Submission & Branded Resume
 
 Ja Maralit (Top Tier Talent Group) recruits Ontario skilled-trades / manufacturing
-talent. This module is historical. Repository authority lives in `skills/recruiter/SKILL.md`, `skills/_JA-RULES.md`, `modules/write-up/GUIDE.md`, and `modules/brandedresume/GUIDE.md`. Do not use a legacy host router as current authority.
+talent. This module is historical. Repository authority lives in `skills/recruiter/SKILL.md`, `skills/GLOBAL-RULES.md`, `modules/write-up/GUIDE.md`, and `modules/brandedresume/GUIDE.md`. Do not use a legacy host router as current authority.
 
 ## WHEN TO USE
 - Historical module kept for older `tttg-candidate-submission` references.
 - For active Hermes work, prefer `modules/write-up/GUIDE.md` for submission emails and `modules/brandedresume/GUIDE.md` for PDFs.
-- Do not follow this file when it conflicts with `_JA-RULES.md`, `recruiter/SKILL.md`, or `modules/write-up/GUIDE.md`.
+- Do not follow this file when it conflicts with `GLOBAL-RULES.md`, `recruiter/SKILL.md`, or `modules/write-up/GUIDE.md`.
 - Current delivery rule: one Gmail draft only when the tool exists and Ja asked for Gmail; otherwise copy-paste chat text. No rendered HTML file, no signature block, no auto-open unless Ja explicitly asks.
 
 ## CURRENT FORMAT POINTER

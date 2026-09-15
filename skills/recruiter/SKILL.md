@@ -68,14 +68,14 @@ present, skip it silently and proceed. Missing local tooling is never a failure.
 When a recruiting task arrives, start here, read only the module or reference you
 need, and follow it. This file owns the workflow, the gates, and the routing.
 
-Read the canonical `../_JA-RULES.md` alongside this router. Those style, resume, and submission rules override defaults and apply to every artifact.
+Read the canonical `../GLOBAL-RULES.md` alongside this router. Those style, resume, and submission rules override defaults and apply to every artifact.
 
 ## Canonical sources
 
-- Active authority: this `recruiter/SKILL.md`, the relevant `modules/<name>/GUIDE.md`, `../_JA-RULES.md`, `../_TOOL-MAP.md`, and `../capabilities.json`.
+- Active authority: this `recruiter/SKILL.md`, the relevant `modules/<name>/GUIDE.md`, `../GLOBAL-RULES.md`, `../TOOL-CONVENTIONS.md`, and `../capabilities.json`.
 - Legacy host names and standalone module aliases are historical evidence only. Do not route to them as active skills. Map every recruiting intent to this `recruiter` front door and its internal modules.
 - Call intake template: `templates/candidate-call-submission-template.md`.
-- Rules: `../_JA-RULES.md`.
+- Rules: `../GLOBAL-RULES.md`.
 - Knowledge architecture and intake governance: [`../../docs/knowledge-architecture.md`](../../docs/knowledge-architecture.md).
 
 If an active authority path is missing, stop before producing a candidate artifact and report the missing path.

@@ -1,12 +1,12 @@
 ---
-title: Ja Operating Rules
+title: Global Rules
 tags: [governance, ja-rules, writing-style, recruiting, skills]
 related: [skills/recruiter/SKILL.md]
 ---
 
 # JA OPERATING RULES (read first, every agent)
 
-Companion: `_TOOL-MAP.md` and `recruiter/SKILL.md`.
+Companion: `TOOL-CONVENTIONS.md` and `recruiter/SKILL.md`.
 
 
 Single source of truth for how Ja / Top Tier Talent Group wants work done.

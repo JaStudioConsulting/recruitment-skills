@@ -8,7 +8,7 @@ right one. The validator (`npm run validate`) and tests fail if they are mixed u
 | A **skill** (a workflow, the "how we do X") | a new `skills/recruiter/modules/<name>/GUIDE.md`, registered in `skills/capabilities.json`, and routed in `skills/recruiter/SKILL.md` | prose plus optional scripts and references |
 | A **tool** (a capability the host runs) | one entry in `skills/manifests/tools.json` | a named contract only, never an implementation |
 | A **connector** (an outside system) | one entry in `skills/manifests/plugins.json` | Loxo, Google Workspace, Neo4j, and so on |
-| A **rule or tool convention** | `skills/_JA-RULES.md` (house rules) or `skills/_TOOL-MAP.md` (how tools behave) | policy, not a workflow |
+| A **rule or tool convention** | `skills/GLOBAL-RULES.md` (house rules) or `skills/TOOL-CONVENTIONS.md` (how tools behave) | policy, not a workflow |
 
 A skill is never declared in `tools.json`, and a tool is never a `GUIDE.md`. See
 [START-HERE.md](START-HERE.md) for the plain-language map of the whole layout.

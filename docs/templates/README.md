@@ -5,7 +5,7 @@ This directory indexes reusable formats owned by this repository. `$recruiter` i
 ## Authority and shared rules
 
 - Router and precedence: [`skills/recruiter/SKILL.md`](../../skills/recruiter/SKILL.md)
-- House style and fact/privacy rules: [`skills/_JA-RULES.md`](../../skills/_JA-RULES.md) and [`modules/ja-writer/references/ja-style.md`](../../skills/recruiter/modules/ja-writer/references/ja-style.md)
+- House style and fact/privacy rules: [`skills/GLOBAL-RULES.md`](../../skills/GLOBAL-RULES.md) and [`modules/ja-writer/references/ja-style.md`](../../skills/recruiter/modules/ja-writer/references/ja-style.md)
 - Normalized field mapping: [`submission-data-contract.md`](submission-data-contract.md)
 
 Every template inherits source-bound facts, no placeholders or fabricated metrics, no em/en dashes or double hyphens, no typed signature, draft-first Gmail, read-only/draft-only Loxo unless separately authorized, privacy/anonymity gates, verified attachments, and visual QA for PDFs. A local convenience copy is never an authority.

@@ -168,7 +168,7 @@ test("consolidated non-mutating guidance is routed and guarded", async () => {
   assert.doesNotMatch(emailTemplate, /<b>Reason for Exploring:<\/b>/);
   const router = await read("skills/recruiter/SKILL.md");
   assert.match(router, /references\/call-recording-recovery\.md/);
-  const rules = await read("skills/_JA-RULES.md");
+  const rules = await read("skills/GLOBAL-RULES.md");
   assert.match(rules, /external `Reason for Leaving`/);
   assert.match(rules, /Work Status/);
   const style = await read("skills/recruiter/modules/ja-writer/references/ja-style.md");

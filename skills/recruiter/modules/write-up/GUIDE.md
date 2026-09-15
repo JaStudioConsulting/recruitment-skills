@@ -72,7 +72,7 @@ Interview Availability:
 Start Date:
 Reason for Leaving:
 ```
-- Include the confirmed current employer naturally in the opening or Profile Summary when known, as required by `_JA-RULES.md`; do not add an extra label to the locked field block. Only include fields that have real values. Never invent.
+- Include the confirmed current employer naturally in the opening or Profile Summary when known, as required by `GLOBAL-RULES.md`; do not add an extra label to the locked field block. Only include fields that have real values. Never invent.
 - `Reason for Exploring` may be captured internally from a call, but it never replaces `Reason for Leaving` in the external submission.
 
 **Contact info (opt-in toggle):** The branded and MPC **resumes never contain contact info** (no email, no phone) — hard rule, no exceptions. The submission **email** carries contact **only when contact-info is turned on for that run**. When on, add a bold **Contact** line right after the opening line, before the Name block, in this form: `Contact: <phone> | <email>` (phone, then ` | `, then email). When off, omit it entirely. Default off unless the run asks for it.
