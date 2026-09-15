@@ -55,7 +55,20 @@ FILES_DIR = os.environ.get("FILES_DIR", os.path.join(tempfile.gettempdir(), "ttt
 PUBLIC_BASE = (os.environ.get("PUBLIC_BASE_URL") or os.environ.get("RENDER_EXTERNAL_URL") or "").rstrip("/")
 _FILE_NAMES: dict = {}
 
-mcp = FastMCP("tttg-recruiting", stateless_http=True, json_response=True)
+# The MCP SDK blocks non-localhost Host headers by default (DNS-rebinding
+# protection). This server is a public HTTPS endpoint, so allow the hosted
+# domain and the origins a remote client (ChatGPT) connects from.
+_fastmcp_kwargs = {"stateless_http": True, "json_response": True}
+try:
+    from mcp.server.transport_security import TransportSecuritySettings
+
+    _fastmcp_kwargs["transport_security"] = TransportSecuritySettings(
+        allowed_hosts=["*"], allowed_origins=["*"]
+    )
+except Exception:  # noqa: BLE001 - older SDKs have no such setting
+    pass
+
+mcp = FastMCP("tttg-recruiting", **_fastmcp_kwargs)
 
 # OAuth / connector config is read from the environment, never from the repo.
 # See server/.env.example for the variable names. The host (ChatGPT) drives the
