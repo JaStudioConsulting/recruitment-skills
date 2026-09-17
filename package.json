@@ -17,6 +17,7 @@
     "docs",
     "server",
     "ui",
+    "workstation",
     "assets",
     ".claude-plugin",
     ".codex-plugin",

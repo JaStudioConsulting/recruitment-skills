@@ -17,6 +17,14 @@ const router = await readSkillText(authority.routerPath);
 
 Direct exports are also available for packaged resources, for example `@jastudioconsulting/recruitment-skills/skills/recruiter/SKILL.md` and `@jastudioconsulting/recruitment-skills/manifests/tools.json`. Consumers own runtime tools, credentials, deployment, and integration adapters; this package owns the skills authority and contracts only.
 
+## Recruiter Workstation
+
+`workstation/` is the full-page Recruiter Workstation for ChatGPT Sites. It keeps each role-and-candidate case together: Apple Pencil/typed notes, immutable source attachments, a structured resume editor, write-up, submission, email draft, and compact assistant guidance.
+
+The workstation owns its private case state in Sites D1/R2. Gmail, Calendar, Drive, Tracker, Loxo, and the specialized PDF builder remain host capabilities behind `workstation/lib/connectors/`; the browser does not duplicate their authentication or claim an unavailable connector worked. Consequential external updates require an exact preview and approval before execution.
+
+This differs from `ui/candidate-dashboard.html`, which is the smaller MCP in-chat result surface. See `workstation/README.md` for local preview, persistence, and deployment instructions.
+
 ## Boundaries
 
 - Gmail is draft-first; sending is not declared here.
