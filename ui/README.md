@@ -1,5 +1,8 @@
 # In-chat UI (candidate dashboard)
 
+This directory is the compact MCP result surface. It is not the full Recruiter
+Workstation. The persistent two-column case workspace lives in `workstation/`.
+
 `candidate-dashboard.html` is the custom UI that renders inside ChatGPT when the
 app runs the `show_candidates` tool. It shows one card per candidate (name, title,
 location, compensation, status, skill tags) with Brand resume / Vet / Write-up
