@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+const workstation = await readFile(new URL("../components/workstation/recruiter-workstation.tsx", import.meta.url), "utf8");
 
 function rule(selector: string) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -17,10 +18,10 @@ describe("bounded recruiter workstation layout", () => {
     expect(rule(".desk-grid")).toMatch(/overflow:\s*hidden/);
   });
 
-  it("keeps document content independently scrollable", () => {
-    expect(rule(".document-tabs")).toMatch(/overflow:\s*hidden/);
-    expect(rule(".document-scroll")).toMatch(/overflow-y:\s*auto/);
-    expect(rule(".document-scroll")).toMatch(/overscroll-behavior:\s*contain/);
+  it("keeps the source resume independently scrollable", () => {
+    expect(rule(".resume-source-scroll")).toMatch(/overflow:\s*auto/);
+    expect(rule(".resume-source-scroll")).toMatch(/overscroll-behavior:\s*contain/);
+    expect(rule(".resume-source-frame")).toMatch(/flex:\s*1 1 0/);
   });
 
   it("keeps the primary actions pinned above the safe area", () => {
@@ -31,8 +32,20 @@ describe("bounded recruiter workstation layout", () => {
 
   it("supports stacked portrait and split landscape tablet layouts", () => {
     expect(css).toMatch(/@media \(max-width: 1050px\)[\s\S]*?\.desk-grid\s*\{[^}]*grid-template-columns:\s*1fr[^}]*overflow-y:\s*auto/);
-    expect(css).toMatch(/@media \(min-width: 820px\) and \(max-width: 1050px\) and \(orientation: landscape\)[\s\S]*?\.desk-grid\s*\{[^}]*grid-template-columns:[^}]*minmax\(280px,[^}]*minmax\(430px,[^}]*overflow:\s*hidden/);
+    expect(css).toMatch(/@media \(min-width: 820px\) and \(max-width: 1050px\) and \(orientation: landscape\)[\s\S]*?\.desk-grid\s*\{[^}]*grid-template-columns:[^}]*minmax\(390px,[^}]*minmax\(300px,[^}]*overflow:\s*hidden/);
     expect(css).toMatch(/@media \(min-width: 820px\) and \(max-width: 1050px\) and \(orientation: landscape\)[\s\S]*?\.notes-pane, \.document-pane\s*\{[^}]*min-height:\s*0/);
+  });
+
+  it("keeps only actionable call controls on the primary surface", () => {
+    expect(workstation).toContain("Brand resume");
+    expect(workstation).toContain("Write up candidate");
+    expect(workstation).toContain("Quick write-up");
+    expect(workstation).toContain("Role-focused submission");
+    expect(workstation).not.toContain("Run After-Call Package");
+    expect(workstation).not.toContain("<TabsTrigger");
+    expect(workstation).not.toContain("assistant-strip");
+    expect(workstation).not.toContain('label="Fit/concern"');
+    expect(workstation).not.toContain('label="Ask next"');
   });
 
   it("lets narrow mobile pages scroll without losing bounded editors", () => {

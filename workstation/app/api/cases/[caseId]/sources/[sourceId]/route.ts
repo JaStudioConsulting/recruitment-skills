@@ -7,10 +7,11 @@ export const dynamic = "force-dynamic";
 
 type Context = { params: Promise<{ caseId: string; sourceId: string }> };
 
-export async function GET(_request: Request, context: Context) {
+export async function GET(request: Request, context: Context) {
   return apiRoute(async (userId) => {
     const { caseId, sourceId } = await context.params;
-    return downloadImmutableSource({ userId, caseId, sourceId });
+    const inline = new URL(request.url).searchParams.get("inline") === "1";
+    return downloadImmutableSource({ userId, caseId, sourceId, inline });
   });
 }
 

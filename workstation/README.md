@@ -11,9 +11,9 @@ compact MCP candidate dashboard in `ui/`.
 - one multi-file drop zone plus dedicated Resume, Transcript, Job Description,
   Call Notes, and pasted-text source capture
 - truthful source lifecycle states: uploaded, parsed, classified, and reviewed
-- Editor.js resume workspace plus Write-Up, Submission, Email, and Loxo tabs
+- large call-notes surface beside the selected uploaded resume for quick reference
+- on-demand Brand Resume and Candidate Write-Up actions instead of permanent output tabs
 - independently scrolling Notes and document panes with sticky iPad actions
-- compact Missing, Ask next, Fit/concern, and Next action strip
 - D1 case/document metadata with optimistic revisions
 - R2 source blobs addressed by opaque case/source IDs
 - explicit host connector capability states and approval-bound write contracts
