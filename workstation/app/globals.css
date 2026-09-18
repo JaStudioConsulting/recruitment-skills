@@ -111,7 +111,7 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
 .source-dropzone span { display: grid; gap: 2px; }
 .source-dropzone strong { font-size: 13px; }
 .source-dropzone small { color: #65756d; font-size: 12px; }
-.source-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+.source-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
 .source-actions > div, .source-actions button { width: 100%; }
 .source-actions button { min-height: 48px; justify-content: center; }
 .source-summary { max-height: 148px; display: grid; gap: 7px; margin-top: 10px; overflow-y: auto; color: #6c7b74; font-size: 12px; }
