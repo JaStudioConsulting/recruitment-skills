@@ -101,7 +101,15 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
 .notes-controls select { min-height: 44px; max-width: 116px; border: 1px solid var(--border); border-radius: 6px; padding: 0 8px; background: white; }
 .scribble-surface { min-height: 0; flex: 1 1 0; resize: none; margin: 12px; width: calc(100% - 24px); overflow: auto; border-color: #dce4e0; border-radius: 6px; padding: 18px; line-height: 1.55; background: #fff; box-shadow: inset 0 1px 2px rgb(24 42 34 / 2%); }
 .scribble-surface:disabled { background: #f9fbfa; color: #718079; opacity: 1; }
-.source-area { flex: 0 0 auto; padding: 0 16px 14px; }
+.source-area { flex: 0 0 auto; padding: 0 12px 10px; }
+.source-toggle { width: 100%; min-height: 44px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; padding: 0 10px; border: 1px solid #dce4e0; border-radius: 7px; background: #f8faf9; color: #31433b; text-align: left; }
+.source-toggle:hover { background: #eef4f1; }
+.source-toggle > span { font-size: 13px; font-weight: 750; }
+.source-toggle > span strong { display: inline-grid; min-width: 21px; height: 21px; place-items: center; margin-left: 5px; border-radius: 999px; background: #e3ece8; color: #174f3f; font-size: 11px; }
+.source-toggle small { justify-self: end; color: #68776f; font-size: 12px; }
+.source-toggle svg { transition: transform 150ms ease; }
+.source-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.source-panel-content { padding-top: 9px; }
 .source-area-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .source-area-heading > span { color: #44534c; font-size: 13px; font-weight: 750; }
 .source-area-heading small { color: #68776f; font-size: 12px; }
@@ -113,7 +121,7 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
 .source-dropzone small { color: #65756d; font-size: 12px; }
 .source-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
 .source-actions > div, .source-actions button { width: 100%; }
-.source-actions button { min-height: 48px; justify-content: center; }
+.source-actions button { min-height: 36px; padding-inline: 8px; justify-content: center; font-size: 12px; }
 .source-summary { max-height: 148px; display: grid; gap: 7px; margin-top: 10px; overflow-y: auto; color: #6c7b74; font-size: 12px; }
 .source-row { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 8px; padding: 8px; border: 1px solid #e0e7e3; border-radius: 7px; background: #fbfcfb; }
 .source-row-copy { min-width: 0; display: grid; gap: 2px; }

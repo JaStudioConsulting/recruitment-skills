@@ -121,6 +121,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const [pastedSource, setPastedSource] = useState("");
   const [pastedSourceKind, setPastedSourceKind] = useState<SourceKind>("call_notes");
   const [sourceBusy, setSourceBusy] = useState(false);
+  const [sourcePanelOpen, setSourcePanelOpen] = useState(false);
   const [dropActive, setDropActive] = useState(false);
   const [sourceReviewKinds, setSourceReviewKinds] = useState<Record<string, SourceKind>>({});
   const caseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -445,23 +446,28 @@ export function RecruiterWorkstation({ user }: { user: User }) {
           <div className="pane-toolbar notes-toolbar"><div><h2>Notes</h2><span className={`save-state ${caseSaveState}`}>{saveLabel(caseSaveState)}</span></div><div className="notes-controls"><label>Font<select value={notesFont} disabled={!activeCase} onChange={(event) => { const notesFont = event.target.value; setNotesFont(notesFont); changeCaseDraft({ notesFont }); }}>{FONT_OPTIONS.map((font) => <option key={font}>{font}</option>)}</select></label><label>Size<select value={notesSize} disabled={!activeCase} onChange={(event) => { const notesSize = Number(event.target.value); setNotesSize(notesSize); changeCaseDraft({ notesSize }); }}>{SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}</select></label></div></div>
           <Textarea className="scribble-surface" aria-label="Candidate notes" disabled={!activeCase} value={notes} onChange={(event) => { const notes = event.target.value; setNotes(notes); changeCaseDraft({ notes }); }} placeholder={activeCase ? "Write with Apple Pencil Scribble or type your call notes." : "Select a role and candidate to open a private case."} style={{ fontFamily: notesFont === "System" ? "var(--font-ui)" : notesFont, fontSize: `${notesSize}px` }} />
           <div className="source-area">
-            <div className="source-area-heading"><span>Case sources</span><small>Originals stay unchanged.</small></div>
-            <input ref={multiFileInput} type="file" accept={SOURCE_ACCEPT} multiple hidden onChange={(event) => { const files = Array.from(event.target.files || []); void uploadSources(files); event.currentTarget.value = ""; }} />
-            <button
-              type="button"
-              className={`source-dropzone${dropActive ? " is-dragging" : ""}`}
-              disabled={!activeCase || sourceBusy}
-              onClick={() => multiFileInput.current?.click()}
-              onDragEnter={(event) => { event.preventDefault(); setDropActive(true); }}
-              onDragOver={(event) => { event.preventDefault(); setDropActive(true); }}
-              onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropActive(false); }}
-              onDrop={(event) => { event.preventDefault(); setDropActive(false); void uploadSources(Array.from(event.dataTransfer.files)); }}
-            >
-              <UploadCloud size={22} aria-hidden="true" />
-              <span><strong>Drop resume, transcript, JD, and notes</strong><small>or tap to choose multiple files</small></span>
+            <button type="button" className="source-toggle" aria-expanded={sourcePanelOpen} onClick={() => setSourcePanelOpen((open) => !open)}>
+              <span>Sources <strong>{activeCase?.sources.length ?? 0}</strong></span>
+              <small>{sourcePanelOpen ? "Close sources" : "Add or review"}</small>
+              <ChevronDown size={17} aria-hidden="true" />
             </button>
-            <div className="source-actions">{SOURCE_ACTIONS.map(({ kind, label, accept, icon: Icon }) => <div key={kind}><input ref={(node) => { fileInputs.current[kind] = node; }} type="file" accept={accept} hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadSources([file], [kind]); event.currentTarget.value = ""; }} /><Button variant="outline" disabled={!activeCase || sourceBusy} onClick={() => fileInputs.current[kind]?.click()}><Icon size={18} aria-hidden="true" />{label}</Button></div>)}<Button variant="outline" disabled={!activeCase || sourceBusy} onClick={() => setPasteOpen(true)}><Link2 size={18} aria-hidden="true" />Paste source</Button></div>
-            <div className="source-summary" aria-label="Attached source status">{activeCase?.sources.length ? activeCase.sources.map((source) => {
+            {sourcePanelOpen ? <div className="source-panel-content">
+              <input ref={multiFileInput} type="file" accept={SOURCE_ACCEPT} multiple hidden onChange={(event) => { const files = Array.from(event.target.files || []); void uploadSources(files); event.currentTarget.value = ""; }} />
+              <button
+                type="button"
+                className={`source-dropzone${dropActive ? " is-dragging" : ""}`}
+                disabled={!activeCase || sourceBusy}
+                onClick={() => multiFileInput.current?.click()}
+                onDragEnter={(event) => { event.preventDefault(); setDropActive(true); }}
+                onDragOver={(event) => { event.preventDefault(); setDropActive(true); }}
+                onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropActive(false); }}
+                onDrop={(event) => { event.preventDefault(); setDropActive(false); void uploadSources(Array.from(event.dataTransfer.files)); }}
+              >
+                <UploadCloud size={22} aria-hidden="true" />
+                <span><strong>Drop resume, transcript, JD, and notes</strong><small>or tap to choose multiple files</small></span>
+              </button>
+              <div className="source-actions">{SOURCE_ACTIONS.map(({ kind, label, accept, icon: Icon }) => <div key={kind}><input ref={(node) => { fileInputs.current[kind] = node; }} type="file" accept={accept} hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadSources([file], [kind]); event.currentTarget.value = ""; }} /><Button size="sm" variant="outline" disabled={!activeCase || sourceBusy} onClick={() => fileInputs.current[kind]?.click()}><Icon size={15} aria-hidden="true" />{label}</Button></div>)}<Button size="sm" variant="outline" disabled={!activeCase || sourceBusy} onClick={() => setPasteOpen(true)}><Link2 size={15} aria-hidden="true" />Paste</Button></div>
+              <div className="source-summary" aria-label="Attached source status">{activeCase?.sources.length ? activeCase.sources.map((source) => {
               const needsClassification = source.lifecycleStatus === "parsed" && source.classificationMethod === "uncertain";
               const reviewKind = sourceReviewKinds[source.id] || (source.kind === "other" ? "call_notes" : source.kind);
               return <div className="source-row" key={source.id}>
@@ -471,7 +477,8 @@ export function RecruiterWorkstation({ user }: { user: User }) {
                 {source.lifecycleStatus === "classified" || needsClassification ? <Button size="sm" variant="outline" disabled={sourceBusy} onClick={() => void reviewSource(source.id, needsClassification ? reviewKind : undefined)}>Review</Button> : null}
                 {source.lifecycleStatus === "uploaded" ? <small>Parser pending</small> : null}
               </div>;
-            }) : <span>No sources attached.</span>}</div>
+              }) : <span>No sources attached.</span>}</div>
+            </div> : null}
           </div>
         </section>
 
