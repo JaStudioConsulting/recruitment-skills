@@ -76,7 +76,7 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
 .save-dot.saving { animation: pulse 1s infinite; }
 .save-dot.failed { background: #f9dfdc; color: #b42318; }
 
-.context-bar { flex: 0 0 auto; display: grid; grid-template-columns: 1fr 1.25fr .75fr; gap: 34px; align-items: end; padding: 17px 30px; background: white; border-bottom: 1px solid var(--border); }
+.context-bar { flex: 0 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 34px; align-items: end; padding: 17px 30px; background: white; border-bottom: 1px solid var(--border); }
 .context-control { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 14px; min-width: 0; }
 .context-control > span { font-size: 14px; font-weight: 750; }
 .context-select-row { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 8px; }
@@ -84,7 +84,6 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
 .select-wrap select { width: 100%; min-height: 44px; appearance: none; padding: 0 42px 0 14px; border: 1px solid var(--input); border-radius: 7px; background: white; color: #304038; outline: none; }
 .select-wrap svg { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #596962; }
 .select-wrap select:focus { border-color: var(--ring); box-shadow: 0 0 0 3px rgb(75 138 118 / 14%); }
-.status-control { grid-template-columns: auto minmax(0, 1fr); }
 
 .error-banner { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; margin: 14px 30px 0; padding: 11px 14px; border: 1px solid #edc4bf; border-radius: 9px; color: #84271f; background: #fff3f1; }
 .error-banner button { margin-left: auto; }
@@ -189,7 +188,6 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
   .brand-bar { grid-template-columns: 1fr 1.2fr; }
   .operator { display: none; }
   .context-bar { grid-template-columns: 1fr 1fr; }
-  .status-control { grid-column: 1 / -1; max-width: 420px; }
   .desk-grid { grid-template-columns: 1fr; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
   .notes-pane { min-height: 540px; }
   .document-pane { min-height: 620px; }
@@ -197,8 +195,7 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
 }
 
 @media (min-width: 820px) and (max-width: 1050px) and (orientation: landscape) {
-  .context-bar { grid-template-columns: 1fr 1.25fr .75fr; }
-  .status-control { grid-column: auto; max-width: none; }
+  .context-bar { grid-template-columns: 1fr 1.35fr; }
   .desk-grid { grid-template-columns: minmax(390px, 1.35fr) minmax(300px, .85fr); overflow: hidden; }
   .notes-pane, .document-pane { min-height: 0; }
 }
@@ -210,7 +207,6 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
   .brand-wordmark { font-size: 12px; }
   .brand-title span { display: none; }
   .context-bar { grid-template-columns: 1fr; gap: 12px; padding: 14px 16px; }
-  .status-control { grid-column: auto; max-width: none; }
   .context-control { grid-template-columns: 84px minmax(0, 1fr); }
   .desk-grid { flex: 0 0 auto; overflow: visible; padding: 10px; }
   .notes-pane { height: min(72dvh, 580px); min-height: 500px; }

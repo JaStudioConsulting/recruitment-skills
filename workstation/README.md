@@ -6,7 +6,7 @@ compact MCP candidate dashboard in `ui/`.
 
 ## What is included
 
-- role, candidate, and status context bar
+- role and candidate context bar
 - candidate-specific Apple Pencil Scribble/typed notes with font and size controls
 - one multi-file drop zone plus dedicated Resume, Transcript, Job Description,
   Call Notes, and pasted-text source capture

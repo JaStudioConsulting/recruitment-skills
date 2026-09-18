@@ -44,6 +44,7 @@ describe("bounded recruiter workstation layout", () => {
     expect(workstation).not.toContain("Run After-Call Package");
     expect(workstation).not.toContain("<TabsTrigger");
     expect(workstation).not.toContain("assistant-strip");
+    expect(workstation).not.toContain('className="context-control status-control"');
     expect(workstation).not.toContain('label="Fit/concern"');
     expect(workstation).not.toContain('label="Ask next"');
   });

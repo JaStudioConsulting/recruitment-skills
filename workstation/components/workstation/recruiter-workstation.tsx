@@ -484,7 +484,6 @@ export function RecruiterWorkstation({ user }: { user: User }) {
           <option value="">Select a candidate...</option>
           {candidates.map((item) => <option key={item.id} value={item.id}>{item.name}{item.currentTitle ? ` · ${item.currentTitle}` : ""}</option>)}
         </ContextSelect>
-        <label className="context-control status-control"><span>Status</span><div className="select-wrap"><select value={caseStatus} disabled={!activeCase} onChange={(event) => { if (!activeCase) return; const status = event.target.value; setCaseStatus(status); changeCaseDraft({ status }); void persistCase(); }}><option value="active">Active</option><option value="screening">Screening</option><option value="submission_ready">Submission ready</option><option value="on_hold">On hold</option><option value="closed">Closed</option></select><ChevronDown size={16} /></div></label>
       </section>
 
       {pageError ? <div className="error-banner"><AlertTriangle size={17} />{pageError}<Button size="sm" variant="outline" onClick={() => { setLoading(true); setPageError(""); void loadWorkspace(); }}>Retry</Button></div> : null}
