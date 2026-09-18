@@ -68,6 +68,9 @@ export function CapabilityEngine({
   const requirements = useMemo(() => requirementStates({ feature, activeCase, roleSelected, extraInput, connectors }), [feature, activeCase, roleSelected, extraInput, connectors]);
   const missing = missingRequired(requirements);
   const provider = PROVIDERS.find((item) => item.id === providerId) ?? PROVIDERS[0];
+  const providerDetail = provider.id === "gemini" && feature.runtime === "local_ai_web"
+    ? "Tested search-only policy; shell, files, URL fetch, hooks, skills, agents, MCP, and connectors are disabled."
+    : provider.detail;
   const draft = runs[feature.id];
   const blockedReason = runtimeBlock(feature);
   const canRun = Boolean(activeCase) && !running && !blockedReason && provider.available && missing.length === 0;
@@ -130,7 +133,7 @@ export function CapabilityEngine({
             {FEATURE_GROUPS.map((group) => <section key={group}><h3>{GROUP_LABELS[group]}</h3>{FEATURES.filter((item) => item.group === group).map((item) => {
               const itemRequirements = requirementStates({ feature: item, activeCase, roleSelected, extraInput: "", connectors });
               const status = featureStatus(item, itemRequirements);
-              return <button type="button" key={item.id} aria-current={item.id === feature.id ? "page" : undefined} onClick={() => { setFeatureId(item.id); setMessage(""); }}><span>{item.label}</span><small className={`feature-status ${status.tone}`}>{status.label}</small></button>;
+              return <button type="button" key={item.id} aria-current={item.id === feature.id ? "page" : undefined} onClick={() => { setFeatureId(item.id); setExtraInput(""); setMessage(""); }}><span>{item.label}</span><small className={`feature-status ${status.tone}`}>{status.label}</small></button>;
             })}</section>)}
           </nav>
           <section className="capability-main">
@@ -142,7 +145,7 @@ export function CapabilityEngine({
               <label>AI<select value={providerId} onChange={(event) => setProvider(event.target.value)}>{PROVIDERS.map((item) => <option key={item.id} value={item.id} disabled={!item.available}>{item.label} · {item.cost}{item.available ? "" : " · unavailable"}</option>)}</select></label>
               <label>Model<select value={model} onChange={(event) => { setModel(event.target.value); window.localStorage.setItem("tttg-ai-model", event.target.value); }}>{provider.models.map((item) => <option key={item}>{item}</option>)}</select></label>
             </div>
-            <p className="provider-detail">{provider.detail}</p>
+            <p className="provider-detail">{providerDetail}</p>
             {blockedReason ? <p className="capability-message">{blockedReason}</p> : null}
             {message ? <p className="capability-message" role="status">{message}</p> : null}
             {draft ? <DraftEditor draft={draft} onChange={updateDraft} /> : <div className="capability-empty">No saved draft for this feature yet.</div>}

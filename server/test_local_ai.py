@@ -71,6 +71,36 @@ class LocalAiBoundaryTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIsNone(rejection)
 
+    def test_sourcing_table_is_closed_and_normalized(self):
+        value = {
+            "title": "Synthetic sourcing",
+            "unknowns": [],
+            "columns": ["Full Name", "Company", "Tenure", "LinkedIn Link", "Contact Info", "Eligibility", "Evidence Status"],
+            "rows": [["Synthetic Person", "Synthetic Co", "", "https://example.com/profile", "", "Eligible", "Unconfirmed"]],
+        }
+        self.assertEqual(local_ai._validate_result("table", value, "source-candidates"), value)
+        value["rows"][0][6] = "Likely"
+        with self.assertRaisesRegex(ValueError, "evidence status"):
+            local_ai._validate_result("table", value, "source-candidates")
+
+    def test_applicant_screening_table_is_closed(self):
+        value = {
+            "title": "Synthetic screening",
+            "unknowns": [],
+            "columns": ["Rank", "Candidate", "Score", "Tier", "Key Differentiator", "Evidence and Gaps"],
+            "rows": [["1", "Alex Example", "10/12", "Strong Interview", "Maintenance leadership", "No stated PLC experience"]],
+        }
+        self.assertEqual(local_ai._validate_result("table", value, "screen-applicants"), value)
+        value["columns"][-1] = "Notes"
+        with self.assertRaisesRegex(ValueError, "exact comparison table"):
+            local_ai._validate_result("table", value, "screen-applicants")
+
+    def test_provider_quota_failure_is_plain_language(self):
+        self.assertEqual(
+            local_ai._provider_failure_detail("Traceback TerminalQuotaError: You have exhausted your daily quota on this model.", "Gemini CLI"),
+            "Gemini CLI quota is exhausted for the selected model. No draft was saved.",
+        )
+
     async def test_disabled_provider_never_starts_a_process(self):
         with patch.object(local_ai.asyncio, "create_subprocess_exec", new_callable=AsyncMock) as start:
             result = await local_ai.run_feature("vet-candidate", "codex", "configured model", "run-1", {})
@@ -130,6 +160,25 @@ class LocalAiBoundaryTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("555-0100", sent)
         run_cwd = Path(start.await_args.kwargs["cwd"])
         self.assertFalse(run_cwd.exists(), "temporary working directory must be removed after the run")
+
+    async def test_web_sourcing_uses_search_only_policy_and_settings(self):
+        process = AsyncMock()
+        process.returncode = 0
+        process.communicate.return_value = (
+            json.dumps({"response": json.dumps({
+                "title": "Synthetic sourcing", "unknowns": [],
+                "columns": ["Full Name", "Company", "Tenure", "LinkedIn Link", "Contact Info", "Eligibility", "Evidence Status"],
+                "rows": [],
+            })}).encode(), b"",
+        )
+        with patch.object(local_ai.asyncio, "create_subprocess_exec", new=AsyncMock(return_value=process)) as start:
+            result = await local_ai.run_feature("source-candidates", "gemini", "gemini-2.5-flash-lite", "run-web", {"role": {"title": "Synthetic"}})
+        self.assertEqual(result["status"], "completed")
+        args = start.await_args.args
+        policy = Path(args[args.index("--policy") + 1])
+        self.assertEqual(policy.name, "gemini-web-search-only.toml")
+        self.assertIn('toolName = "google_web_search"', policy.read_text())
+        self.assertEqual(start.await_args.kwargs["env"]["GEMINI_CLI_SYSTEM_SETTINGS_PATH"], str(local_ai.REPO_ROOT / "server/gemini-web-settings.json"))
 
 
 @unittest.skipUnless(HAS_SERVER_TEST_DEPS, "local server test dependencies are not installed")

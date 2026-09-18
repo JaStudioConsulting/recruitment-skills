@@ -129,7 +129,8 @@
         { "id": "role", "label": "Selected role", "kind": "role", "required": true },
         { "id": "job-description", "label": "Reviewed job description or sourcing criteria", "kind": "source_or_input", "source_kinds": ["job_description"], "required": true }
       ],
-      "outside_world": false
+      "outside_world": true,
+      "outside_world_note": "This feature can search the public web through Google only. Shell, files, URL fetch, agents, MCP, and connectors stay disabled. It saves a review table and does not contact anyone."
     },
     {
       "id": "screen-applicants",
