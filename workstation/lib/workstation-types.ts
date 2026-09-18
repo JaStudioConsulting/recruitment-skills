@@ -68,7 +68,7 @@ export type CaseSource = {
 };
 export type CandidateCase = {
   id: string; roleId: string; candidateId: string; status: string; notes: string;
-  notesFont: string; notesSize: number; revision: number; facts: CandidateFact[];
+  notesDrawingSvg: string; notesFont: string; notesSize: number; revision: number; facts: CandidateFact[];
   assistant: AssistantState; externalRefs: Record<string, string>;
   documents: Record<StoredDocumentKind, CaseDocument>; sources: CaseSource[]; updatedAt: string;
 };

@@ -133,6 +133,7 @@ export async function getCandidateCase(
     candidateId: row.candidateId,
     status: row.status,
     notes: row.notes,
+    notesDrawingSvg: row.notesDrawingSvg,
     notesFont: row.notesFont,
     notesSize: row.notesSize,
     revision: row.revision,
@@ -337,6 +338,7 @@ export async function updateCandidateCase(
     .update(candidateCases)
     .set({
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
+      ...(input.notesDrawingSvg !== undefined ? { notesDrawingSvg: input.notesDrawingSvg } : {}),
       ...(input.notesFont !== undefined ? { notesFont: input.notesFont } : {}),
       ...(input.notesSize !== undefined ? { notesSize: input.notesSize } : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
@@ -367,7 +369,7 @@ export async function updateCandidateCase(
     fromRevision: input.expectedRevision,
     toRevision: updated.revision,
     details: {
-      fields: ["notes", "notesFont", "notesSize", "status"].filter(
+      fields: ["notes", "notesDrawingSvg", "notesFont", "notesSize", "status"].filter(
         (key) => input[key as keyof UpdateCaseInput] !== undefined,
       ),
     },
