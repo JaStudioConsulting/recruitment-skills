@@ -8,8 +8,10 @@ empty temporary directory and is killed on cancel or after two minutes.
 from __future__ import annotations
 
 import asyncio
+import hmac
 import json
 import os
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -21,20 +23,57 @@ FEATURES_PATH = REPO_ROOT / "workstation" / "capability-features.json"
 GLOBAL_RULES = SKILLS_ROOT / "GLOBAL-RULES.md"
 TIMEOUT_SECONDS = 120
 
+CLAUDE_SIGNIN_DETAIL = "Not available: Claude Code sign-in expired. Run `claude` in Terminal, then /login."
 PROVIDERS = [
-    {"id": "claude", "label": "Claude Code", "cost": "subscription", "models": ["sonnet", "opus", "haiku"], "available": False, "detail": "Not available yet: authenticated non-interactive runs exceeded the two-minute limit in live testing."},
-    {"id": "codex", "label": "Codex", "cost": "subscription", "models": ["configured model"], "available": False, "detail": "Not available yet: the installed CLI exposes a shell even in read-only mode."},
-    {"id": "gemini", "label": "Gemini CLI", "cost": "may bill the configured Google API key", "models": ["auto"], "available": True, "detail": "Runs locally under a tested deny-all policy with hooks, skills, shell, files, agents, and connectors disabled."},
-    {"id": "opencode", "label": "OpenCode", "cost": "may bill a pay-per-use account", "models": ["configured provider/model"], "available": False, "detail": "Not available yet: a deny-all tool policy has not been proven on this installation."},
-    {"id": "hermes", "label": "Hermes", "cost": "unknown", "models": ["configured model"], "available": False, "detail": "Not available yet: one-shot mode auto-bypasses approvals and is unsafe for candidate data."},
+    {"id": "claude", "label": "Claude Code", "cost": "subscription", "models": ["sonnet", "opus", "haiku"], "command": "claude", "env": "TTTG_AI_CLAUDE_BIN", "safe": True, "detail": "Runs locally with tools disabled after a sign-in preflight."},
+    {"id": "codex", "label": "Codex", "cost": "subscription", "models": ["configured model"], "command": "codex", "env": "TTTG_AI_CODEX_BIN", "safe": False, "detail": "Not available yet: the installed CLI exposes a shell even in read-only mode."},
+    {"id": "gemini", "label": "Gemini CLI", "cost": "may bill the configured Google API key", "models": ["auto"], "command": "gemini", "env": "TTTG_AI_GEMINI_BIN", "safe": True, "detail": "Runs locally under a tested deny-all policy with hooks, skills, shell, files, agents, and connectors disabled."},
+    {"id": "opencode", "label": "OpenCode", "cost": "may bill a pay-per-use account", "models": ["configured provider/model"], "command": "opencode", "env": "TTTG_AI_OPENCODE_BIN", "safe": False, "detail": "Not available yet: a deny-all tool policy has not been proven on this installation."},
+    {"id": "hermes", "label": "Hermes", "cost": "unknown", "models": ["configured model"], "command": "hermes", "env": "TTTG_AI_HERMES_BIN", "safe": False, "detail": "Not available yet: one-shot mode auto-bypasses approvals and is unsafe for candidate data."},
 ]
 
 _RUNS: dict[str, asyncio.subprocess.Process] = {}
 _RUNS_LOCK = asyncio.Lock()
+_CLAUDE_PREFLIGHT_OK = False
 
 
-def provider_catalog() -> list[dict[str, Any]]:
-    return [dict(item) for item in PROVIDERS]
+def request_rejection(
+    *, enabled: bool, client_host: str | None, headers: dict[str, str],
+    expected_token: str, require_json: bool = False,
+) -> tuple[int, dict[str, str]] | None:
+    normalized = {key.casefold(): value for key, value in headers.items()}
+    if not enabled or client_host not in {"127.0.0.1", "::1"}:
+        return 409, {"status": "local_only", "message": "Local AI is available only from the Mac Workbench."}
+    if "origin" in normalized:
+        return 403, {"status": "forbidden", "detail": "Browser-originated local AI requests are not allowed."}
+    presented = normalized.get("x-local-ai-token", "")
+    if not expected_token or not hmac.compare_digest(presented, expected_token):
+        return 401, {"status": "unauthorized", "detail": "Missing or wrong local AI token."}
+    media_type = normalized.get("content-type", "").split(";", 1)[0].strip().casefold()
+    if require_json and media_type != "application/json":
+        return 415, {"status": "refused", "detail": "Content-Type must be application/json."}
+    return None
+
+
+def _resolve_provider_binary(provider: dict[str, Any], environ: dict[str, str] | None = None) -> str | None:
+    current = os.environ if environ is None else environ
+    requested = current.get(provider["env"]) or provider["command"]
+    return shutil.which(requested, path=current.get("PATH", ""))
+
+
+def provider_catalog(environ: dict[str, str] | None = None) -> list[dict[str, Any]]:
+    catalog = []
+    for provider in PROVIDERS:
+        resolved = _resolve_provider_binary(provider, environ)
+        item = {key: value for key, value in provider.items() if key not in {"command", "env", "safe"}}
+        if not resolved:
+            item.update({"available": False, "detail": "Not installed on this computer."})
+        elif provider["id"] == "claude" and not _CLAUDE_PREFLIGHT_OK:
+            item.update({"available": False, "detail": CLAUDE_SIGNIN_DETAIL})
+        else:
+            item["available"] = bool(provider["safe"])
+        catalog.append(item)
+    return catalog
 
 
 def _load_features() -> dict[str, dict[str, Any]]:
@@ -187,35 +226,83 @@ def _parse_gemini_output(stdout: str) -> dict[str, Any]:
     return parsed
 
 
+def _safe_process_env() -> dict[str, str]:
+    return {key: value for key, value in os.environ.items() if key in {"HOME", "PATH", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL", "TMPDIR", "TERM"}}
+
+
+def _claude_args(binary: str, model: str, schema: dict[str, Any] | None = None) -> list[str]:
+    args = [
+        binary, "-p", "--model", model, "--tools", "",
+        "--permission-mode", "plan", "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
+        "--disable-slash-commands", "--no-session-persistence", "--setting-sources", "",
+        "--output-format", "json",
+    ]
+    if schema is not None:
+        args.extend(["--json-schema", json.dumps(schema, separators=(",", ":"))])
+    return args
+
+
+async def _claude_preflight(binary: str, model: str, safe_env: dict[str, str]) -> str | None:
+    with tempfile.TemporaryDirectory(prefix="tttg-ai-preflight-") as empty_dir:
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *_claude_args(binary, model), cwd=empty_dir, env=safe_env,
+                stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE, start_new_session=True,
+            )
+        except OSError:
+            return "Not installed on this computer."
+        try:
+            _stdout, stderr = await asyncio.wait_for(
+                process.communicate(b"Reply with exactly OK. Do not use tools."), timeout=20,
+            )
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.wait()
+            return CLAUDE_SIGNIN_DETAIL
+        detail = stderr.decode("utf-8", errors="replace").strip()
+        auth_markers = ("401", "not logged in", "not signed in", "oauth access token has been revoked")
+        if process.returncode != 0:
+            if any(marker in detail.casefold() for marker in auth_markers):
+                return CLAUDE_SIGNIN_DETAIL
+            return detail[-800:] or "Claude Code preflight failed."
+    return None
+
+
 async def run_feature(feature_id: str, provider_id: str, model: str, run_id: str, context: dict[str, Any]) -> dict[str, Any]:
+    global _CLAUDE_PREFLIGHT_OK
     feature = _load_features().get(feature_id)
     if not feature:
         return {"status": "refused", "detail": "Unknown feature."}
-    provider = next((item for item in PROVIDERS if item["id"] == provider_id), None)
-    if not provider or not provider["available"]:
+    provider_spec = next((item for item in PROVIDERS if item["id"] == provider_id), None)
+    provider = next((item for item in provider_catalog() if item["id"] == provider_id), None)
+    if not provider or not provider_spec:
+        return {"status": "unavailable", "detail": "Unknown AI provider."}
+    if provider_id != "claude" and not provider["available"]:
         return {"status": "unavailable", "detail": provider["detail"] if provider else "Unknown AI provider."}
     if model not in provider["models"]:
         return {"status": "refused", "detail": "Choose a listed model for this AI."}
-    if provider_id not in {"claude", "gemini"}:
-        return {"status": "unavailable", "detail": "This AI has no proven locked runner yet."}
+    binary = _resolve_provider_binary(provider_spec)
+    if not binary:
+        return {"status": "unavailable", "detail": "Not installed on this computer."}
 
     schema = output_schema(feature["result_kind"])
     prompt = _build_prompt(feature, context)
+    safe_env = _safe_process_env()
     if provider_id == "claude":
-        args = [
-            "/Users/TTTG/.local/bin/claude", "-p", "--model", model, "--tools", "",
-            "--permission-mode", "plan", "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
-            "--disable-slash-commands", "--no-session-persistence", "--setting-sources", "",
-            "--output-format", "json", "--json-schema", json.dumps(schema, separators=(",", ":")),
-        ]
+        preflight_error = await _claude_preflight(binary, model, safe_env)
+        if preflight_error:
+            _CLAUDE_PREFLIGHT_OK = False
+            return {"status": "unavailable", "detail": preflight_error}
+        _CLAUDE_PREFLIGHT_OK = True
+        args = _claude_args(binary, model, schema)
     else:
         prompt += "\n\nReturn only valid JSON matching this schema exactly:\n" + json.dumps(schema, separators=(",", ":"))
         args = [
-            "/opt/homebrew/bin/gemini", "--skip-trust", "--approval-mode", "default",
+            binary, "--skip-trust", "--approval-mode", "default",
             "--policy", str(REPO_ROOT / "server" / "gemini-deny-all.toml"),
             "--model", model, "--prompt", "", "--output-format", "json",
         ]
-    safe_env = {key: value for key, value in os.environ.items() if key in {"HOME", "PATH", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL", "TMPDIR", "TERM"}}
     if provider_id == "gemini":
         safe_env["GEMINI_CLI_SYSTEM_SETTINGS_PATH"] = str(REPO_ROOT / "server" / "gemini-settings.json")
     with tempfile.TemporaryDirectory(prefix="tttg-ai-") as empty_dir:

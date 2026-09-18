@@ -1,6 +1,6 @@
 import type { CapabilityDraft, CapabilityRunResponse } from "@/lib/capabilities/types";
 
-export type LocalAiConfig = { baseUrl?: string; fetchImpl?: typeof fetch };
+export type LocalAiConfig = { baseUrl?: string; token?: string; fetchImpl?: typeof fetch };
 
 type RawCompleted = {
   status: "completed";
@@ -16,11 +16,12 @@ export async function callLocalAi(
 ): Promise<CapabilityRunResponse> {
   const baseUrl = config.baseUrl?.trim().replace(/\/$/, "");
   if (!baseUrl) return { status: "local_only", detail: "Run this feature from the local Mac Workbench." };
+  if (!config.token) return { status: "unavailable", detail: "The local AI security token is not configured." };
   let response: Response;
   try {
     response = await (config.fetchImpl ?? fetch)(`${baseUrl}/local-ai/run`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "x-local-ai-token": config.token },
       body: JSON.stringify({
         feature_id: input.featureId,
         provider: input.provider,
@@ -47,9 +48,13 @@ export async function callLocalAi(
 
 export async function cancelLocalAi(runId: string, config: LocalAiConfig): Promise<boolean> {
   const baseUrl = config.baseUrl?.trim().replace(/\/$/, "");
-  if (!baseUrl) return false;
+  if (!baseUrl || !config.token) return false;
   try {
-    const response = await (config.fetchImpl ?? fetch)(`${baseUrl}/local-ai/cancel/${encodeURIComponent(runId)}`, { method: "POST" });
+    const response = await (config.fetchImpl ?? fetch)(`${baseUrl}/local-ai/cancel/${encodeURIComponent(runId)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-local-ai-token": config.token },
+      body: "{}",
+    });
     const payload: unknown = await response.json().catch(() => null);
     return response.ok && isRecord(payload) && payload.status === "cancelled";
   } catch {

@@ -10,5 +10,7 @@ declare namespace Cloudflare {
     BROKER_TOKEN?: string;
     /** Loopback-only local AI broker. Intentionally unset on the hosted Site. */
     LOCAL_AI_URL?: string;
+    /** Per-launch secret shared only by the Workstation server and local AI broker. */
+    LOCAL_AI_TOKEN?: string;
   }
 }

@@ -10,7 +10,10 @@ export async function POST(_request: Request, context: Context) {
   return apiRoute(async (userId) => {
     const { caseId, runId } = await context.params;
     await assertOwnedCase(userId, caseId);
-    const cancelled = await cancelLocalAi(runId, { baseUrl: env.LOCAL_AI_URL || process.env.LOCAL_AI_URL });
+    const cancelled = await cancelLocalAi(runId, {
+      baseUrl: env.LOCAL_AI_URL || process.env.LOCAL_AI_URL,
+      token: env.LOCAL_AI_TOKEN || process.env.LOCAL_AI_TOKEN,
+    });
     return Response.json({ status: cancelled ? "cancelled" : "not_running" });
   });
 }

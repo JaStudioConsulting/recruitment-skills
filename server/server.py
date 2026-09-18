@@ -37,7 +37,7 @@ import uuid
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from candidate_input import SCHEMA_HINT, normalize_candidate  # noqa: E402
-from local_ai import cancel_run, provider_catalog, run_feature  # noqa: E402
+from local_ai import cancel_run, provider_catalog, request_rejection, run_feature  # noqa: E402
 
 try:
     from mcp.server.fastmcp import FastMCP
@@ -335,21 +335,26 @@ def _build_app():
             filename=_FILE_NAMES.get(token, "resume.pdf"),
         )
 
-    def local_ai_enabled(request) -> bool:
-        return (
-            os.environ.get("LOCAL_AI_ENABLED") == "1"
-            and request.client
-            and request.client.host in {"127.0.0.1", "::1"}
+    def local_ai_guard(request, *, require_json: bool = False):
+        rejection = request_rejection(
+            enabled=os.environ.get("LOCAL_AI_ENABLED") == "1",
+            client_host=request.client.host if request.client else None,
+            headers=dict(request.headers),
+            expected_token=os.environ.get("LOCAL_AI_TOKEN", ""),
+            require_json=require_json,
         )
+        return JSONResponse(rejection[1], status_code=rejection[0]) if rejection else None
 
     async def local_ai_providers(request):
-        if not local_ai_enabled(request):
-            return JSONResponse({"status": "local_only", "message": "Local AI is available only from the Mac Workbench."}, status_code=409)
+        rejected = local_ai_guard(request)
+        if rejected:
+            return rejected
         return JSONResponse({"providers": provider_catalog(), "timeout_seconds": 120})
 
     async def local_ai_run(request):
-        if not local_ai_enabled(request):
-            return JSONResponse({"status": "local_only", "message": "Local AI is available only from the Mac Workbench."}, status_code=409)
+        rejected = local_ai_guard(request, require_json=True)
+        if rejected:
+            return rejected
         try:
             payload = await request.json()
         except Exception:  # noqa: BLE001
@@ -364,8 +369,9 @@ def _build_app():
         return JSONResponse(result)
 
     async def local_ai_cancel(request):
-        if not local_ai_enabled(request):
-            return JSONResponse({"status": "local_only", "message": "Local AI is available only from the Mac Workbench."}, status_code=409)
+        rejected = local_ai_guard(request, require_json=True)
+        if rejected:
+            return rejected
         cancelled = await cancel_run(request.path_params.get("run_id") or "")
         return JSONResponse({"status": "cancelled" if cancelled else "not_running"})
 

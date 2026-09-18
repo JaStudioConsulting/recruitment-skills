@@ -47,12 +47,18 @@ describe("local AI broker", () => {
       status: "completed", result_kind: "document", provider: "claude", model: "sonnet",
       result: { title: "Synthetic draft", unknowns: ["Current salary"], document: "Draft body" },
     }), { status: 200, headers: { "content-type": "application/json" } })) as unknown as typeof fetch;
-    const result = await callLocalAi({ featureId: "vet-candidate", provider: "claude", model: "sonnet", runId: crypto.randomUUID(), context: {} }, { baseUrl: "http://127.0.0.1:8000/", fetchImpl });
+    const result = await callLocalAi({ featureId: "vet-candidate", provider: "claude", model: "sonnet", runId: crypto.randomUUID(), context: {} }, { baseUrl: "http://127.0.0.1:8000/", token: "synthetic-token", fetchImpl });
     expect(result).toMatchObject({ status: "completed", draft: { title: "Synthetic draft", status: "draft", document: "Draft body" } });
+    expect(fetchImpl).toHaveBeenCalledWith("http://127.0.0.1:8000/local-ai/run", expect.objectContaining({
+      headers: expect.objectContaining({ "content-type": "application/json", "x-local-ai-token": "synthetic-token" }),
+    }));
   });
 
   it("cancels through the local service", async () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ status: "cancelled" }), { status: 200 })) as unknown as typeof fetch;
-    await expect(cancelLocalAi("run-3", { baseUrl: "http://127.0.0.1:8000", fetchImpl })).resolves.toBe(true);
+    await expect(cancelLocalAi("run-3", { baseUrl: "http://127.0.0.1:8000", token: "synthetic-token", fetchImpl })).resolves.toBe(true);
+    expect(fetchImpl).toHaveBeenCalledWith("http://127.0.0.1:8000/local-ai/cancel/run-3", expect.objectContaining({
+      headers: expect.objectContaining({ "content-type": "application/json", "x-local-ai-token": "synthetic-token" }),
+    }));
   });
 });

@@ -54,7 +54,10 @@ export async function POST(request: Request, context: Context) {
         sources: reviewedSources.map((source) => ({ kind: source.kind, title: source.filename, text: source.parsedText })),
         extraInput,
       },
-    }, { baseUrl: env.LOCAL_AI_URL || process.env.LOCAL_AI_URL });
+    }, {
+      baseUrl: env.LOCAL_AI_URL || process.env.LOCAL_AI_URL,
+      token: env.LOCAL_AI_TOKEN || process.env.LOCAL_AI_TOKEN,
+    });
     return Response.json(response);
   });
 }

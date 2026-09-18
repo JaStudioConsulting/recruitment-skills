@@ -15,7 +15,7 @@ import type { CandidateCase, ConnectorCapability, SubmissionDocument } from "@/l
 const GROUP_LABELS = { candidate: "On a candidate", role: "On a role", pipeline: "Pipeline", writing: "Writing" } as const;
 const PROVIDERS = [
   { id: "gemini", label: "Gemini CLI", cost: "may bill the configured Google API key", models: ["auto"], available: true, detail: "Tested deny-all policy; hooks, skills, shell, files, agents, and connectors are disabled." },
-  { id: "claude", label: "Claude Code", cost: "subscription", models: ["sonnet", "opus", "haiku"], available: false, detail: "Authenticated non-interactive runs exceeded the two-minute limit in live testing." },
+  { id: "claude", label: "Claude Code", cost: "subscription", models: ["sonnet", "opus", "haiku"], available: false, detail: "Not available: Claude Code sign-in expired. Run `claude` in Terminal, then /login." },
   { id: "codex", label: "Codex", cost: "subscription", models: ["configured model"], available: false, detail: "No proven no-shell mode on this installation." },
   { id: "opencode", label: "OpenCode", cost: "may bill a pay-per-use account", models: ["configured provider/model"], available: false, detail: "Deny-all tool policy is not proven." },
   { id: "hermes", label: "Hermes", cost: "unknown", models: ["configured model"], available: false, detail: "One-shot mode bypasses approvals." },
