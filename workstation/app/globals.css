@@ -141,9 +141,13 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
 .source-dropzone span { display: grid; gap: 2px; }
 .source-dropzone strong { font-size: 13px; }
 .source-dropzone small { color: #65756d; font-size: 12px; }
-.source-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
-.source-actions > div, .source-actions button { width: 100%; }
-.source-actions button { min-height: 36px; padding-inline: 8px; justify-content: center; font-size: 12px; }
+.source-controls { display: flex; align-items: center; gap: 10px; }
+.source-controls > button { flex: 0 0 auto; min-height: 36px; }
+.source-checklist { min-width: 0; display: flex; flex: 1 1 auto; flex-wrap: wrap; gap: 7px; }
+.source-checklist > span { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 9px 4px 6px; border: 1px solid #dce4e0; border-radius: 999px; background: #fbfcfb; color: #68776f; font-size: 11px; font-weight: 700; }
+.source-checklist > span i { width: 18px; height: 18px; display: inline-grid; place-items: center; border: 1px solid #bdcbc4; border-radius: 5px; background: white; color: transparent; font-style: normal; }
+.source-checklist > span.is-attached { border-color: #bad1c6; background: #edf6f1; color: #174f3f; }
+.source-checklist > span.is-attached i { border-color: #2f755a; background: #2f755a; color: white; }
 .source-summary { max-height: 148px; display: grid; gap: 7px; margin-top: 10px; overflow-y: auto; color: #6c7b74; font-size: 12px; }
 .source-row { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 8px; padding: 8px; border: 1px solid #e0e7e3; border-radius: 7px; background: #fbfcfb; }
 .source-row-copy { min-width: 0; display: grid; gap: 2px; }
@@ -263,7 +267,8 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
   .notes-toolbar-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
   .notes-controls { flex: 1 1 auto; }
   .desk-grid.notes-focus .notes-pane { height: min(84dvh, 760px); }
-  .source-actions { grid-template-columns: 1fr 1fr; }
+  .source-controls { align-items: stretch; flex-direction: column; }
+  .source-controls > button { width: 100%; }
   .source-row { grid-template-columns: minmax(0, 1fr) auto; }
   .source-row select, .source-row button, .source-row > small { grid-column: 1 / -1; max-width: none; width: 100%; }
   .resume-toolbar { align-items: flex-start; }

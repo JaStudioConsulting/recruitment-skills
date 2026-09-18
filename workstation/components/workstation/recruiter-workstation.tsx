@@ -8,7 +8,6 @@ import {
   FileText,
   Link2,
   LoaderCircle,
-  Paperclip,
   PanelRightClose,
   PanelRightOpen,
   Play,
@@ -58,11 +57,11 @@ type WriteUpMode = "candidate_submission" | "full_package";
 
 const FONT_OPTIONS = ["System", "Avenir Next", "Georgia", "Bradley Hand", "Times New Roman"];
 const SIZE_OPTIONS = [16, 18, 20, 22, 24];
-const SOURCE_ACTIONS = [
-  { kind: "resume", label: "Resume", accept: ".pdf,.doc,.docx,.txt,.md", icon: FileText },
-  { kind: "transcript", label: "Transcript", accept: ".pdf,.doc,.docx,.txt,.md", icon: FileText },
-  { kind: "job_description", label: "Job description", accept: ".pdf,.doc,.docx,.txt,.md", icon: Paperclip },
-  { kind: "call_notes", label: "Call notes", accept: ".txt,.md", icon: Paperclip },
+const SOURCE_CHECKLIST = [
+  { kind: "resume", label: "Resume" },
+  { kind: "transcript", label: "Transcript" },
+  { kind: "job_description", label: "Job description" },
+  { kind: "call_notes", label: "Call notes" },
 ] as const;
 const SOURCE_KIND_LABELS: Record<SourceKind, string> = {
   job_description: "Job description",
@@ -82,6 +81,11 @@ const PREFILL_FIELD_LABELS: Partial<Record<keyof SubmissionDocument, string>> = 
 
 function saveLabel(state: SaveState) {
   return { saved: "Saved", saving: "Saving", unsaved: "Unsaved", failed: "Save failed" }[state];
+}
+
+function pastedSourceFilename(title: string) {
+  const cleanTitle = title.trim().replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").slice(0, 100);
+  return cleanTitle.toLowerCase().endsWith(".txt") ? cleanTitle : `${cleanTitle}.txt`;
 }
 
 function contentAsString(document: CaseDocument | undefined) {
@@ -134,6 +138,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const [writeUpMode, setWriteUpMode] = useState<WriteUpMode>("candidate_submission");
   const [resumeSourceId, setResumeSourceId] = useState("");
   const [pasteOpen, setPasteOpen] = useState(false);
+  const [pastedSourceTitle, setPastedSourceTitle] = useState("");
   const [pastedSource, setPastedSource] = useState("");
   const [pastedSourceKind, setPastedSourceKind] = useState<SourceKind>("call_notes");
   const [sourceBusy, setSourceBusy] = useState(false);
@@ -142,7 +147,6 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const [sourceReviewKinds, setSourceReviewKinds] = useState<Record<string, SourceKind>>({});
   const caseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const documentTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const multiFileInput = useRef<HTMLInputElement | null>(null);
   const activeCaseRef = useRef<CandidateCase | null>(null);
   const caseDraftRef = useRef({ notes: "", notesDrawingSvg: "", notesFont: "System", notesSize: 20, status: "active" });
@@ -614,7 +618,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
           <div className="source-area">
             <button type="button" className="source-toggle" aria-expanded={sourcePanelOpen} onClick={() => setSourcePanelOpen((open) => !open)}>
               <span>Sources <strong>{activeCase?.sources.length ?? 0}</strong></span>
-              <small>{sourcePanelOpen ? "Close sources" : "Add or review"}</small>
+              <small>{sourcePanelOpen ? "Collapse" : "Add or review"}</small>
               <ChevronDown size={17} aria-hidden="true" />
             </button>
             {sourcePanelOpen ? <div className="source-panel-content">
@@ -630,9 +634,17 @@ export function RecruiterWorkstation({ user }: { user: User }) {
                 onDrop={(event) => { event.preventDefault(); setDropActive(false); void uploadSources(Array.from(event.dataTransfer.files)); }}
               >
                 <UploadCloud size={22} aria-hidden="true" />
-                <span><strong>Drop resume, transcript, JD, and notes</strong><small>or tap to choose multiple files</small></span>
+                <span><strong>Drop source files here</strong><small>or tap to choose multiple files</small></span>
               </button>
-              <div className="source-actions">{SOURCE_ACTIONS.map(({ kind, label, accept, icon: Icon }) => <div key={kind}><input ref={(node) => { fileInputs.current[kind] = node; }} type="file" accept={accept} hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadSources([file], [kind]); event.currentTarget.value = ""; }} /><Button size="sm" variant="outline" disabled={!activeCase || sourceBusy} onClick={() => fileInputs.current[kind]?.click()}><Icon size={15} aria-hidden="true" />{label}</Button></div>)}<Button size="sm" variant="outline" disabled={!activeCase || sourceBusy} onClick={() => setPasteOpen(true)}><Link2 size={15} aria-hidden="true" />Paste</Button></div>
+              <div className="source-controls">
+                <div className="source-checklist" aria-label="Required source checklist">
+                  {SOURCE_CHECKLIST.map(({ kind, label }) => {
+                    const attached = activeCase?.sources.some((source) => source.kind === kind) ?? false;
+                    return <span key={kind} className={attached ? "is-attached" : ""} aria-label={`${label}: ${attached ? "attached" : "not attached"}`}><i aria-hidden="true">{attached ? <Check size={13} /> : null}</i>{label}</span>;
+                  })}
+                </div>
+                <Button size="sm" variant="outline" disabled={!activeCase || sourceBusy} onClick={() => setPasteOpen(true)}><Link2 size={15} aria-hidden="true" />Paste text</Button>
+              </div>
               <div className="source-summary" aria-label="Attached source status">{activeCase?.sources.length ? activeCase.sources.map((source) => {
               const needsClassification = source.lifecycleStatus === "parsed" && source.classificationMethod === "uncertain";
               const reviewKind = sourceReviewKinds[source.id] || (source.kind === "other" ? "call_notes" : source.kind);
@@ -677,7 +689,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
 
       <Dialog open={Boolean(creationMode)} onOpenChange={(open) => { if (!open) setCreationMode(null); }}><DialogContent><DialogHeader><DialogTitle>{creationMode === "role" ? "Add role" : "Add candidate"}</DialogTitle><DialogDescription>This creates an internal workstation record only. It does not create a Loxo or Tracker record.</DialogDescription></DialogHeader><div className="dialog-fields"><label>{creationMode === "role" ? "Role title" : "Candidate name"}<Input value={creationPrimary} onChange={(event) => setCreationPrimary(event.target.value)} /></label><label>{creationMode === "role" ? "Client or company" : "Current title"}<Input value={creationSecondary} onChange={(event) => setCreationSecondary(event.target.value)} /></label></div><DialogFooter><Button variant="outline" onClick={() => setCreationMode(null)}>Cancel</Button><Button onClick={() => void submitCreation()} disabled={!creationPrimary.trim()}>Add</Button></DialogFooter></DialogContent></Dialog>
 
-      <Dialog open={pasteOpen} onOpenChange={setPasteOpen}><DialogContent><DialogHeader><DialogTitle>Paste source text</DialogTitle><DialogDescription>The original text is stored as an immutable source attachment for this candidate case.</DialogDescription></DialogHeader><label className="paste-kind">Source type<select value={pastedSourceKind} onChange={(event) => setPastedSourceKind(event.target.value as SourceKind)}><option value="call_notes">Call notes</option><option value="transcript">Transcript</option><option value="job_description">Job description</option><option value="resume">Resume</option><option value="pasted_text">Other pasted text</option></select></label><Textarea value={pastedSource} onChange={(event) => setPastedSource(event.target.value)} placeholder="Paste transcript, notes, or source text exactly as received." className="paste-source-textarea" /><DialogFooter><Button variant="outline" onClick={() => setPasteOpen(false)}>Cancel</Button><Button disabled={!activeCase || !pastedSource.trim() || sourceBusy} onClick={() => { if (!activeCase || !pastedSource.trim()) return; const file = new File([pastedSource], `pasted-${pastedSourceKind}-${new Date().toISOString().replaceAll(":", "-")}.txt`, { type: "text/plain" }); setPasteOpen(false); setPastedSource(""); void uploadSources([file], [pastedSourceKind]); }}>Save source</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={pasteOpen} onOpenChange={setPasteOpen}><DialogContent><DialogHeader><DialogTitle>Paste source text</DialogTitle><DialogDescription>Give the source a clear title. The original text is stored as an immutable attachment for this candidate case.</DialogDescription></DialogHeader><label className="paste-kind">Title<Input value={pastedSourceTitle} onChange={(event) => setPastedSourceTitle(event.target.value)} placeholder="Example: September 18 screening call" /></label><label className="paste-kind">Source type<select value={pastedSourceKind} onChange={(event) => setPastedSourceKind(event.target.value as SourceKind)}><option value="call_notes">Call notes</option><option value="transcript">Transcript</option><option value="job_description">Job description</option><option value="resume">Resume</option><option value="pasted_text">Other pasted text</option></select></label><Textarea value={pastedSource} onChange={(event) => setPastedSource(event.target.value)} placeholder="Paste transcript, notes, or source text exactly as received." className="paste-source-textarea" /><DialogFooter><Button variant="outline" onClick={() => setPasteOpen(false)}>Cancel</Button><Button disabled={!activeCase || !pastedSourceTitle.trim() || !pastedSource.trim() || sourceBusy} onClick={() => { if (!activeCase || !pastedSourceTitle.trim() || !pastedSource.trim()) return; const file = new File([pastedSource], pastedSourceFilename(pastedSourceTitle), { type: "text/plain" }); setPasteOpen(false); setPastedSourceTitle(""); setPastedSource(""); void uploadSources([file], [pastedSourceKind]); }}>Save source</Button></DialogFooter></DialogContent></Dialog>
 
       <Dialog open={brandOpen} onOpenChange={setBrandOpen}><DialogContent className="writeup-dialog"><DialogHeader><DialogTitle>Brand resume</DialogTitle><DialogDescription>Choose the presentation mode defined by the recruitment-skills repository.</DialogDescription></DialogHeader><div className="writeup-mode-options" aria-label="Branded resume presentation mode"><button type="button" aria-pressed={resumeMode === "named_submission"} onClick={() => setResumeMode("named_submission")}><strong>Named submission</strong><span>Candidate name and real employers</span></button><button type="button" aria-pressed={resumeMode === "internal_mpc"} onClick={() => setResumeMode("internal_mpc")}><strong>Internal-team MPC</strong><span>Candidate name and real employers</span></button><button type="button" aria-pressed={resumeMode === "external_blind_mpc"} onClick={() => setResumeMode("external_blind_mpc")}><strong>External-client blind MPC</strong><span>No name, contact details, or real employer names</span></button></div><div className="writeup-readiness">{resumeReadinessMessage("brand")}</div><BrandResult result={brandResult} /><DialogFooter><Button variant="outline" onClick={() => setBrandOpen(false)}>Done</Button><Button className="gold-button" disabled={brandBusy || !activeCase || resumeMode === "external_blind_mpc" || !resumeForm.name.trim() || !resumeFormHasContent(resumeForm)} onClick={() => void buildResumePdf()}>{brandBusy ? <><LoaderCircle className="spin" size={16} />Building (can take a minute)</> : <><FileText size={16} />Build PDF</>}</Button></DialogFooter></DialogContent></Dialog>
 

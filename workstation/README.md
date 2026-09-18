@@ -8,8 +8,8 @@ compact MCP candidate dashboard in `ui/`.
 
 - role and candidate context bar
 - candidate-specific Apple Pencil Scribble/typed notes with font and size controls
-- one multi-file drop zone plus dedicated Resume, Transcript, Job Description,
-  Call Notes, and pasted-text source capture
+- one multi-file drop zone with Resume, Transcript, Job Description, and Call
+  Notes status tickers, plus titled pasted-text source capture
 - truthful source lifecycle states: uploaded, parsed, classified, and reviewed
 - large call-notes surface beside the selected uploaded resume for quick reference
 - candidate-specific typed notes and `js-draw` handwriting notes, with a focus control that collapses the resume panel
@@ -21,9 +21,9 @@ compact MCP candidate dashboard in `ui/`.
 - R2 source blobs addressed by opaque case/source IDs
 - explicit host connector capability states and approval-bound write contracts
 
-Plain-text and Markdown sources can be parsed and classified inside the Site.
-PDF and DOCX sources remain in the uploaded state until a real parser is
-connected; the UI does not claim otherwise.
+Plain-text, Markdown, text-based PDF, and DOCX sources can be parsed and
+classified inside the Site. Image-only files remain in the uploaded state; the
+UI does not claim otherwise.
 
 The Site does not ship private candidate data or connector credentials. Gmail,
 Calendar, Drive, Tracker, Loxo, package generation, and PDF generation require an
