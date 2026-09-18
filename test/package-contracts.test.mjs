@@ -215,6 +215,16 @@ function runPython(script, args) {
   return spawnSync("python3", [script, ...args], { encoding: "utf8" });
 }
 
+test("root requirements include every server runtime dependency", async () => {
+  const packageNames = (content) => new Set(content.split(/\r?\n/)
+    .map((line) => line.replace(/\s+#.*$/, "").trim())
+    .filter((line) => line && !line.startsWith("#"))
+    .map((line) => line.split(/[<>=!~\[]/, 1)[0].trim().toLowerCase().replaceAll("_", "-")));
+  const rootRequirements = packageNames(await readFile(path.join(root, "requirements.txt"), "utf8"));
+  const serverRequirements = packageNames(await readFile(path.join(root, "server/requirements.txt"), "utf8"));
+  assert.deepEqual([...serverRequirements].filter((name) => !rootRequirements.has(name)), []);
+});
+
 test("sourcing and web-sourcing CLIs export exact synthetic contracts", async () => {
   const dir = await mkdtemp(path.join(root, ".tmp-sourcing-contract-"));
   const rows = [

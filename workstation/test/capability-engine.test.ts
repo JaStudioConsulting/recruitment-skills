@@ -60,7 +60,7 @@ describe("local AI broker", () => {
       status: "completed", result_kind: "pdf", provider: "gemini", model: "auto",
       result: { title: "Synthetic PDF", unknowns: [], document: "Draft summary", artifact: { candidate: { full_name: "Alex Example" } } },
     }), { status: 200, headers: { "content-type": "application/json" } })) as unknown as typeof fetch;
-    const result = await callLocalAi({ featureId: "reference-check-pdf", provider: "gemini", model: "auto", runId: crypto.randomUUID(), context: {} }, { baseUrl: "http://127.0.0.1:8000", fetchImpl });
+    const result = await callLocalAi({ featureId: "reference-check-pdf", provider: "gemini", model: "auto", runId: crypto.randomUUID(), context: {} }, { baseUrl: "http://127.0.0.1:8000", token: "synthetic-token", fetchImpl });
     expect(result).toMatchObject({ status: "completed", draft: { resultKind: "pdf", artifactPayload: { candidate: { full_name: "Alex Example" } } } });
   });
 
