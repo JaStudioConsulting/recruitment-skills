@@ -142,16 +142,22 @@ export async function downloadImmutableSource(input: {
   userId: string;
   caseId: string;
   sourceId: string;
+  inline?: boolean;
 }) {
   const source = await getOwnedSource(input.userId, input.caseId, input.sourceId);
   const object = await getSourceBucket().get(source.storageKey);
   if (!object) throw new ApiError(404, "Source file was not found in storage.");
   const asciiName = source.filename.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
   const encodedName = encodeURIComponent(source.filename);
+  const disposition = input.inline && (
+    source.contentType === "application/pdf" ||
+    source.contentType.startsWith("image/") ||
+    source.contentType.startsWith("text/")
+  ) ? "inline" : "attachment";
   return new Response(object.body, {
     headers: {
       "cache-control": "private, no-store",
-      "content-disposition": `attachment; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
+      "content-disposition": `${disposition}; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
       "content-length": String(source.sizeBytes),
       "content-type": source.contentType,
       etag: object.httpEtag,
