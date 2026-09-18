@@ -50,6 +50,7 @@ import {
   updateCaseSchema,
 } from "../lib/contracts/workstation";
 import { mergeCandidateCaseSnapshots } from "../lib/case-merge";
+import { buildCaseHistoryEntries } from "../lib/case-history";
 import { completeStoredDocuments } from "../lib/document-model";
 import {
   DOCUMENT_KINDS,
@@ -192,6 +193,48 @@ describe("overlapping case responses", () => {
     expect(merged.documents.resume.revision).toBe(2);
     expect(merged.documents.write_up.revision).toBe(3);
     expect(merged.documents.loxo_update.revision).toBe(4);
+  });
+});
+
+describe("candidate history labels", () => {
+  it("names every history entry with the saved candidate name first", () => {
+    const newest = caseFixture({ resume: 2, write_up: 3 });
+    newest.id = "case-newest";
+    newest.roleId = "role-maintenance";
+    newest.candidateId = "candidate-alex-1";
+    const older = caseFixture({ resume: 1, write_up: 1 });
+    older.id = "case-older";
+    older.roleId = "role-accounting";
+    older.candidateId = "candidate-alex-2";
+
+    const entries = buildCaseHistoryEntries(
+      [newest, older],
+      [
+        { id: "candidate-alex-1", name: "Alex Morgan", currentTitle: "Maintenance Manager" },
+        { id: "candidate-alex-2", name: "Alex Morgan", currentTitle: "Senior Accountant" },
+      ],
+      [
+        { id: "role-maintenance", title: "Maintenance Manager", client: "North Plant", status: "active" },
+        { id: "role-accounting", title: "Senior Accountant", client: "West Group", status: "active" },
+      ],
+    );
+
+    expect(entries.map((entry) => entry.caseId)).toEqual(["case-newest", "case-older"]);
+    expect(entries.map((entry) => entry.label)).toEqual([
+      "Alex Morgan — Maintenance Manager · North Plant",
+      "Alex Morgan — Senior Accountant · West Group",
+    ]);
+  });
+
+  it("does not invent a name when the candidate record is unavailable", () => {
+    const candidateCase = caseFixture({ resume: 1, write_up: 1 });
+
+    expect(buildCaseHistoryEntries([candidateCase], [], [
+      { id: "role-1", title: "Controller", client: null, status: "active" },
+    ])[0]).toMatchObject({
+      candidateName: "Candidate unavailable",
+      label: "Candidate unavailable — Controller",
+    });
   });
 });
 

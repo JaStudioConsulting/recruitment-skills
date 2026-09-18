@@ -11,6 +11,10 @@ import {
 import { ApiError } from "@/lib/server/api";
 import { connectorCapabilities } from "@/lib/server/connectors";
 import {
+  coerceSubmissionDocument,
+  prefillSubmissionFromResume,
+} from "@/lib/submission-prefill";
+import {
   canReviewSource,
   normalizeSourceLifecycleStatus,
 } from "@/lib/server/source-intake";
@@ -548,7 +552,10 @@ export async function reviewSource(
   kind?: SourceKind,
 ): Promise<CandidateCase> {
   const db = getDb();
-  const source = await getOwnedSource(userId, caseId, sourceId);
+  const [source, ownedCase] = await Promise.all([
+    getOwnedSource(userId, caseId, sourceId),
+    assertOwnedCase(userId, caseId),
+  ]);
   const currentLifecycleStatus = normalizeSourceLifecycleStatus(source.lifecycleStatus);
   if (!canReviewSource(currentLifecycleStatus, kind)) {
     throw new ApiError(409, "The source must be parsed and classified before review.", {
@@ -557,12 +564,13 @@ export async function reviewSource(
     });
   }
 
+  const reviewedKind = kind ?? source.kind;
   const timestamp = now();
   await Promise.all([
     db
       .update(caseSources)
       .set({
-        kind: kind ?? source.kind,
+        kind: reviewedKind,
         lifecycleStatus: "reviewed",
         reviewStatus: "reviewed",
         classificationMethod: kind ? "manual" : source.classificationMethod,
@@ -580,12 +588,45 @@ export async function reviewSource(
       entityId: sourceId,
       details: {
         previousKind: source.kind,
-        kind: kind ?? source.kind,
+        kind: reviewedKind,
         previousLifecycleStatus: currentLifecycleStatus,
         lifecycleStatus: "reviewed",
       },
     }),
   ]);
+
+  if (reviewedKind === "resume" && source.parsedText?.trim()) {
+    const [[candidate], [submissionRow]] = await Promise.all([
+      db.select().from(candidates).where(and(
+        eq(candidates.id, ownedCase.candidateId),
+        eq(candidates.ownerId, userId),
+      )).limit(1),
+      db.select().from(caseDocuments).where(and(
+        eq(caseDocuments.caseId, caseId),
+        eq(caseDocuments.kind, "submission"),
+      )).limit(1),
+    ]);
+    if (candidate && submissionRow) {
+      const prefill = prefillSubmissionFromResume({
+        current: coerceSubmissionDocument(parseJson(submissionRow.contentJson, {})),
+        candidate: candidateRecord(candidate),
+        parsedText: source.parsedText,
+      });
+      if (prefill.filledFields.length) {
+        try {
+          await saveCaseDocument(
+            userId,
+            caseId,
+            "submission",
+            submissionRow.revision,
+            prefill.document,
+          );
+        } catch (error) {
+          if (!(error instanceof ApiError) || error.status !== 409) throw error;
+        }
+      }
+    }
+  }
   return getCandidateCase(userId, caseId);
 }
 
