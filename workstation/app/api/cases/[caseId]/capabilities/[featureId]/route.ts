@@ -4,6 +4,7 @@ import { featureById } from "@/lib/capabilities/catalog";
 import { apiRoute, ApiError, readJson } from "@/lib/server/api";
 import { getCapabilityCaseContext } from "@/lib/server/case-repository";
 import { callLocalAi } from "@/lib/server/local-ai";
+import { callArtifactBuilder } from "@/lib/server/artifact-builder";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,8 @@ export async function POST(request: Request, context: Context) {
     const extraInput = input.extraInput ?? "";
     const { candidateCase, role, candidate } = await getCapabilityCaseContext(userId, caseId);
     const reviewedSources = candidateCase.sources.filter((source) => source.lifecycleStatus === "reviewed" && source.parsedText?.trim());
+    const allowedSourceKinds = new Set(feature.requirements.flatMap((requirement) => requirement.source_kinds ?? []));
+    const featureSources = reviewedSources.filter((source) => allowedSourceKinds.has(source.kind));
     const missing = feature.requirements.filter((requirement) => {
       if (!requirement.required) return false;
       if (requirement.kind === "role") return !role.id;
@@ -48,16 +51,29 @@ export async function POST(request: Request, context: Context) {
       model: input.model,
       runId: input.runId,
       context: {
-        candidate: { name: candidate.name, currentTitle: candidate.currentTitle ?? "" },
+        candidate: feature.group === "candidate" && feature.id !== "interview-prep-pdf"
+          ? { name: candidate.name, currentTitle: candidate.currentTitle ?? "" }
+          : {},
         role: { title: role.title, client: role.client ?? "" },
         recruiterNotes: candidateCase.notes,
-        sources: reviewedSources.map((source) => ({ kind: source.kind, title: source.filename, text: source.parsedText })),
+        sources: featureSources.map((source) => ({ kind: source.kind, title: source.filename, text: source.parsedText })),
         extraInput,
       },
     }, {
       baseUrl: env.LOCAL_AI_URL || process.env.LOCAL_AI_URL,
       token: env.LOCAL_AI_TOKEN || process.env.LOCAL_AI_TOKEN,
     });
+    if (response.status === "completed" && feature.server_tool) {
+      const payload = response.draft.artifactPayload;
+      if (!payload) return Response.json({ status: "refused", detail: "The AI did not produce a buildable PDF payload." });
+      const built = await callArtifactBuilder(feature.server_tool, payload, {
+        endpoint: env.RECRUITMENT_MCP_URL || process.env.RECRUITMENT_MCP_URL,
+        token: env.BROKER_TOKEN || process.env.BROKER_TOKEN,
+      });
+      delete response.draft.artifactPayload;
+      if (built.status !== "built") return Response.json({ status: built.status, detail: built.detail });
+      response.draft.artifact = { filename: built.filename, downloadUrl: built.downloadUrl };
+    }
     return Response.json(response);
   });
 }

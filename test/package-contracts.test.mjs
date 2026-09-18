@@ -383,6 +383,11 @@ test("reference contract documents existing final PDF, intermediate DOCX, builde
   assert.match(contract, /Builder: `scripts\/build_reference_check\.py`/);
 });
 
+test("Workbench artifact adapters validate at the server boundary", () => {
+  const result = spawnSync("python3", [path.join(root, "server/test_artifacts.py")], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
 test("synthetic branded resume artifact QA renders every page and records automation separately", async () => {
   const data = JSON.parse(await readFile(fixture, "utf8"));
   const dir = await mkdtemp(path.join(root, ".tmp-resume-contract-"));

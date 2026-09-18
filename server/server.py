@@ -38,6 +38,7 @@ import uuid
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from candidate_input import SCHEMA_HINT, normalize_candidate  # noqa: E402
 from local_ai import cancel_run, provider_catalog, request_rejection, run_feature  # noqa: E402
+from artifacts import build_interview_pdf, build_reference_pdf  # noqa: E402
 
 try:
     from mcp.server.fastmcp import FastMCP
@@ -187,6 +188,37 @@ def build_pdf(candidate: dict, filename: str | None = None) -> dict:
         "notes": report["notes"],
         "expires_in_seconds": FILE_TTL_SECONDS,
     }
+
+
+def _artifact_result(builder, payload: dict, filename: str | None = None) -> dict:
+    """Run a validated artifact builder and return a closed failure shape."""
+    _sweep_expired_files()
+    try:
+        result = builder(payload, FILES_DIR, PUBLIC_BASE, filename)
+    except (ValueError, OSError, subprocess.SubprocessError) as error:
+        return {"ok": False, "error": "input_or_build_rejected", "detail": str(error)}
+    token = result.pop("token")
+    _FILE_NAMES[token] = result["filename"]
+    result["expires_in_seconds"] = FILE_TTL_SECONDS
+    return result
+
+
+@mcp.tool(
+    title="Build interview prep PDF",
+    description="Build and automatically validate a role-specific interview-prep PDF from the exact repository contract. The result still requires page-by-page visual review.",
+    annotations={"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+)
+def build_interview_prep_pdf(payload: dict, filename: str | None = None) -> dict:
+    return _artifact_result(build_interview_pdf, payload, filename)
+
+
+@mcp.tool(
+    title="Build reference check PDF",
+    description="Build a reference-check PDF from structured confirmed reference evidence using the sanitized repository template. The result still requires page-by-page visual review.",
+    annotations={"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
+)
+def build_reference_check_pdf(payload: dict, filename: str | None = None) -> dict:
+    return _artifact_result(build_reference_pdf, payload, filename)
 
 
 def _sweep_expired_files() -> None:
