@@ -1,6 +1,5 @@
 "use client";
 
-import type { OutputData } from "@editorjs/editorjs";
 import {
   AlertTriangle,
   Check,
@@ -19,6 +18,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { HandwritingCanvas } from "@/components/workstation/handwriting-canvas";
+import { ResumeFormEditor } from "@/components/workstation/resume-form";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { workstationApi } from "@/lib/api-client";
 import { mergeCandidateCaseSnapshots } from "@/lib/case-merge";
+import { emptyResumeForm, resumeFormHasContent, resumeFormToCandidate, toResumeForm, type ResumeFormDocument } from "@/lib/resume-form";
+import type { BrandResumeResult } from "@/lib/server/resume-builder";
 import {
   EMPTY_RESUME,
   EMPTY_SUBMISSION,
@@ -90,12 +92,6 @@ function contentAsSubmission(document: CaseDocument | undefined) {
   return { ...EMPTY_SUBMISSION };
 }
 
-function contentAsResume(document: CaseDocument | undefined) {
-  if (document?.content && typeof document.content === "object" && "blocks" in document.content) {
-    return document.content as OutputData;
-  }
-  return EMPTY_RESUME;
-}
 
 export function RecruiterWorkstation({ user }: { user: User }) {
   const [roles, setRoles] = useState<RoleRecord[]>([]);
@@ -123,6 +119,10 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const [actionMessage, setActionMessage] = useState("");
   const [brandOpen, setBrandOpen] = useState(false);
   const [resumeMode, setResumeMode] = useState<ResumeMode>("named_submission");
+  const [resumeForm, setResumeForm] = useState<ResumeFormDocument>(emptyResumeForm);
+  const [resumeView, setResumeView] = useState<"source" | "form">("source");
+  const [brandBusy, setBrandBusy] = useState(false);
+  const [brandResult, setBrandResult] = useState<BrandResumeResult | null>(null);
   const [writeUpOpen, setWriteUpOpen] = useState(false);
   const [writeUpMode, setWriteUpMode] = useState<WriteUpMode>("candidate_submission");
   const [resumeSourceId, setResumeSourceId] = useState("");
@@ -168,6 +168,8 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     setNotesSize(next.notesSize);
     setCaseStatus(next.status);
     setSubmission(contentAsSubmission(next.documents.submission));
+    setResumeForm(toResumeForm(next.documents.resume?.content));
+    setBrandResult(null);
     const resumeSources = next.sources
       .filter((source) => source.kind === "resume")
       .sort((left, right) => right.captureTime.localeCompare(left.captureTime));
@@ -175,7 +177,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     caseDraftRef.current = { notes: next.notes, notesDrawingSvg: next.notesDrawingSvg, notesFont: next.notesFont, notesSize: next.notesSize, status: next.status };
     caseEditVersionRef.current = 0;
     documentDraftRef.current = {
-      resume: contentAsResume(next.documents.resume),
+      resume: toResumeForm(next.documents.resume?.content),
       write_up: contentAsString(next.documents.write_up),
       submission: contentAsSubmission(next.documents.submission),
       email: contentAsString(next.documents.email),
@@ -412,7 +414,6 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     fitConcern: "No candidate case is open.",
     nextAction: "Choose the current role and candidate.",
   };
-  const pdfCapability = connectors.find((item) => item.id === "pdf");
   const unreviewedSourceCount = activeCase?.sources.filter((source) => source.lifecycleStatus !== "reviewed").length ?? 0;
   const questionMessage = !activeCase?.sources.length
     ? "Add the resume and call notes first. Add a JD only when you want a role-focused submission."
@@ -437,14 +438,41 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     : "";
   const hasSavedWriteUp = submissionHasContent(submission);
 
+  const brandReadinessMessage = () => {
+    if (!activeCase) return "Select a role and candidate first.";
+    const pdfConnector = connectors.find((item) => item.id === "pdf");
+    if (pdfConnector && pdfConnector.status !== "available") return pdfConnector.detail;
+    if (resumeMode === "external_blind_mpc") {
+      return "External-client blind MPC is not available yet. Removing the name and replacing every employer with its industry is the recruiter AI step. Use Named submission or Internal-team MPC.";
+    }
+    if (!resumeForm.name.trim() || !resumeFormHasContent(resumeForm)) {
+      return "Fill in the TTTG resume form first: open TTTG resume in the Resume pane.";
+    }
+    return "Ready. Build PDF sends the TTTG resume form to the branded resume builder.";
+  };
+
+  const buildResumePdf = async () => {
+    if (!activeCase || brandBusy) return;
+    setBrandBusy(true);
+    setBrandResult(null);
+    try {
+      setBrandResult(await workstationApi.brandResume(activeCase.id, { mode: resumeMode, candidate: resumeFormToCandidate(resumeForm) }));
+    } catch (error) {
+      setBrandResult({ status: "unavailable", detail: error instanceof Error ? error.message : "The branded resume request failed. Nothing was built." });
+    } finally {
+      setBrandBusy(false);
+    }
+  };
+
   const resumeReadinessMessage = (purpose: "brand" | "write_up") => {
+    if (purpose === "brand") return brandReadinessMessage();
     if (!activeCase) return "Select a role and candidate first.";
     if (!selectedResume) return "Add the candidate's resume first.";
     if (selectedResume.lifecycleStatus !== "reviewed") {
       return `Confirm ${selectedResume.filename} as the current resume in Sources first.`;
     }
     if (!selectedResume.parsedText) {
-      return `${selectedResume.filename} is stored and viewable, but the recruiter parser must read it before ${purpose === "brand" ? "branding" : "writing the candidate up"}.`;
+      return `${selectedResume.filename} is stored and viewable, but the recruiter parser must read it before writing the candidate up.`;
     }
     if (purpose === "write_up") {
       if (caseSaveState !== "saved") return "Wait for Notes to show Saved before writing the candidate up.";
@@ -466,17 +494,11 @@ export function RecruiterWorkstation({ user }: { user: User }) {
         ? "Sources are ready for the repository-defined full package. Generation still needs the authenticated recruiter runtime."
         : "Resume and call notes are ready for a candidate submission draft. Generation still needs the authenticated recruiter runtime.";
     }
-    const selectedMode = {
-      named_submission: "Named submission",
-      internal_mpc: "Internal-team MPC",
-      external_blind_mpc: "External-client blind MPC",
-    }[resumeMode];
-    return pdfCapability?.status === "available"
-      ? `${selectedMode} is selected and the resume source is ready.`
-      : `${selectedMode} is selected and the resume source is ready. Branding still needs the recruiter PDF connection.`;
+    return "";
   };
 
   const openBrandResume = () => {
+    setBrandResult(null);
     setActionMessage(resumeReadinessMessage("brand"));
     setBrandOpen(true);
   };
@@ -573,12 +595,18 @@ export function RecruiterWorkstation({ user }: { user: User }) {
             <div className="pane-toolbar resume-toolbar">
               <div><h2>Resume</h2>{selectedResume ? <span className={`source-status ${selectedResume.lifecycleStatus}`}>{selectedResume.lifecycleStatus}</span> : null}</div>
               <div className="resume-toolbar-actions">
-                {resumeSources.length > 1 ? <label>Resume<select aria-label="Resume to view" value={selectedResume?.id ?? ""} onChange={(event) => setResumeSourceId(event.target.value)}>{resumeSources.map((source) => <option key={source.id} value={source.id}>{source.filename}</option>)}</select></label> : null}
-                {resumeSourceUrl ? <Button asChild size="sm" variant="outline"><a href={resumeSourceUrl} target="_blank" rel="noreferrer">Open</a></Button> : null}
+                <div className="resume-view-toggle" role="group" aria-label="Resume view">
+                  <Button size="sm" variant={resumeView === "source" ? "default" : "outline"} aria-pressed={resumeView === "source"} onClick={() => setResumeView("source")}>Source</Button>
+                  <Button size="sm" variant={resumeView === "form" ? "default" : "outline"} aria-pressed={resumeView === "form"} onClick={() => setResumeView("form")}>TTTG resume</Button>
+                </div>
+                {resumeView === "source" && resumeSources.length > 1 ? <label>Resume<select aria-label="Resume to view" value={selectedResume?.id ?? ""} onChange={(event) => setResumeSourceId(event.target.value)}>{resumeSources.map((source) => <option key={source.id} value={source.id}>{source.filename}</option>)}</select></label> : null}
+                {resumeView === "source" && resumeSourceUrl ? <Button asChild size="sm" variant="outline"><a href={resumeSourceUrl} target="_blank" rel="noreferrer">Open</a></Button> : null}
                 <Button size="sm" className="gold-button" onClick={openBrandResume}><FileText size={16} />Brand resume</Button>
               </div>
             </div>
-            <ResumeSourcePreview source={selectedResume} sourceUrl={resumeSourceUrl} />
+            {resumeView === "form"
+              ? <div className="resume-form-scroll"><ResumeFormEditor value={resumeForm} onChange={(next) => { setResumeForm(next); setBrandResult(null); scheduleDocumentSave("resume", next); }} /></div>
+              : <ResumeSourcePreview source={selectedResume} sourceUrl={resumeSourceUrl} />}
           </> : <div className="document-empty"><FileText size={34} /><h2>Open a candidate case</h2><p>Select a role and candidate. The attached resume stays visible while you take notes.</p></div>}
         </section>
       </section>
@@ -593,7 +621,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
 
       <Dialog open={pasteOpen} onOpenChange={setPasteOpen}><DialogContent><DialogHeader><DialogTitle>Paste source text</DialogTitle><DialogDescription>The original text is stored as an immutable source attachment for this candidate case.</DialogDescription></DialogHeader><label className="paste-kind">Source type<select value={pastedSourceKind} onChange={(event) => setPastedSourceKind(event.target.value as SourceKind)}><option value="call_notes">Call notes</option><option value="transcript">Transcript</option><option value="job_description">Job description</option><option value="resume">Resume</option><option value="pasted_text">Other pasted text</option></select></label><Textarea value={pastedSource} onChange={(event) => setPastedSource(event.target.value)} placeholder="Paste transcript, notes, or source text exactly as received." className="paste-source-textarea" /><DialogFooter><Button variant="outline" onClick={() => setPasteOpen(false)}>Cancel</Button><Button disabled={!activeCase || !pastedSource.trim() || sourceBusy} onClick={() => { if (!activeCase || !pastedSource.trim()) return; const file = new File([pastedSource], `pasted-${pastedSourceKind}-${new Date().toISOString().replaceAll(":", "-")}.txt`, { type: "text/plain" }); setPasteOpen(false); setPastedSource(""); void uploadSources([file], [pastedSourceKind]); }}>Save source</Button></DialogFooter></DialogContent></Dialog>
 
-      <Dialog open={brandOpen} onOpenChange={setBrandOpen}><DialogContent className="writeup-dialog"><DialogHeader><DialogTitle>Brand resume</DialogTitle><DialogDescription>Choose the presentation mode defined by the recruitment-skills repository.</DialogDescription></DialogHeader><div className="writeup-mode-options" aria-label="Branded resume presentation mode"><button type="button" aria-pressed={resumeMode === "named_submission"} onClick={() => setResumeMode("named_submission")}><strong>Named submission</strong><span>Candidate name and real employers</span></button><button type="button" aria-pressed={resumeMode === "internal_mpc"} onClick={() => setResumeMode("internal_mpc")}><strong>Internal-team MPC</strong><span>Candidate name and real employers</span></button><button type="button" aria-pressed={resumeMode === "external_blind_mpc"} onClick={() => setResumeMode("external_blind_mpc")}><strong>External-client blind MPC</strong><span>No name, contact details, or real employer names</span></button></div><div className="writeup-readiness">{resumeReadinessMessage("brand")}</div><DialogFooter><Button onClick={() => setBrandOpen(false)}>Done</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={brandOpen} onOpenChange={setBrandOpen}><DialogContent className="writeup-dialog"><DialogHeader><DialogTitle>Brand resume</DialogTitle><DialogDescription>Choose the presentation mode defined by the recruitment-skills repository.</DialogDescription></DialogHeader><div className="writeup-mode-options" aria-label="Branded resume presentation mode"><button type="button" aria-pressed={resumeMode === "named_submission"} onClick={() => setResumeMode("named_submission")}><strong>Named submission</strong><span>Candidate name and real employers</span></button><button type="button" aria-pressed={resumeMode === "internal_mpc"} onClick={() => setResumeMode("internal_mpc")}><strong>Internal-team MPC</strong><span>Candidate name and real employers</span></button><button type="button" aria-pressed={resumeMode === "external_blind_mpc"} onClick={() => setResumeMode("external_blind_mpc")}><strong>External-client blind MPC</strong><span>No name, contact details, or real employer names</span></button></div><div className="writeup-readiness">{resumeReadinessMessage("brand")}</div><BrandResult result={brandResult} /><DialogFooter><Button variant="outline" onClick={() => setBrandOpen(false)}>Done</Button><Button className="gold-button" disabled={brandBusy || !activeCase || resumeMode === "external_blind_mpc" || !resumeForm.name.trim() || !resumeFormHasContent(resumeForm)} onClick={() => void buildResumePdf()}>{brandBusy ? <><LoaderCircle className="spin" size={16} />Building (can take a minute)</> : <><FileText size={16} />Build PDF</>}</Button></DialogFooter></DialogContent></Dialog>
 
       <Dialog open={writeUpOpen} onOpenChange={setWriteUpOpen}><DialogContent className="writeup-dialog"><DialogHeader><DialogTitle>Candidate write-up</DialogTitle><DialogDescription>{hasSavedWriteUp ? "Review the saved candidate submission. Unknown facts remain blank." : "Choose an output set defined by the recruitment-skills repository. Every output stays source-grounded."}</DialogDescription></DialogHeader><div className="writeup-mode-options" aria-label="Candidate write-up output set"><button type="button" aria-pressed={writeUpMode === "candidate_submission"} onClick={() => setWriteUpMode("candidate_submission")}><strong>Candidate submission draft</strong><span>Submission-style write-up only</span></button><button type="button" aria-pressed={writeUpMode === "full_package"} onClick={() => setWriteUpMode("full_package")}><strong>Full after-call package</strong><span>Branded resume, submission, email draft, and Loxo bullets</span></button></div><div className="writeup-readiness">{resumeReadinessMessage("write_up")}</div><div className="writeup-dialog-body"><SubmissionForm value={submission} onChange={(next) => { setSubmission(next); scheduleDocumentSave("submission", next); }} /></div><DialogFooter><span className={`save-state ${documentSaveState}`}>{saveLabel(documentSaveState)} · {internalUnconfirmed} unconfirmed fact{internalUnconfirmed === 1 ? "" : "s"}</span><Button onClick={() => setWriteUpOpen(false)}>Done</Button></DialogFooter></DialogContent></Dialog>
     </main>
@@ -615,6 +643,26 @@ function ResumeSourcePreview({ source, sourceUrl }: { source: CaseSource | null;
   }
   if (source.parsedText) return <div className="resume-source-scroll"><pre className="resume-source-text">{source.parsedText}</pre></div>;
   return <div className="document-empty"><FileText size={34} /><h2>{source.filename}</h2><p>This file is safely attached, but this format cannot be previewed inside the workstation yet.</p><Button asChild variant="outline"><a href={sourceUrl} target="_blank" rel="noreferrer">Open resume</a></Button></div>;
+}
+
+function BrandResult({ result }: { result: BrandResumeResult | null }) {
+  if (!result) return null;
+  if (result.status === "built") {
+    return <div className="brand-result built" role="status">
+      <strong>PDF built: {result.filename}</strong>
+      <a href={result.downloadUrl} target="_blank" rel="noreferrer">Download the branded resume</a>
+      <span>This link expires in {result.expiresInSeconds ? Math.round(result.expiresInSeconds / 60) : 60} minutes. Save the file now.</span>
+      {result.contactRemoved.length ? <span>Contact fields left off the resume: {result.contactRemoved.join(", ")}.</span> : null}
+      {result.notes.map((note) => <span key={note}>{note}</span>)}
+    </div>;
+  }
+  if (result.status === "refused") {
+    return <div className="brand-result refused" role="alert">
+      <strong><AlertTriangle size={16} />Not built. Fix these in the TTTG resume form, then build again:</strong>
+      <ul>{result.problems.map((problem) => <li key={problem}>{problem}</li>)}</ul>
+    </div>;
+  }
+  return <div className="brand-result unavailable" role="alert"><strong><AlertTriangle size={16} />Not built.</strong><span>{result.detail}</span></div>;
 }
 
 function SubmissionForm({ value, onChange }: { value: SubmissionDocument; onChange: (value: SubmissionDocument) => void }) {

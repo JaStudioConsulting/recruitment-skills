@@ -168,6 +168,26 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
 .resume-editor .ce-block__content, .resume-editor .ce-toolbar__content { max-width: 760px; }
 .resume-editor .ce-header { font-family: var(--font-ui); }
 .document-textarea { min-height: 470px; resize: vertical; padding: 18px; line-height: 1.6; }
+.resume-view-toggle { display: inline-flex; gap: 4px; }
+.resume-form-scroll { min-height: 0; flex: 1 1 0; overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 18px; background: #eef2f0; }
+.resume-form { display: flex; flex-direction: column; gap: 13px; max-width: 820px; margin: 0 auto; padding: 18px 20px 28px; border: 1px solid var(--border); border-radius: 6px; background: white; }
+.resume-form label { display: flex; flex-direction: column; gap: 5px; color: #31433b; font-size: 13px; font-weight: 650; }
+.resume-form textarea { min-height: 84px; }
+.resume-form-hint { margin: 0; color: #64736c; font-size: 12.5px; line-height: 1.45; }
+.resume-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.resume-form-count { color: #64736c; font-size: 12px; font-weight: 500; }
+.resume-form-count.odd { color: #72530f; }
+.resume-form-group { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: 6px; }
+.resume-form-group legend { padding: 0 6px; color: #31433b; font-size: 13px; font-weight: 750; }
+.resume-form-job { display: flex; flex-direction: column; gap: 10px; padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+.resume-form-job > button { align-self: flex-start; }
+.brand-result { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 6px; font-size: 13.5px; line-height: 1.45; }
+.brand-result strong { display: flex; align-items: center; gap: 6px; }
+.brand-result ul { margin: 0; padding-left: 18px; }
+.brand-result.built { border: 1px solid #b9d7c6; background: #eef7f1; color: #1f4a36; }
+.brand-result.built a { color: #123f33; font-weight: 700; text-decoration: underline; }
+.brand-result.refused, .brand-result.unavailable { border: 1px solid #e6cf9c; background: var(--gold-soft); color: #5c430c; }
+@media (max-width: 680px) { .resume-form-row { grid-template-columns: 1fr; } }
 .submission-form { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; padding: 4px 8px 24px; }
 .submission-form label, .dialog-fields label { display: grid; gap: 6px; color: #46554e; font-size: 12px; font-weight: 750; }
 .submission-form .wide { grid-column: 1 / -1; }
