@@ -6,8 +6,8 @@ export const connectorCapabilities: ConnectorCapability[] = [
   {
     id: "pdf",
     label: "Branded resume PDF",
-    status: "not_connected",
-    detail: "The Recruitment MCP PDF builder is not connected to this workstation runtime.",
+    status: "available",
+    detail: "Brand resume sends the TTTG resume form to the hosted branded resume builder. External-client blind MPC is not available yet.",
   },
   {
     id: "gmail",

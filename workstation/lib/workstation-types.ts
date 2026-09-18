@@ -1,4 +1,5 @@
 import type { OutputData } from "@editorjs/editorjs";
+import type { ResumeFormDocument } from "./resume-form";
 
 // Current editor surface still exposes write_up. Keep this list stable until the
 // UI moves to the canonical generated-output tabs.
@@ -52,7 +53,7 @@ export type SubmissionDocument = {
   vacation: string; location: string; workStatus: string; interviewAvailability: string;
   startDateNotice: string; reasonForLeaving: string; profileSummary: string;
 };
-export type CaseDocument = { kind: StoredDocumentKind; revision: number; content: OutputData | string | SubmissionDocument; updatedAt: string };
+export type CaseDocument = { kind: StoredDocumentKind; revision: number; content: OutputData | string | SubmissionDocument | ResumeFormDocument; updatedAt: string };
 export type CaseSource = {
   id: string;
   kind: SourceKind;
