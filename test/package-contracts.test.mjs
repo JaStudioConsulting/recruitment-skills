@@ -76,7 +76,7 @@ function assertFullPackage({ drafts, pdf, attachment }) {
 
 test("all 23 manifest routes and internal backtick routes resolve", async () => {
   const manifest = JSON.parse(await readFile(path.join(skills, "capabilities.json"), "utf8"));
-  assert.equal(manifest.capabilities.length, 23);
+  assert.equal(manifest.capabilities.length, 24);
   for (const capability of manifest.capabilities) {
     assert.match(capability.path, /\/GUIDE\.md$/);
     assert.ok(exists(path.join(skills, capability.path)), capability.path);
@@ -191,6 +191,7 @@ test("every manifest capability exposes its capability-specific contract", async
     loxo: [/read-only and draft-only/i, /loxo-candidate-fit-review\.md/i],
     "loxo-automation": [/separate named authorization/i, /WAIT for approval/i],
     "loxo-readonly-candidate-dashboard": [/strictly read-only/i, /candidate\.job\.id/i],
+    "loxo-pipeline": [/Reads are free; writes are gated/i, /test-of-one/i],
     "offer-letter": [/Required Information/i, /ask before drafting/i],
     "interview-prep-material": [/one exact company and one exact role/i, /approved_for_candidate_use/i, /validate_interview_prep_material\.py/i, /page-by-page visual inspection/i],
     "recruiting-hr": [/\$recruiter/i, /No external send/i],

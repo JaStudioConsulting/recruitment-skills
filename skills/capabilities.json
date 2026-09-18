@@ -22,6 +22,7 @@
     { "id": "loxo", "path": "recruiter/modules/loxo/GUIDE.md", "group": "daily_core", "status": "read_only" },
     { "id": "loxo-automation", "path": "recruiter/modules/loxo-automation/GUIDE.md", "group": "supporting", "status": "restricted" },
     { "id": "loxo-readonly-candidate-dashboard", "path": "recruiter/modules/loxo-readonly-candidate-dashboard/GUIDE.md", "group": "on_demand", "status": "read_only" },
+    { "id": "loxo-pipeline", "path": "recruiter/modules/loxo-pipeline/GUIDE.md", "group": "on_demand", "status": "restricted" },
     { "id": "offer-letter", "path": "recruiter/modules/offer-letter/GUIDE.md", "group": "on_demand", "status": "active" },
     { "id": "interview-prep-material", "path": "recruiter/modules/interview-prep-material/GUIDE.md", "group": "on_demand", "status": "active" },
     { "id": "recruiting-hr", "path": "recruiter/modules/recruiting-hr/GUIDE.md", "group": "collection", "status": "active" },
