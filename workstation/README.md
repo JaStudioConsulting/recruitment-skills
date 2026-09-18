@@ -8,17 +8,24 @@ compact MCP candidate dashboard in `ui/`.
 
 - role, candidate, and status context bar
 - candidate-specific Apple Pencil Scribble/typed notes with font and size controls
-- immutable Resume, Transcript, File, and pasted-text source capture
-- Editor.js resume workspace plus Write-Up, Submission, and Email tabs
+- one multi-file drop zone plus dedicated Resume, Transcript, Job Description,
+  Call Notes, and pasted-text source capture
+- truthful source lifecycle states: uploaded, parsed, classified, and reviewed
+- Editor.js resume workspace plus Write-Up, Submission, Email, and Loxo tabs
+- independently scrolling Notes and document panes with sticky iPad actions
 - compact Missing, Ask next, Fit/concern, and Next action strip
 - D1 case/document metadata with optimistic revisions
 - R2 source blobs addressed by opaque case/source IDs
 - explicit host connector capability states and approval-bound write contracts
 
+Plain-text and Markdown sources can be parsed and classified inside the Site.
+PDF and DOCX sources remain in the uploaded state until a real parser is
+connected; the UI does not claim otherwise.
+
 The Site does not ship private candidate data or connector credentials. Gmail,
-Calendar, Drive, Tracker, Loxo, and PDF generation are supplied by an injected
-host broker. Standalone mode reports them as unavailable and performs no external
-write.
+Calendar, Drive, Tracker, Loxo, package generation, and PDF generation require an
+authenticated host broker. Standalone mode reports them as unavailable and
+performs no external write.
 
 ## Local development
 

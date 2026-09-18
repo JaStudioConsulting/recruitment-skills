@@ -1,4 +1,4 @@
-import { DOCUMENT_KINDS, type CandidateCase } from "./workstation-types";
+import { STORED_DOCUMENT_KINDS, type CandidateCase } from "./workstation-types";
 
 /**
  * Merge overlapping hydrated responses without allowing an older response to
@@ -11,7 +11,7 @@ export function mergeCandidateCaseSnapshots(
   if (!current || current.id !== incoming.id) return incoming;
 
   const documents = { ...incoming.documents };
-  for (const kind of DOCUMENT_KINDS) {
+  for (const kind of STORED_DOCUMENT_KINDS) {
     if (current.documents[kind].revision > incoming.documents[kind].revision) {
       documents[kind] = current.documents[kind];
     }

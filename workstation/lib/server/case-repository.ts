@@ -11,16 +11,25 @@ import {
 import { ApiError } from "@/lib/server/api";
 import { connectorCapabilities } from "@/lib/server/connectors";
 import {
-  DOCUMENT_KINDS,
-  EMPTY_RESUME,
-  EMPTY_SUBMISSION,
+  canReviewSource,
+  normalizeSourceLifecycleStatus,
+} from "@/lib/server/source-intake";
+import {
+  completeStoredDocuments,
+  defaultDocumentContent,
+} from "@/lib/document-model";
+import {
+  SOURCE_KINDS,
+  STORED_DOCUMENT_KINDS,
   type AssistantState,
   type CandidateCase,
   type CandidateFact,
   type CandidateRecord,
   type CaseDocument,
   type CaseSource,
-  type DocumentKind,
+  type SourceKind,
+  type SourceLifecycleStatus,
+  type StoredDocumentKind,
   type RoleRecord,
   type WorkspacePayload,
 } from "@/lib/workstation-types";
@@ -54,22 +63,29 @@ function candidateRecord(row: typeof candidates.$inferSelect): CandidateRecord {
 }
 
 function sourceRecord(row: typeof caseSources.$inferSelect): CaseSource {
+  const kind = SOURCE_KINDS.includes(row.kind as SourceKind)
+    ? (row.kind as SourceKind)
+    : "other";
+  const classificationMethod = row.classificationMethod === "explicit" ||
+      row.classificationMethod === "filename" ||
+      row.classificationMethod === "content" ||
+      row.classificationMethod === "manual" ||
+      row.classificationMethod === "uncertain"
+    ? row.classificationMethod
+    : null;
   return {
     id: row.id,
-    kind: row.kind,
+    kind,
     filename: row.filename,
     contentType: row.contentType,
     sizeBytes: row.sizeBytes,
     sha256: row.sha256,
     captureTime: row.createdAt,
-    reviewStatus: row.reviewStatus,
+    lifecycleStatus: normalizeSourceLifecycleStatus(row.lifecycleStatus),
+    reviewStatus: row.reviewStatus === "reviewed" ? "reviewed" : "unreviewed",
+    parsedText: row.parsedText,
+    classificationMethod,
   };
-}
-
-function defaultDocumentContent(kind: DocumentKind): CaseDocument["content"] {
-  if (kind === "resume") return EMPTY_RESUME;
-  if (kind === "submission") return EMPTY_SUBMISSION;
-  return "";
 }
 
 function documentRecord(row: typeof caseDocuments.$inferSelect): CaseDocument {
@@ -82,19 +98,7 @@ function documentRecord(row: typeof caseDocuments.$inferSelect): CaseDocument {
 }
 
 function documentMap(rows: Array<typeof caseDocuments.$inferSelect>) {
-  const map = {} as Record<DocumentKind, CaseDocument>;
-  for (const kind of DOCUMENT_KINDS) {
-    const row = rows.find((item) => item.kind === kind);
-    map[kind] = row
-      ? documentRecord(row)
-      : {
-          kind,
-          revision: 0,
-          content: defaultDocumentContent(kind),
-          updatedAt: "",
-        };
-  }
-  return map;
+  return completeStoredDocuments(rows.map(documentRecord));
 }
 
 export async function assertOwnedCase(userId: string, caseId: string) {
@@ -277,7 +281,7 @@ export async function openCandidateCase(
       createdAt: timestamp,
       updatedAt: timestamp,
     }),
-    ...DOCUMENT_KINDS.map((kind) =>
+    ...STORED_DOCUMENT_KINDS.map((kind) =>
       db.insert(caseDocuments).values({
         caseId: id,
         kind,
@@ -374,7 +378,7 @@ export async function updateCandidateCase(
 export async function saveCaseDocument(
   userId: string,
   caseId: string,
-  kind: DocumentKind,
+  kind: StoredDocumentKind,
   expectedRevision: number,
   content: CaseDocument["content"],
 ): Promise<CaseDocument> {
@@ -390,6 +394,58 @@ export async function saveCaseDocument(
     throw new ApiError(413, "Document content is too large.");
   }
   const timestamp = now();
+
+  // Existing cases predate loxo_update. Hydration presents that missing row as
+  // revision 0, and its first save atomically materializes revision 1. No other
+  // document kind may use revision 0 to recreate a missing or deleted row.
+  if (expectedRevision === 0) {
+    if (kind !== "loxo_update") {
+      throw new ApiError(409, "Only a missing Loxo update document may start at revision 0.", {
+        currentRevision: null,
+      });
+    }
+    const [created] = await db
+      .insert(caseDocuments)
+      .values({
+        caseId,
+        kind,
+        contentJson,
+        revision: 1,
+        updatedBy: userId,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      .onConflictDoNothing()
+      .returning();
+    if (!created) {
+      const [current] = await db
+        .select({ revision: caseDocuments.revision })
+        .from(caseDocuments)
+        .where(and(eq(caseDocuments.caseId, caseId), eq(caseDocuments.kind, kind)))
+        .limit(1);
+      throw new ApiError(409, "Document changed before this save completed.", {
+        currentRevision: current?.revision ?? null,
+      });
+    }
+    await Promise.all([
+      db
+        .update(candidateCases)
+        .set({ updatedAt: timestamp })
+        .where(and(eq(candidateCases.id, caseId), eq(candidateCases.ownerId, userId))),
+      activity({
+        caseId,
+        actorId: userId,
+        eventType: "document_saved",
+        entityType: "document",
+        entityId: `${caseId}:${kind}`,
+        fromRevision: 0,
+        toRevision: created.revision,
+        details: { kind, materialized: true },
+      }),
+    ]);
+    return documentRecord(created);
+  }
+
   const [updated] = await db
     .update(caseDocuments)
     .set({
@@ -438,12 +494,15 @@ export async function saveCaseDocument(
 export type NewSource = {
   id: string;
   caseId: string;
-  kind: string;
+  kind: SourceKind;
   filename: string;
   contentType: string;
   sizeBytes: number;
   sha256: string;
   storageKey: string;
+  lifecycleStatus: SourceLifecycleStatus;
+  parsedText: string | null;
+  classificationMethod: CaseSource["classificationMethod"];
 };
 
 export async function insertSource(userId: string, source: NewSource) {
@@ -473,9 +532,59 @@ export async function insertSource(userId: string, source: NewSource) {
         contentType: source.contentType,
         sizeBytes: source.sizeBytes,
         sha256: source.sha256,
+        lifecycleStatus: source.lifecycleStatus,
+        classificationMethod: source.classificationMethod,
       },
     }),
   ]);
+}
+
+export async function reviewSource(
+  userId: string,
+  caseId: string,
+  sourceId: string,
+  kind?: SourceKind,
+): Promise<CandidateCase> {
+  const db = getDb();
+  const source = await getOwnedSource(userId, caseId, sourceId);
+  const currentLifecycleStatus = normalizeSourceLifecycleStatus(source.lifecycleStatus);
+  if (!canReviewSource(currentLifecycleStatus, kind)) {
+    throw new ApiError(409, "The source must be parsed and classified before review.", {
+      currentLifecycleStatus,
+      requiresKind: currentLifecycleStatus === "parsed",
+    });
+  }
+
+  const timestamp = now();
+  await Promise.all([
+    db
+      .update(caseSources)
+      .set({
+        kind: kind ?? source.kind,
+        lifecycleStatus: "reviewed",
+        reviewStatus: "reviewed",
+        classificationMethod: kind ? "manual" : source.classificationMethod,
+      })
+      .where(and(eq(caseSources.id, sourceId), eq(caseSources.caseId, caseId))),
+    db
+      .update(candidateCases)
+      .set({ updatedAt: timestamp })
+      .where(and(eq(candidateCases.id, caseId), eq(candidateCases.ownerId, userId))),
+    activity({
+      caseId,
+      actorId: userId,
+      eventType: "source_reviewed",
+      entityType: "source",
+      entityId: sourceId,
+      details: {
+        previousKind: source.kind,
+        kind: kind ?? source.kind,
+        previousLifecycleStatus: currentLifecycleStatus,
+        lifecycleStatus: "reviewed",
+      },
+    }),
+  ]);
+  return getCandidateCase(userId, caseId);
 }
 
 export async function getOwnedSource(userId: string, caseId: string, sourceId: string) {

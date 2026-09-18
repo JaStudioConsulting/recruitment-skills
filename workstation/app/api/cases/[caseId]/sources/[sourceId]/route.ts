@@ -1,4 +1,6 @@
-import { apiRoute } from "@/lib/server/api";
+import { reviewSourceSchema } from "@/lib/contracts/workstation";
+import { apiRoute, readJson } from "@/lib/server/api";
+import { reviewSource } from "@/lib/server/case-repository";
 import { downloadImmutableSource } from "@/lib/server/source-store";
 
 export const dynamic = "force-dynamic";
@@ -9,5 +11,15 @@ export async function GET(_request: Request, context: Context) {
   return apiRoute(async (userId) => {
     const { caseId, sourceId } = await context.params;
     return downloadImmutableSource({ userId, caseId, sourceId });
+  });
+}
+
+export async function PATCH(request: Request, context: Context) {
+  return apiRoute(async (userId) => {
+    const [{ caseId, sourceId }, input] = await Promise.all([
+      context.params,
+      readJson(request, reviewSourceSchema),
+    ]);
+    return Response.json(await reviewSource(userId, caseId, sourceId, input.kind));
   });
 }
