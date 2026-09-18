@@ -67,7 +67,7 @@
       "guide_paths": ["recruiter/modules/interview-prep-material/GUIDE.md"],
       "contract_paths": ["recruiter/modules/interview-prep-material/references/content-contract.md"],
       "result_kind": "pdf",
-      "runtime": "server_pending",
+      "runtime": "local_ai",
       "requirements": [
         { "id": "job-description", "label": "Reviewed current job description", "kind": "source", "source_kinds": ["job_description"], "required": true },
         { "id": "company-evidence", "label": "Current company and location evidence plus approved images", "kind": "user_input", "required": true }
@@ -83,7 +83,7 @@
       "guide_paths": ["recruiter/modules/complete-reference-check/GUIDE.md"],
       "contract_paths": ["recruiter/modules/complete-reference-check/references/reference-check-standard.md", "recruiter/modules/complete-reference-check/references/template-contract.md"],
       "result_kind": "pdf",
-      "runtime": "server_pending",
+      "runtime": "local_ai",
       "requirements": [
         { "id": "reference-evidence", "label": "Reviewed reference transcript or notes", "kind": "source", "source_kinds": ["call_notes", "transcript"], "required": true },
         { "id": "reference-details", "label": "Candidate, role, client, referee, completed-by, and date details", "kind": "user_input", "required": true }
@@ -129,7 +129,8 @@
         { "id": "role", "label": "Selected role", "kind": "role", "required": true },
         { "id": "job-description", "label": "Reviewed job description or sourcing criteria", "kind": "source_or_input", "source_kinds": ["job_description"], "required": true }
       ],
-      "outside_world": false
+      "outside_world": true,
+      "outside_world_note": "This feature can search the public web through Google only. Shell, files, URL fetch, agents, MCP, and connectors stay disabled. It saves a review table and does not contact anyone."
     },
     {
       "id": "screen-applicants",

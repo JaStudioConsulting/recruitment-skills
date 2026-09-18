@@ -21,6 +21,7 @@ export type CapabilityDraft = {
   emailDraft?: string;
   loxoUpdate?: string;
   artifact?: { filename: string; downloadUrl: string };
+  artifactPayload?: Record<string, unknown>;
 };
 
 export type CapabilityRunsDocument = Record<string, CapabilityDraft>;

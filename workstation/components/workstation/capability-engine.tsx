@@ -14,7 +14,7 @@ import type { CandidateCase, ConnectorCapability, SubmissionDocument } from "@/l
 
 const GROUP_LABELS = { candidate: "On a candidate", role: "On a role", pipeline: "Pipeline", writing: "Writing" } as const;
 const PROVIDERS = [
-  { id: "gemini", label: "Gemini CLI", cost: "may bill the configured Google API key", models: ["auto"], available: true, detail: "Tested deny-all policy; hooks, skills, shell, files, agents, and connectors are disabled." },
+  { id: "gemini", label: "Gemini CLI", cost: "may bill the configured Google API key", models: ["auto", "gemini-2.5-flash-lite"], available: true, detail: "Tested deny-all policy; hooks, skills, shell, files, agents, and connectors are disabled." },
   { id: "claude", label: "Claude Code", cost: "subscription", models: ["sonnet", "opus", "haiku"], available: false, detail: "Not available: Claude Code sign-in expired. Run `claude` in Terminal, then /login." },
   { id: "codex", label: "Codex", cost: "subscription", models: ["configured model"], available: false, detail: "No proven no-shell mode on this installation." },
   { id: "opencode", label: "OpenCode", cost: "may bill a pay-per-use account", models: ["configured provider/model"], available: false, detail: "Deny-all tool policy is not proven." },
@@ -68,6 +68,9 @@ export function CapabilityEngine({
   const requirements = useMemo(() => requirementStates({ feature, activeCase, roleSelected, extraInput, connectors }), [feature, activeCase, roleSelected, extraInput, connectors]);
   const missing = missingRequired(requirements);
   const provider = PROVIDERS.find((item) => item.id === providerId) ?? PROVIDERS[0];
+  const providerDetail = provider.id === "gemini" && feature.runtime === "local_ai_web"
+    ? "Tested search-only policy; shell, files, URL fetch, hooks, skills, agents, MCP, and connectors are disabled."
+    : provider.detail;
   const draft = runs[feature.id];
   const blockedReason = runtimeBlock(feature);
   const canRun = Boolean(activeCase) && !running && !blockedReason && provider.available && missing.length === 0;
@@ -130,7 +133,7 @@ export function CapabilityEngine({
             {FEATURE_GROUPS.map((group) => <section key={group}><h3>{GROUP_LABELS[group]}</h3>{FEATURES.filter((item) => item.group === group).map((item) => {
               const itemRequirements = requirementStates({ feature: item, activeCase, roleSelected, extraInput: "", connectors });
               const status = featureStatus(item, itemRequirements);
-              return <button type="button" key={item.id} aria-current={item.id === feature.id ? "page" : undefined} onClick={() => { setFeatureId(item.id); setMessage(""); }}><span>{item.label}</span><small className={`feature-status ${status.tone}`}>{status.label}</small></button>;
+              return <button type="button" key={item.id} aria-current={item.id === feature.id ? "page" : undefined} onClick={() => { setFeatureId(item.id); setExtraInput(""); setMessage(""); }}><span>{item.label}</span><small className={`feature-status ${status.tone}`}>{status.label}</small></button>;
             })}</section>)}
           </nav>
           <section className="capability-main">
@@ -142,7 +145,7 @@ export function CapabilityEngine({
               <label>AI<select value={providerId} onChange={(event) => setProvider(event.target.value)}>{PROVIDERS.map((item) => <option key={item.id} value={item.id} disabled={!item.available}>{item.label} · {item.cost}{item.available ? "" : " · unavailable"}</option>)}</select></label>
               <label>Model<select value={model} onChange={(event) => { setModel(event.target.value); window.localStorage.setItem("tttg-ai-model", event.target.value); }}>{provider.models.map((item) => <option key={item}>{item}</option>)}</select></label>
             </div>
-            <p className="provider-detail">{provider.detail}</p>
+            <p className="provider-detail">{providerDetail}</p>
             {blockedReason ? <p className="capability-message">{blockedReason}</p> : null}
             {message ? <p className="capability-message" role="status">{message}</p> : null}
             {draft ? <DraftEditor draft={draft} onChange={updateDraft} /> : <div className="capability-empty">No saved draft for this feature yet.</div>}
@@ -184,6 +187,7 @@ function DraftEditor({ draft, onChange }: { draft: CapabilityDraft; onChange: (d
     {draft.resultKind === "resume" && draft.resume ? <ResumeFormEditor value={draft.resume} onChange={(resume) => onChange({ ...draft, resume })} /> : null}
     {draft.resultKind === "submission" && draft.submission ? <SubmissionDraft value={draft.submission} onChange={(submission) => onChange({ ...draft, submission })} emailDraft={draft.emailDraft ?? ""} loxoUpdate={draft.loxoUpdate ?? ""} onEmail={(emailDraft) => onChange({ ...draft, emailDraft })} onLoxo={(loxoUpdate) => onChange({ ...draft, loxoUpdate })} /> : null}
     {(draft.resultKind === "document" || draft.resultKind === "pdf") ? <Textarea className="capability-document" value={draft.document ?? ""} onChange={(event) => onChange({ ...draft, document: event.target.value })} /> : null}
+    {draft.resultKind === "pdf" && draft.artifact ? <div className="outside-note"><a href={draft.artifact.downloadUrl} target="_blank" rel="noreferrer">Download {draft.artifact.filename}</a><br />Visual review of every page is required before use.</div> : null}
     {draft.resultKind === "form" ? <div className="capability-fields">{(draft.fields ?? []).map((field, index) => <label key={`${field.label}-${index}`}>{field.label}<Textarea value={field.value} onChange={(event) => onChange({ ...draft, fields: draft.fields?.map((item, itemIndex) => itemIndex === index ? { ...item, value: event.target.value } : item) })} /></label>)}</div> : null}
     {draft.resultKind === "table" && draft.table ? <div className="capability-table-wrap"><table><thead><tr>{draft.table.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}</tr></thead><tbody>{draft.table.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex}><Input aria-label={`${draft.table?.columns[cellIndex]} row ${rowIndex + 1}`} value={cell} onChange={(event) => onChange({ ...draft, table: { columns: draft.table!.columns, rows: draft.table!.rows.map((item, itemIndex) => itemIndex === rowIndex ? item.map((value, valueIndex) => valueIndex === cellIndex ? event.target.value : value) : item) } })} /></td>)}</tr>)}</tbody></table></div> : null}
     {draft.unknowns.length ? <div className="unknowns"><strong>Confirm before use</strong><ul>{draft.unknowns.map((unknown, index) => <li key={index}>{unknown}</li>)}</ul></div> : null}

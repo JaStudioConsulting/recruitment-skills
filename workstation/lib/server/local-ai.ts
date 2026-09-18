@@ -80,6 +80,10 @@ function parseCompleted(featureId: string, payload: RawCompleted): CapabilityRun
   if (payload.result_kind === "document" || payload.result_kind === "pdf") {
     if (typeof result.document !== "string") return { status: "refused", detail: "The AI result is missing its editable document." };
     draft.document = result.document;
+    if (payload.result_kind === "pdf") {
+      if (!isRecord(result.artifact)) return { status: "refused", detail: "The AI result is missing its executable PDF payload." };
+      draft.artifactPayload = result.artifact;
+    }
   }
   if (payload.result_kind === "form") {
     if (!Array.isArray(result.fields)) return { status: "refused", detail: "The AI result is missing its editable fields." };

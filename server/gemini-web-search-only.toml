@@ -1,0 +1,12 @@
+[[rule]]
+name = "Allow public Google web search"
+toolName = "google_web_search"
+decision = "allow"
+priority = 999
+
+[[rule]]
+name = "Deny every non-search tool"
+toolName = "*"
+decision = "deny"
+priority = 998
+denyMessage = "Workbench sourcing can search the public web only. Shell, files, fetch, agents, MCP, and connectors are disabled."

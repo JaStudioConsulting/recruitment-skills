@@ -215,6 +215,16 @@ function runPython(script, args) {
   return spawnSync("python3", [script, ...args], { encoding: "utf8" });
 }
 
+test("root requirements include every server runtime dependency", async () => {
+  const packageNames = (content) => new Set(content.split(/\r?\n/)
+    .map((line) => line.replace(/\s+#.*$/, "").trim())
+    .filter((line) => line && !line.startsWith("#"))
+    .map((line) => line.split(/[<>=!~\[]/, 1)[0].trim().toLowerCase().replaceAll("_", "-")));
+  const rootRequirements = packageNames(await readFile(path.join(root, "requirements.txt"), "utf8"));
+  const serverRequirements = packageNames(await readFile(path.join(root, "server/requirements.txt"), "utf8"));
+  assert.deepEqual([...serverRequirements].filter((name) => !rootRequirements.has(name)), []);
+});
+
 test("sourcing and web-sourcing CLIs export exact synthetic contracts", async () => {
   const dir = await mkdtemp(path.join(root, ".tmp-sourcing-contract-"));
   const rows = [
@@ -381,6 +391,11 @@ test("reference contract documents existing final PDF, intermediate DOCX, builde
   assert.match(guide, /intermediate DOCX/i);
   assert.match(contract, /Template: `assets\/reference-check-template\.docx`/);
   assert.match(contract, /Builder: `scripts\/build_reference_check\.py`/);
+});
+
+test("Workbench artifact adapters validate at the server boundary", () => {
+  const result = spawnSync("python3", [path.join(root, "server/test_artifacts.py")], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
 });
 
 test("synthetic branded resume artifact QA renders every page and records automation separately", async () => {
