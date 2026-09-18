@@ -39,8 +39,13 @@ describe("bounded recruiter workstation layout", () => {
   it("keeps only actionable call controls on the primary surface", () => {
     expect(workstation).toContain("Brand resume");
     expect(workstation).toContain("Write up candidate");
-    expect(workstation).toContain("Quick write-up");
-    expect(workstation).toContain("Role-focused submission");
+    expect(workstation).toContain("Named submission");
+    expect(workstation).toContain("Internal-team MPC");
+    expect(workstation).toContain("External-client blind MPC");
+    expect(workstation).toContain("Candidate submission draft");
+    expect(workstation).toContain("Full after-call package");
+    expect(workstation).not.toContain("Quick write-up");
+    expect(workstation).not.toContain("Role-focused submission");
     expect(workstation).not.toContain("Run After-Call Package");
     expect(workstation).not.toContain("<TabsTrigger");
     expect(workstation).not.toContain("assistant-strip");

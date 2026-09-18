@@ -13,6 +13,8 @@ compact MCP candidate dashboard in `ui/`.
 - truthful source lifecycle states: uploaded, parsed, classified, and reviewed
 - large call-notes surface beside the selected uploaded resume for quick reference
 - on-demand Brand Resume and Candidate Write-Up actions instead of permanent output tabs
+  - Brand Resume uses the repository-defined presentation modes: named submission, internal-team MPC, and external-client blind MPC.
+  - Candidate Write-Up offers either the candidate submission draft or the full after-call package: branded resume, submission, presentation email draft, and Loxo update bullets.
 - independently scrolling Notes and document panes with sticky iPad actions
 - D1 case/document metadata with optimistic revisions
 - R2 source blobs addressed by opaque case/source IDs

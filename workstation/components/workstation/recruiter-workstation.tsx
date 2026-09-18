@@ -46,7 +46,8 @@ import {
 
 type User = { id: string; displayName: string };
 type CreationMode = "role" | "candidate" | null;
-type WriteUpMode = "quick" | "role_focused";
+type ResumeMode = "named_submission" | "internal_mpc" | "external_blind_mpc";
+type WriteUpMode = "candidate_submission" | "full_package";
 
 const FONT_OPTIONS = ["System", "Avenir Next", "Georgia", "Bradley Hand", "Times New Roman"];
 const SIZE_OPTIONS = [16, 18, 20, 22, 24];
@@ -113,8 +114,10 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const [documentSaveState, setDocumentSaveState] = useState<SaveState>("saved");
   const [submission, setSubmission] = useState<SubmissionDocument>({ ...EMPTY_SUBMISSION });
   const [actionMessage, setActionMessage] = useState("");
+  const [brandOpen, setBrandOpen] = useState(false);
+  const [resumeMode, setResumeMode] = useState<ResumeMode>("named_submission");
   const [writeUpOpen, setWriteUpOpen] = useState(false);
-  const [writeUpMode, setWriteUpMode] = useState<WriteUpMode>("quick");
+  const [writeUpMode, setWriteUpMode] = useState<WriteUpMode>("candidate_submission");
   const [resumeSourceId, setResumeSourceId] = useState("");
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pastedSource, setPastedSource] = useState("");
@@ -442,22 +445,32 @@ export function RecruiterWorkstation({ user }: { user: User }) {
         Boolean(source.parsedText?.trim()),
       );
       if (!notes.trim() && !reviewedCallSource) return "Add your call notes or a reviewed transcript before writing the candidate up.";
-      if (writeUpMode === "role_focused") {
+      if (writeUpMode === "full_package") {
         const reviewedJobDescription = activeCase.sources.some((source) =>
           source.kind === "job_description" &&
           source.lifecycleStatus === "reviewed" &&
           Boolean(source.parsedText?.trim()),
         );
-        if (!reviewedJobDescription) return "Add and confirm a readable job description for a role-focused submission, or choose Quick write-up.";
+        if (!reviewedJobDescription) return "Add and confirm a readable job description for the full after-call package, or choose Candidate submission draft.";
       }
-      return "Resume and call notes are ready. Automatic candidate writing still needs the authenticated recruiter runtime.";
+      return writeUpMode === "full_package"
+        ? "Sources are ready for the repository-defined full package. Generation still needs the authenticated recruiter runtime."
+        : "Resume and call notes are ready for a candidate submission draft. Generation still needs the authenticated recruiter runtime.";
     }
+    const selectedMode = {
+      named_submission: "Named submission",
+      internal_mpc: "Internal-team MPC",
+      external_blind_mpc: "External-client blind MPC",
+    }[resumeMode];
     return pdfCapability?.status === "available"
-      ? "Resume sources are ready for branding."
-      : "Resume sources are ready. Branding still needs the recruiter PDF connection.";
+      ? `${selectedMode} is selected and the resume source is ready.`
+      : `${selectedMode} is selected and the resume source is ready. Branding still needs the recruiter PDF connection.`;
   };
 
-  const checkBrandReadiness = () => setActionMessage(resumeReadinessMessage("brand"));
+  const openBrandResume = () => {
+    setActionMessage(resumeReadinessMessage("brand"));
+    setBrandOpen(true);
+  };
   const openCandidateWriteUp = () => {
     setActionMessage(resumeReadinessMessage("write_up"));
     setWriteUpOpen(true);
@@ -536,7 +549,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
               <div className="resume-toolbar-actions">
                 {resumeSources.length > 1 ? <label>Resume<select aria-label="Resume to view" value={selectedResume?.id ?? ""} onChange={(event) => setResumeSourceId(event.target.value)}>{resumeSources.map((source) => <option key={source.id} value={source.id}>{source.filename}</option>)}</select></label> : null}
                 {resumeSourceUrl ? <Button asChild size="sm" variant="outline"><a href={resumeSourceUrl} target="_blank" rel="noreferrer">Open</a></Button> : null}
-                <Button size="sm" className="gold-button" onClick={checkBrandReadiness}><FileText size={16} />Brand resume</Button>
+                <Button size="sm" className="gold-button" onClick={openBrandResume}><FileText size={16} />Brand resume</Button>
               </div>
             </div>
             <ResumeSourcePreview source={selectedResume} sourceUrl={resumeSourceUrl} />
@@ -554,7 +567,9 @@ export function RecruiterWorkstation({ user }: { user: User }) {
 
       <Dialog open={pasteOpen} onOpenChange={setPasteOpen}><DialogContent><DialogHeader><DialogTitle>Paste source text</DialogTitle><DialogDescription>The original text is stored as an immutable source attachment for this candidate case.</DialogDescription></DialogHeader><label className="paste-kind">Source type<select value={pastedSourceKind} onChange={(event) => setPastedSourceKind(event.target.value as SourceKind)}><option value="call_notes">Call notes</option><option value="transcript">Transcript</option><option value="job_description">Job description</option><option value="resume">Resume</option><option value="pasted_text">Other pasted text</option></select></label><Textarea value={pastedSource} onChange={(event) => setPastedSource(event.target.value)} placeholder="Paste transcript, notes, or source text exactly as received." className="paste-source-textarea" /><DialogFooter><Button variant="outline" onClick={() => setPasteOpen(false)}>Cancel</Button><Button disabled={!activeCase || !pastedSource.trim() || sourceBusy} onClick={() => { if (!activeCase || !pastedSource.trim()) return; const file = new File([pastedSource], `pasted-${pastedSourceKind}-${new Date().toISOString().replaceAll(":", "-")}.txt`, { type: "text/plain" }); setPasteOpen(false); setPastedSource(""); void uploadSources([file], [pastedSourceKind]); }}>Save source</Button></DialogFooter></DialogContent></Dialog>
 
-      <Dialog open={writeUpOpen} onOpenChange={setWriteUpOpen}><DialogContent className="writeup-dialog"><DialogHeader><DialogTitle>Candidate write-up</DialogTitle><DialogDescription>{hasSavedWriteUp ? "Review the saved submission-style write-up. Unknown facts remain blank." : "Choose the amount of positioning you need. Both options stay source-grounded and use your saved notes."}</DialogDescription></DialogHeader><div className="writeup-mode-options" aria-label="Candidate write-up type"><button type="button" aria-pressed={writeUpMode === "quick"} onClick={() => setWriteUpMode("quick")}><strong>Quick write-up</strong><span>Resume + call notes</span></button><button type="button" aria-pressed={writeUpMode === "role_focused"} onClick={() => setWriteUpMode("role_focused")}><strong>Role-focused submission</strong><span>Resume + notes + JD</span></button></div><div className="writeup-readiness">{resumeReadinessMessage("write_up")}</div><div className="writeup-dialog-body"><SubmissionForm value={submission} onChange={(next) => { setSubmission(next); scheduleDocumentSave("submission", next); }} /></div><DialogFooter><span className={`save-state ${documentSaveState}`}>{saveLabel(documentSaveState)} · {internalUnconfirmed} unconfirmed fact{internalUnconfirmed === 1 ? "" : "s"}</span><Button onClick={() => setWriteUpOpen(false)}>Done</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={brandOpen} onOpenChange={setBrandOpen}><DialogContent className="writeup-dialog"><DialogHeader><DialogTitle>Brand resume</DialogTitle><DialogDescription>Choose the presentation mode defined by the recruitment-skills repository.</DialogDescription></DialogHeader><div className="writeup-mode-options" aria-label="Branded resume presentation mode"><button type="button" aria-pressed={resumeMode === "named_submission"} onClick={() => setResumeMode("named_submission")}><strong>Named submission</strong><span>Candidate name and real employers</span></button><button type="button" aria-pressed={resumeMode === "internal_mpc"} onClick={() => setResumeMode("internal_mpc")}><strong>Internal-team MPC</strong><span>Candidate name and real employers</span></button><button type="button" aria-pressed={resumeMode === "external_blind_mpc"} onClick={() => setResumeMode("external_blind_mpc")}><strong>External-client blind MPC</strong><span>No name, contact details, or real employer names</span></button></div><div className="writeup-readiness">{resumeReadinessMessage("brand")}</div><DialogFooter><Button onClick={() => setBrandOpen(false)}>Done</Button></DialogFooter></DialogContent></Dialog>
+
+      <Dialog open={writeUpOpen} onOpenChange={setWriteUpOpen}><DialogContent className="writeup-dialog"><DialogHeader><DialogTitle>Candidate write-up</DialogTitle><DialogDescription>{hasSavedWriteUp ? "Review the saved candidate submission. Unknown facts remain blank." : "Choose an output set defined by the recruitment-skills repository. Every output stays source-grounded."}</DialogDescription></DialogHeader><div className="writeup-mode-options" aria-label="Candidate write-up output set"><button type="button" aria-pressed={writeUpMode === "candidate_submission"} onClick={() => setWriteUpMode("candidate_submission")}><strong>Candidate submission draft</strong><span>Submission-style write-up only</span></button><button type="button" aria-pressed={writeUpMode === "full_package"} onClick={() => setWriteUpMode("full_package")}><strong>Full after-call package</strong><span>Branded resume, submission, email draft, and Loxo bullets</span></button></div><div className="writeup-readiness">{resumeReadinessMessage("write_up")}</div><div className="writeup-dialog-body"><SubmissionForm value={submission} onChange={(next) => { setSubmission(next); scheduleDocumentSave("submission", next); }} /></div><DialogFooter><span className={`save-state ${documentSaveState}`}>{saveLabel(documentSaveState)} · {internalUnconfirmed} unconfirmed fact{internalUnconfirmed === 1 ? "" : "s"}</span><Button onClick={() => setWriteUpOpen(false)}>Done</Button></DialogFooter></DialogContent></Dialog>
     </main>
   );
 }
