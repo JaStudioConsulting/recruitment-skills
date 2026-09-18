@@ -26,12 +26,17 @@ Deploy: host this behind HTTPS, put the public URL and your OAuth client id into
 real secrets in this repo; supply them as environment variables in the deploy.
 """
 import base64
+import hmac
 import json
 import os
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from candidate_input import SCHEMA_HINT, normalize_candidate  # noqa: E402
 
 try:
     from mcp.server.fastmcp import FastMCP
@@ -54,6 +59,16 @@ DASHBOARD_URI = "ui://tttg/candidate-dashboard"
 FILES_DIR = os.environ.get("FILES_DIR", os.path.join(tempfile.gettempdir(), "tttg-files"))
 PUBLIC_BASE = (os.environ.get("PUBLIC_BASE_URL") or os.environ.get("RENDER_EXTERNAL_URL") or "").rstrip("/")
 _FILE_NAMES: dict = {}
+# Generated resumes hold real candidate data. Delete them after this many
+# seconds (default one hour) so the host never accumulates them.
+FILE_TTL_SECONDS = int(os.environ.get("FILE_TTL_SECONDS", "3600"))
+
+# Access key for the broker. When BROKER_TOKEN is set in the deploy's
+# environment, every /mcp request must present it, either as
+# "Authorization: Bearer <token>" (the Workbench, server to server) or as
+# "?key=<token>" on the connector URL (ChatGPT's no-auth connector mode).
+# Unset means open access, which is only for local testing.
+BROKER_TOKEN = os.environ.get("BROKER_TOKEN", "")
 
 # The MCP SDK applies DNS-rebinding protection (a localhost-server safeguard)
 # that rejects any non-localhost Host header. This is a public HTTPS endpoint, so
@@ -116,15 +131,27 @@ def candidate_dashboard_component() -> str:
     title="Build branded resume PDF",
     description=(
         "Build the finished Top Tier Talent Group branded resume PDF from structured "
-        "candidate data. Preserves every section, strips contact info for the client "
-        "copy, and enforces the house rules. Use when the user asks to brand or format a resume."
+        "candidate data. Use when the user asks to brand or format a resume. "
+        + SCHEMA_HINT
+        + " If the result has ok=false, fix every listed problem and call again."
     ),
     annotations={"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
 )
 def build_pdf(candidate: dict, filename: str | None = None) -> dict:
     """candidate is the candidate.json schema (name, headline, summary, skills[],
     experience[], education[], education_heading?, sections[]). Builds the PDF and
-    returns a download link the user can click, plus the filename and size."""
+    returns a download link the user can click, plus the filename and size.
+    Input is normalized, contact-stripped, and checked for dropped content before
+    the builder runs (see candidate_input.py)."""
+    _sweep_expired_files()
+    candidate, report = normalize_candidate(candidate)
+    if report["problems"]:
+        return {
+            "ok": False,
+            "error": "input_rejected",
+            "problems": report["problems"],
+            "message": "Nothing was built. Fix each problem listed and call build_pdf again.",
+        }
     name = (candidate.get("name") or "Candidate").strip()
     out_name = filename or f"{name} - Top Tier Talent Group.pdf"
     token = uuid.uuid4().hex
@@ -155,7 +182,24 @@ def build_pdf(candidate: dict, filename: str | None = None) -> dict:
         "bytes": size,
         "message": f"Branded resume ready: {out_name}. Click the download link to save it.",
         "builder_output": (result.stdout or "").strip()[-400:],
+        "contact_removed": report["stripped"],
+        "notes": report["notes"],
+        "expires_in_seconds": FILE_TTL_SECONDS,
     }
+
+
+def _sweep_expired_files() -> None:
+    if not os.path.isdir(FILES_DIR):
+        return
+    cutoff = time.time() - FILE_TTL_SECONDS
+    for entry in os.listdir(FILES_DIR):
+        path = os.path.join(FILES_DIR, entry)
+        try:
+            if os.path.getmtime(path) < cutoff:
+                os.remove(path)
+                _FILE_NAMES.pop(entry[:-4], None)
+        except OSError:
+            pass
 
 
 def _not_configured(tool: str, connector: str) -> dict:
@@ -225,6 +269,36 @@ def show_candidates(candidates: list | None = None) -> dict:
     }
 
 
+# ---------------------------------------------------------------- access key
+def _presented_key(scope) -> str:
+    headers = {k.decode().lower(): v.decode() for k, v in scope.get("headers", [])}
+    auth = headers.get("authorization", "")
+    if auth.lower().startswith("bearer "):
+        return auth[7:].strip()
+    from urllib.parse import parse_qs
+
+    return (parse_qs(scope.get("query_string", b"").decode()).get("key") or [""])[0]
+
+
+class _BrokerKeyMiddleware:
+    """Guards /mcp with BROKER_TOKEN. /health and /files stay open: health is an
+    uptime ping, and download links are unguessable one-hour tokens a browser
+    opens directly (it cannot attach a header)."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope.get("path", "").startswith("/mcp"):
+            if not hmac.compare_digest(_presented_key(scope), BROKER_TOKEN):
+                from starlette.responses import JSONResponse
+
+                await JSONResponse({"error": "unauthorized", "message": "Missing or wrong broker key."},
+                                   status_code=401)(scope, receive, send)
+                return
+        await self.app(scope, receive, send)
+
+
 # ---------------------------------------------------------------- ASGI app
 # Hosted runtimes serve this app. It carries the MCP endpoint at /mcp plus two
 # plain HTTP routes: /health (uptime ping) and /files/<token>.pdf (downloads).
@@ -247,6 +321,9 @@ def _build_app():
             media_type="application/pdf",
             filename=_FILE_NAMES.get(token, "resume.pdf"),
         )
+
+    if BROKER_TOKEN:
+        application.add_middleware(_BrokerKeyMiddleware)
 
     application.router.routes.append(Route("/health", health, methods=["GET"]))
     application.router.routes.append(

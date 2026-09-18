@@ -56,6 +56,19 @@ and Loxo actions are stubs you wire to your own connectors and OAuth. Host it ov
 HTTPS, then point `.mcp.json` at its URL. Full steps: `server/README.md`. This is
 optional and separate from the plug-in installs.
 
+**Lock it before real candidate data goes through it.** Set a long random
+`BROKER_TOKEN` in the host's environment settings (never in this repo). Every
+`/mcp` call must then carry that key, or it is refused:
+
+- ChatGPT connector: add it to the connector URL, `https://<your-host>/mcp?key=<BROKER_TOKEN>`,
+  and keep authentication set to No authentication.
+- Workbench or any server caller: send `Authorization: Bearer <BROKER_TOKEN>`.
+
+`/health` and the one-hour PDF download links stay open. Generated PDFs are deleted
+after `FILE_TTL_SECONDS` (default 3600). `build_pdf` checks every resume at the door:
+it fixes near-miss shapes, drops contact fields, and refuses (naming the exact field)
+anything it would otherwise drop or print wrong, so the caller can fix it and retry.
+
 ## What always applies
 - GitHub `main` is the single authority. A local copy is a working copy, never the
   source of truth.
