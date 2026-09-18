@@ -1,0 +1,16 @@
+{
+  "hooksConfig": {
+    "enabled": false
+  },
+  "skills": {
+    "enabled": false
+  },
+  "tools": {
+    "core": []
+  },
+  "security": {
+    "disableYoloMode": true,
+    "disableAlwaysAllow": true,
+    "enablePermanentToolApproval": false
+  }
+}

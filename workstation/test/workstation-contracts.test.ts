@@ -175,6 +175,7 @@ function caseFixture(revisions: {
       submission: document("submission", 1),
       email: document("email", 1),
       loxo_update: document("loxo_update", revisions.loxo_update ?? 1),
+      capability_runs: document("capability_runs", 1),
     },
     sources: [],
     updatedAt: "2026-09-17T12:00:00.000Z",
@@ -239,7 +240,7 @@ describe("candidate history labels", () => {
 });
 
 describe("stored document compatibility", () => {
-  it("adds only a revision-zero Loxo placeholder to a legacy case", () => {
+  it("adds revision-zero placeholders for newly introduced stored outputs", () => {
     const legacyCase = caseFixture({ resume: 7, write_up: 5 });
     const legacyDocuments = DOCUMENT_KINDS.map(
       (kind) => legacyCase.documents[kind],
@@ -255,6 +256,12 @@ describe("stored document compatibility", () => {
       kind: "loxo_update",
       revision: 0,
       content: "",
+      updatedAt: "",
+    });
+    expect(completed.capability_runs).toEqual({
+      kind: "capability_runs",
+      revision: 0,
+      content: {},
       updatedAt: "",
     });
   });
@@ -790,6 +797,7 @@ describe("workstation request schemas", () => {
       "submission",
       "email",
       "loxo_update",
+      "capability_runs",
     ]);
     expect(DOCUMENT_KINDS).toEqual(["resume", "write_up", "submission", "email"]);
   });
@@ -800,7 +808,7 @@ describe("workstation request schemas", () => {
     }
     expect(caseStatusSchema.safeParse("submitted_without_approval").success).toBe(false);
 
-    for (const kind of ["resume", "write_up", "submission", "email", "loxo_update"]) {
+    for (const kind of ["resume", "write_up", "submission", "email", "loxo_update", "capability_runs"]) {
       expect(documentKindSchema.parse(kind)).toBe(kind);
     }
     expect(documentKindSchema.safeParse("tracker_update").success).toBe(false);

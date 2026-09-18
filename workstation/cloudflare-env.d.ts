@@ -8,5 +8,7 @@ declare namespace Cloudflare {
     RECRUITMENT_MCP_URL?: string;
     /** Access key for the resume builder. A Site secret, never committed. */
     BROKER_TOKEN?: string;
+    /** Loopback-only local AI broker. Intentionally unset on the hosted Site. */
+    LOCAL_AI_URL?: string;
   }
 }

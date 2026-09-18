@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "features": [
+    {
+      "id": "brand-resume",
+      "label": "Brand resume",
+      "group": "candidate",
+      "capability_ids": ["brandedresume", "legislator"],
+      "guide_paths": ["recruiter/modules/brandedresume/GUIDE.md", "recruiter/modules/legislator/GUIDE.md"],
+      "contract_paths": ["../docs/templates/branded-resume-contract.md"],
+      "result_kind": "resume",
+      "runtime": "local_ai",
+      "requirements": [{ "id": "resume", "label": "Reviewed resume", "kind": "source", "source_kinds": ["resume"], "required": true }],
+      "outside_world": false
+    },
+    {
+      "id": "write-up-candidate",
+      "label": "Write up candidate",
+      "group": "candidate",
+      "capability_ids": ["write-up", "brandedresume"],
+      "guide_paths": ["recruiter/modules/write-up/GUIDE.md", "recruiter/modules/brandedresume/GUIDE.md"],
+      "contract_paths": ["../docs/templates/submission-data-contract.md", "../docs/templates/presentation-email-contract.md", "../docs/templates/branded-resume-contract.md"],
+      "result_kind": "submission",
+      "runtime": "local_ai",
+      "requirements": [
+        { "id": "resume", "label": "Reviewed resume", "kind": "source", "source_kinds": ["resume"], "required": true },
+        { "id": "call-evidence", "label": "Reviewed call notes or transcript", "kind": "source", "source_kinds": ["call_notes", "transcript"], "required": true },
+        { "id": "job-description", "label": "Reviewed job description", "kind": "source", "source_kinds": ["job_description"], "required": true }
+      ],
+      "outside_world": true,
+      "outside_world_note": "Gmail, Loxo, and Tracker actions are not connected. This saves drafts only."
+    },
+    {
+      "id": "vet-candidate",
+      "label": "Vet/screen candidate",
+      "group": "candidate",
+      "capability_ids": ["vet", "ja-candidate-vetting"],
+      "guide_paths": ["recruiter/modules/vet/GUIDE.md", "recruiter/modules/ja-candidate-vetting/GUIDE.md"],
+      "result_kind": "document",
+      "runtime": "local_ai",
+      "requirements": [
+        { "id": "resume", "label": "Reviewed resume", "kind": "source", "source_kinds": ["resume"], "required": true },
+        { "id": "job-description", "label": "Reviewed job description", "kind": "source", "source_kinds": ["job_description"], "required": true }
+      ],
+      "outside_world": false
+    },
+    {
+      "id": "defend-candidate",
+      "label": "Defend a borderline candidate",
+      "group": "candidate",
+      "capability_ids": ["candidate-defense"],
+      "guide_paths": ["recruiter/modules/candidate-defense/GUIDE.md"],
+      "result_kind": "document",
+      "runtime": "local_ai",
+      "requirements": [
+        { "id": "resume", "label": "Reviewed resume", "kind": "source", "source_kinds": ["resume"], "required": true },
+        { "id": "job-description", "label": "Reviewed job description", "kind": "source", "source_kinds": ["job_description"], "required": true },
+        { "id": "call-evidence", "label": "Call notes, if available", "kind": "source", "source_kinds": ["call_notes", "transcript"], "required": false }
+      ],
+      "outside_world": false
+    },
+    {
+      "id": "interview-prep-pdf",
+      "label": "Interview prep PDF",
+      "group": "candidate",
+      "capability_ids": ["interview-prep-material"],
+      "guide_paths": ["recruiter/modules/interview-prep-material/GUIDE.md"],
+      "contract_paths": ["recruiter/modules/interview-prep-material/references/content-contract.md"],
+      "result_kind": "pdf",
+      "runtime": "server_pending",
+      "requirements": [
+        { "id": "job-description", "label": "Reviewed current job description", "kind": "source", "source_kinds": ["job_description"], "required": true },
+        { "id": "company-evidence", "label": "Current company and location evidence plus approved images", "kind": "user_input", "required": true }
+      ],
+      "outside_world": false,
+      "server_tool": "build_interview_prep_pdf"
+    },
+    {
+      "id": "reference-check-pdf",
+      "label": "Reference check PDF",
+      "group": "candidate",
+      "capability_ids": ["complete-reference-check"],
+      "guide_paths": ["recruiter/modules/complete-reference-check/GUIDE.md"],
+      "contract_paths": ["recruiter/modules/complete-reference-check/references/reference-check-standard.md", "recruiter/modules/complete-reference-check/references/template-contract.md"],
+      "result_kind": "pdf",
+      "runtime": "server_pending",
+      "requirements": [
+        { "id": "reference-evidence", "label": "Reviewed reference transcript or notes", "kind": "source", "source_kinds": ["call_notes", "transcript"], "required": true },
+        { "id": "reference-details", "label": "Candidate, role, client, referee, completed-by, and date details", "kind": "user_input", "required": true }
+      ],
+      "outside_world": false,
+      "server_tool": "build_reference_check_pdf"
+    },
+    {
+      "id": "offer-letter",
+      "label": "Offer letter",
+      "group": "candidate",
+      "capability_ids": ["offer-letter"],
+      "guide_paths": ["recruiter/modules/offer-letter/GUIDE.md"],
+      "result_kind": "form",
+      "runtime": "local_ai",
+      "requirements": [{ "id": "offer-details", "label": "Confirmed offer, company, manager, pay, start-date, and signing details", "kind": "user_input", "required": true }],
+      "outside_world": true,
+      "outside_world_note": "This creates an editable draft only. It does not issue or send an offer."
+    },
+    {
+      "id": "cover-letter",
+      "label": "Cover letter",
+      "group": "candidate",
+      "capability_ids": ["cover-letter"],
+      "guide_paths": ["recruiter/modules/cover-letter/GUIDE.md"],
+      "result_kind": "document",
+      "runtime": "local_ai",
+      "requirements": [
+        { "id": "resume", "label": "Reviewed resume", "kind": "source", "source_kinds": ["resume"], "required": true },
+        { "id": "job-description", "label": "Reviewed job description", "kind": "source", "source_kinds": ["job_description"], "required": true }
+      ],
+      "outside_world": false
+    },
+    {
+      "id": "source-candidates",
+      "label": "Source candidates",
+      "group": "role",
+      "capability_ids": ["sourcing", "web-sourcing"],
+      "guide_paths": ["recruiter/modules/sourcing/GUIDE.md", "recruiter/modules/web-sourcing/GUIDE.md"],
+      "result_kind": "table",
+      "runtime": "local_ai_web",
+      "requirements": [
+        { "id": "role", "label": "Selected role", "kind": "role", "required": true },
+        { "id": "job-description", "label": "Reviewed job description or sourcing criteria", "kind": "source_or_input", "source_kinds": ["job_description"], "required": true }
+      ],
+      "outside_world": false
+    },
+    {
+      "id": "screen-applicants",
+      "label": "Screen applicants for this role",
+      "group": "role",
+      "capability_ids": ["applicant-screening"],
+      "guide_paths": ["recruiter/modules/applicant-screening/GUIDE.md"],
+      "result_kind": "table",
+      "runtime": "local_ai",
+      "requirements": [
+        { "id": "job-description", "label": "Reviewed job description", "kind": "source", "source_kinds": ["job_description"], "required": true },
+        { "id": "applicants", "label": "Applicant resumes or profiles", "kind": "user_input", "required": true }
+      ],
+      "outside_world": false
+    },
+    {
+      "id": "draft-job-posting",
+      "label": "Draft job posting",
+      "group": "role",
+      "capability_ids": ["job-loxo"],
+      "guide_paths": ["recruiter/modules/job-loxo/GUIDE.md"],
+      "result_kind": "document",
+      "runtime": "local_ai",
+      "requirements": [
+        { "id": "role", "label": "Selected role", "kind": "role", "required": true },
+        { "id": "job-description", "label": "Reviewed role details or job description", "kind": "source_or_input", "source_kinds": ["job_description"], "required": true }
+      ],
+      "outside_world": true,
+      "outside_world_note": "This saves a draft only. It does not create or publish a Loxo job."
+    },
+    {
+      "id": "loxo-pipeline-review",
+      "label": "Loxo pipeline review",
+      "group": "pipeline",
+      "capability_ids": ["loxo", "loxo-readonly-candidate-dashboard", "loxo-pipeline"],
+      "guide_paths": ["recruiter/modules/loxo/GUIDE.md", "recruiter/modules/loxo-readonly-candidate-dashboard/GUIDE.md", "recruiter/modules/loxo-pipeline/GUIDE.md"],
+      "result_kind": "table",
+      "runtime": "loxo_read_adapter",
+      "requirements": [{ "id": "loxo", "label": "Connected read-only Loxo adapter", "kind": "adapter", "adapter": "loxo", "required": true }],
+      "outside_world": false
+    },
+    {
+      "id": "tracker-review",
+      "label": "Tracker",
+      "group": "pipeline",
+      "capability_ids": ["tracker"],
+      "guide_paths": ["recruiter/modules/tracker/GUIDE.md", "tracker-manager/GUIDE.md"],
+      "contract_paths": ["tracker-manager/references/row-contract.md", "tracker-manager/references/contract.json"],
+      "result_kind": "table",
+      "runtime": "tracker_read_adapter",
+      "requirements": [{ "id": "tracker", "label": "Connected read-only Tracker adapter", "kind": "adapter", "adapter": "tracker", "required": true }],
+      "outside_world": false
+    },
+    {
+      "id": "linkedin-post",
+      "label": "LinkedIn post",
+      "group": "writing",
+      "capability_ids": ["linkedin-posts", "ja-writer"],
+      "guide_paths": ["recruiter/modules/linkedin-posts/GUIDE.md", "recruiter/modules/ja-writer/GUIDE.md"],
+      "result_kind": "document",
+      "runtime": "local_ai",
+      "requirements": [{ "id": "post-brief", "label": "Post topic, audience, and facts", "kind": "user_input", "required": true }],
+      "outside_world": true,
+      "outside_world_note": "This saves copy only. It does not publish to LinkedIn."
+    },
+    {
+      "id": "email-in-my-voice",
+      "label": "Email in my voice",
+      "group": "writing",
+      "capability_ids": ["ja-writer"],
+      "guide_paths": ["recruiter/modules/ja-writer/GUIDE.md"],
+      "result_kind": "document",
+      "runtime": "local_ai",
+      "requirements": [{ "id": "email-brief", "label": "Recipient context, purpose, and confirmed facts", "kind": "user_input", "required": true }],
+      "outside_world": true,
+      "outside_world_note": "This saves an editable draft only. Gmail is not connected and nothing is sent."
+    }
+  ]
+}

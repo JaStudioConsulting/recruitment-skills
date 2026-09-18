@@ -11,13 +11,14 @@ export function defaultDocumentContent(
 ): CaseDocument["content"] {
   if (kind === "resume") return EMPTY_RESUME;
   if (kind === "submission") return EMPTY_SUBMISSION;
+  if (kind === "capability_runs") return {};
   return "";
 }
 
 /**
  * Complete a stored document set without rewriting any document already saved.
- * The revision-zero Loxo placeholder lets pre-existing cases opt into the new
- * output on first save while all legacy documents keep their content/revision.
+ * Revision-zero placeholders let pre-existing cases opt into newly introduced
+ * document kinds on first save while legacy documents keep their content.
  */
 export function completeStoredDocuments(
   documents: readonly CaseDocument[],
