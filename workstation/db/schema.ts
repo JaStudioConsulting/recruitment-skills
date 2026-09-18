@@ -80,7 +80,7 @@ export const caseDocuments = sqliteTable(
       .notNull()
       .references(() => candidateCases.id, { onDelete: "restrict" }),
     kind: text("kind", {
-      enum: ["resume", "write_up", "submission", "email", "loxo_update"],
+      enum: ["resume", "write_up", "submission", "email", "loxo_update", "capability_runs"],
     }).notNull(),
     contentJson: text("content_json").notNull(),
     revision: integer("revision").notNull().default(1),

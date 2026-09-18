@@ -401,12 +401,11 @@ export async function saveCaseDocument(
   }
   const timestamp = now();
 
-  // Existing cases predate loxo_update. Hydration presents that missing row as
-  // revision 0, and its first save atomically materializes revision 1. No other
-  // document kind may use revision 0 to recreate a missing or deleted row.
+  // Existing cases predate loxo_update and capability_runs. Hydration presents
+  // either missing row as revision 0, then first save materializes revision 1.
   if (expectedRevision === 0) {
-    if (kind !== "loxo_update") {
-      throw new ApiError(409, "Only a missing Loxo update document may start at revision 0.", {
+    if (kind !== "loxo_update" && kind !== "capability_runs") {
+      throw new ApiError(409, "Only a newly introduced document may start at revision 0.", {
         currentRevision: null,
       });
     }
@@ -640,4 +639,15 @@ export async function getOwnedSource(userId: string, caseId: string, sourceId: s
     .limit(1);
   if (!source) throw new ApiError(404, "Source was not found.");
   return source;
+}
+
+export async function getCapabilityCaseContext(userId: string, caseId: string) {
+  const db = getDb();
+  const candidateCase = await getCandidateCase(userId, caseId);
+  const [[role], [candidate]] = await Promise.all([
+    db.select().from(roles).where(and(eq(roles.id, candidateCase.roleId), eq(roles.ownerId, userId))).limit(1),
+    db.select().from(candidates).where(and(eq(candidates.id, candidateCase.candidateId), eq(candidates.ownerId, userId))).limit(1),
+  ]);
+  if (!role || !candidate) throw new ApiError(404, "The selected role or candidate was not found.");
+  return { candidateCase, role: roleRecord(role), candidate: candidateRecord(candidate) };
 }

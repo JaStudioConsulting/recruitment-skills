@@ -37,6 +37,7 @@ import uuid
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from candidate_input import SCHEMA_HINT, normalize_candidate  # noqa: E402
+from local_ai import cancel_run, provider_catalog, request_rejection, run_feature  # noqa: E402
 
 try:
     from mcp.server.fastmcp import FastMCP
@@ -334,10 +335,53 @@ def _build_app():
             filename=_FILE_NAMES.get(token, "resume.pdf"),
         )
 
+    def local_ai_guard(request, *, require_json: bool = False):
+        rejection = request_rejection(
+            enabled=os.environ.get("LOCAL_AI_ENABLED") == "1",
+            client_host=request.client.host if request.client else None,
+            headers=dict(request.headers),
+            expected_token=os.environ.get("LOCAL_AI_TOKEN", ""),
+            require_json=require_json,
+        )
+        return JSONResponse(rejection[1], status_code=rejection[0]) if rejection else None
+
+    async def local_ai_providers(request):
+        rejected = local_ai_guard(request)
+        if rejected:
+            return rejected
+        return JSONResponse({"providers": provider_catalog(), "timeout_seconds": 120})
+
+    async def local_ai_run(request):
+        rejected = local_ai_guard(request, require_json=True)
+        if rejected:
+            return rejected
+        try:
+            payload = await request.json()
+        except Exception:  # noqa: BLE001
+            return JSONResponse({"status": "refused", "detail": "Request body must be valid JSON."}, status_code=400)
+        required = ("feature_id", "provider", "model", "run_id", "context")
+        missing = [name for name in required if name not in payload]
+        if missing:
+            return JSONResponse({"status": "refused", "detail": f"Missing field: {missing[0]}"}, status_code=400)
+        if not isinstance(payload["context"], dict):
+            return JSONResponse({"status": "refused", "detail": "Missing field: context"}, status_code=400)
+        result = await run_feature(str(payload["feature_id"]), str(payload["provider"]), str(payload["model"]), str(payload["run_id"]), payload["context"])
+        return JSONResponse(result)
+
+    async def local_ai_cancel(request):
+        rejected = local_ai_guard(request, require_json=True)
+        if rejected:
+            return rejected
+        cancelled = await cancel_run(request.path_params.get("run_id") or "")
+        return JSONResponse({"status": "cancelled" if cancelled else "not_running"})
+
     if BROKER_TOKEN:
         application.add_middleware(_BrokerKeyMiddleware)
 
     application.router.routes.append(Route("/health", health, methods=["GET"]))
+    application.router.routes.append(Route("/local-ai/providers", local_ai_providers, methods=["GET"]))
+    application.router.routes.append(Route("/local-ai/run", local_ai_run, methods=["POST"]))
+    application.router.routes.append(Route("/local-ai/cancel/{run_id}", local_ai_cancel, methods=["POST"]))
     application.router.routes.append(
         Route("/files/{token}.pdf", download, methods=["GET"])
     )
@@ -351,7 +395,8 @@ except Exception:  # noqa: BLE001
 
 
 if __name__ == "__main__":
-    # Local/hosted run. Render supplies PORT and requires binding 0.0.0.0.
-    mcp.settings.host = os.environ.get("HOST", "0.0.0.0")
-    mcp.settings.port = int(os.environ.get("PORT", "8000"))
-    mcp.run(transport="streamable-http")
+    # Serve the composed app so the local-AI and download routes remain beside
+    # the MCP endpoint. Render supplies PORT and requires binding 0.0.0.0.
+    import uvicorn
+
+    uvicorn.run(app, host=os.environ.get("HOST", "0.0.0.0"), port=int(os.environ.get("PORT", "8000")))

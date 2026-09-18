@@ -1,4 +1,5 @@
 import type { BrandResumeRequest, BrandResumeResult } from "./server/resume-builder";
+import type { CapabilityRunRequest, CapabilityRunResponse } from "./capabilities/types";
 import type { CandidateCase, CandidateRecord, CaseDocument, RoleRecord, SourceKind, StoredDocumentKind, WorkspacePayload } from "./workstation-types";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -21,6 +22,8 @@ export const workstationApi = {
   updateCase: (caseId: string, input: { expectedRevision: number; notes?: string; notesDrawingSvg?: string; notesFont?: string; notesSize?: number; status?: string }) => request<CandidateCase>(`/api/cases/${caseId}`, { method: "PATCH", body: JSON.stringify(input) }),
   brandResume: (caseId: string, input: BrandResumeRequest) => request<BrandResumeResult>(`/api/cases/${caseId}/brand-resume`, { method: "POST", body: JSON.stringify(input) }),
   saveDocument: (caseId: string, kind: StoredDocumentKind, input: { expectedRevision: number; content: CaseDocument["content"] }) => request<CaseDocument>(`/api/cases/${caseId}/documents/${kind}`, { method: "PUT", body: JSON.stringify(input) }),
+  runCapability: (caseId: string, featureId: string, input: CapabilityRunRequest) => request<CapabilityRunResponse>(`/api/cases/${caseId}/capabilities/${featureId}`, { method: "POST", body: JSON.stringify(input) }),
+  cancelCapability: (caseId: string, runId: string) => request<{ status: "cancelled" | "not_running" }>(`/api/cases/${caseId}/capabilities/cancel/${runId}`, { method: "POST" }),
   async uploadSource(caseId: string, kind: SourceKind, file: File): Promise<CandidateCase> {
     const body = new FormData(); body.set("kind", kind); body.set("file", file);
     const response = await fetch(`/api/cases/${caseId}/sources`, { method: "POST", body });

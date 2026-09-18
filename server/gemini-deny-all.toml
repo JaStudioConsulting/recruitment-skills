@@ -1,0 +1,7 @@
+[[rule]]
+name = "Workbench deny all model tools"
+toolName = "*"
+decision = "deny"
+priority = 999
+denyMessage = "Workbench AI runs cannot use shell, files, tools, agents, or connectors."
+

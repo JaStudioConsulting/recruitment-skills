@@ -14,6 +14,7 @@ export const documentKindSchema = z.enum([
   "submission",
   "email",
   "loxo_update",
+  "capability_runs",
 ]);
 
 export const createRoleSchema = z.object({

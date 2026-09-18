@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { CapabilityEngine } from "@/components/workstation/capability-engine";
 import { HandwritingCanvas } from "@/components/workstation/handwriting-canvas";
 import { ResumeFormEditor } from "@/components/workstation/resume-form";
 import {
@@ -29,6 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { workstationApi } from "@/lib/api-client";
+import type { CapabilityDraft, CapabilityRunsDocument } from "@/lib/capabilities/types";
 import { buildCaseHistoryEntries } from "@/lib/case-history";
 import { mergeCandidateCaseSnapshots } from "@/lib/case-merge";
 import { emptyResumeForm, resumeFormHasContent, resumeFormToCandidate, toResumeForm, type ResumeFormDocument } from "@/lib/resume-form";
@@ -103,6 +105,13 @@ function contentAsSubmission(document: CaseDocument | undefined) {
   return { ...EMPTY_SUBMISSION };
 }
 
+function contentAsCapabilityRuns(document: CaseDocument | undefined): CapabilityRunsDocument {
+  if (document?.content && typeof document.content === "object" && !Array.isArray(document.content) && !("blocks" in document.content) && !("format" in document.content)) {
+    return document.content as CapabilityRunsDocument;
+  }
+  return {};
+}
+
 
 export function RecruiterWorkstation({ user }: { user: User }) {
   const [roles, setRoles] = useState<RoleRecord[]>([]);
@@ -145,6 +154,12 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const [sourcePanelOpen, setSourcePanelOpen] = useState(false);
   const [dropActive, setDropActive] = useState(false);
   const [sourceReviewKinds, setSourceReviewKinds] = useState<Record<string, SourceKind>>({});
+  const [capabilityOpen, setCapabilityOpen] = useState(false);
+  const [initialFeatureId, setInitialFeatureId] = useState("brand-resume");
+  const [capabilityRuns, setCapabilityRuns] = useState<CapabilityRunsDocument>({});
+  const [splitRatio, setSplitRatio] = useState(55);
+  const [isDragging, setIsDragging] = useState(false);
+  const deskGridRef = useRef<HTMLDivElement | null>(null);
   const caseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const documentTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const multiFileInput = useRef<HTMLInputElement | null>(null);
@@ -158,9 +173,10 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     submission: { ...EMPTY_SUBMISSION },
     email: "",
     loxo_update: "",
+    capability_runs: {},
   });
-  const documentVersionRef = useRef<Record<StoredDocumentKind, number>>({ resume: 0, write_up: 0, submission: 0, email: 0, loxo_update: 0 });
-  const documentSavedVersionRef = useRef<Record<StoredDocumentKind, number>>({ resume: 0, write_up: 0, submission: 0, email: 0, loxo_update: 0 });
+  const documentVersionRef = useRef<Record<StoredDocumentKind, number>>({ resume: 0, write_up: 0, submission: 0, email: 0, loxo_update: 0, capability_runs: 0 });
+  const documentSavedVersionRef = useRef<Record<StoredDocumentKind, number>>({ resume: 0, write_up: 0, submission: 0, email: 0, loxo_update: 0, capability_runs: 0 });
   const documentSavePromisesRef = useRef<Partial<Record<StoredDocumentKind, Promise<boolean>>>>({});
 
   const storeCaseRecord = useCallback((next: CandidateCase) => {
@@ -188,6 +204,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     setCaseStatus(next.status);
     setSubmission(contentAsSubmission(next.documents.submission));
     setResumeForm(toResumeForm(next.documents.resume?.content));
+    setCapabilityRuns(contentAsCapabilityRuns(next.documents.capability_runs));
     setBrandResult(null);
     const resumeSources = next.sources
       .filter((source) => source.kind === "resume")
@@ -201,9 +218,10 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       submission: contentAsSubmission(next.documents.submission),
       email: contentAsString(next.documents.email),
       loxo_update: contentAsString(next.documents.loxo_update),
+      capability_runs: contentAsCapabilityRuns(next.documents.capability_runs),
     };
-    documentVersionRef.current = { resume: 0, write_up: 0, submission: 0, email: 0, loxo_update: 0 };
-    documentSavedVersionRef.current = { resume: 0, write_up: 0, submission: 0, email: 0, loxo_update: 0 };
+    documentVersionRef.current = { resume: 0, write_up: 0, submission: 0, email: 0, loxo_update: 0, capability_runs: 0 };
+    documentSavedVersionRef.current = { resume: 0, write_up: 0, submission: 0, email: 0, loxo_update: 0, capability_runs: 0 };
     setCaseSaveState("saved");
     setDocumentSaveState("saved");
   }, [storeCaseRecord]);
@@ -375,6 +393,48 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     documentTimers.current[kind] = setTimeout(() => void persistDocument(kind), 1100);
   }, [persistDocument]);
 
+  const startResize = useCallback((event: React.PointerEvent) => {
+    event.preventDefault();
+    setIsDragging(true);
+    const move = (pointer: PointerEvent) => {
+      const grid = deskGridRef.current;
+      if (!grid) return;
+      const rect = grid.getBoundingClientRect();
+      setSplitRatio(Math.min(75, Math.max(25, ((pointer.clientX - rect.left) / rect.width) * 100)));
+    };
+    const stop = () => {
+      setIsDragging(false);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop);
+  }, []);
+
+  const applyCapabilityDraft = useCallback((draft: CapabilityDraft) => {
+    if (draft.resume) {
+      setResumeForm(draft.resume);
+      setBrandResult(null);
+      scheduleDocumentSave("resume", draft.resume);
+    }
+    if (draft.submission) {
+      setSubmission(draft.submission);
+      scheduleDocumentSave("submission", draft.submission);
+    }
+    if (draft.emailDraft !== undefined) scheduleDocumentSave("email", draft.emailDraft);
+    if (draft.loxoUpdate !== undefined) scheduleDocumentSave("loxo_update", draft.loxoUpdate);
+  }, [scheduleDocumentSave]);
+
+  const saveCapabilityRuns = useCallback((next: CapabilityRunsDocument) => {
+    setCapabilityRuns(next);
+    scheduleDocumentSave("capability_runs", next);
+  }, [scheduleDocumentSave]);
+
+  const openFeature = (featureId: string) => {
+    setInitialFeatureId(featureId);
+    setCapabilityOpen(true);
+  };
+
   const submitCreation = async () => {
     if (!creationMode || !creationPrimary.trim()) return;
     try {
@@ -446,19 +506,6 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       setSourceBusy(false);
     }
   };
-
-  const assistant = activeCase?.assistant || {
-    missing: ["Select a role and candidate to start."],
-    askNext: [],
-    fitConcern: "No candidate case is open.",
-    nextAction: "Choose the current role and candidate.",
-  };
-  const unreviewedSourceCount = activeCase?.sources.filter((source) => source.lifecycleStatus !== "reviewed").length ?? 0;
-  const questionMessage = !activeCase?.sources.length
-    ? "Add the resume and call notes first. Add a JD only when you want a role-focused submission."
-    : unreviewedSourceCount > 0
-      ? `Review ${unreviewedSourceCount} source${unreviewedSourceCount === 1 ? "" : "s"} before an evidence-based question set can run.`
-      : assistant.askNext.join("\n") || "No material questions have been generated because the recruiter runtime is not connected.";
 
   const internalUnconfirmed = useMemo(() => {
     if (!activeCase) return 0;
@@ -546,11 +593,6 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     setActionMessage(resumeReadinessMessage("brand"));
     setBrandOpen(true);
   };
-  const openCandidateWriteUp = () => {
-    setActionMessage(resumeReadinessMessage("write_up"));
-    setWriteUpOpen(true);
-  };
-
   if (loading && !roles.length && !candidates.length) {
     return <main className="center-state"><LoaderCircle className="spin" /> Loading workstation</main>;
   }
@@ -594,7 +636,11 @@ export function RecruiterWorkstation({ user }: { user: User }) {
 
       {pageError ? <div className="error-banner"><AlertTriangle size={17} />{pageError}<Button size="sm" variant="outline" onClick={() => { setLoading(true); setPageError(""); void loadWorkspace(); }}>Retry</Button></div> : null}
 
-      <section className={`desk-grid${notesFocused ? " notes-focus" : ""}`}>
+      <section
+        ref={deskGridRef}
+        className={`desk-grid${notesFocused ? " notes-focus" : ""}${isDragging ? " is-resizing" : ""}`}
+        style={notesFocused ? undefined : { gridTemplateColumns: `minmax(280px, ${splitRatio}%) 8px minmax(280px, calc(${100 - splitRatio}% - 8px))` }}
+      >
         <section className="notes-pane" aria-label="Apple Pencil and typed notes">
           <div className="pane-toolbar notes-toolbar">
             <div><h2>Notes</h2><span className={`save-state ${caseSaveState}`}>{saveLabel(caseSaveState)}</span></div>
@@ -660,6 +706,8 @@ export function RecruiterWorkstation({ user }: { user: User }) {
           </div>
         </section>
 
+        {!notesFocused ? <div className="pane-resizer" role="separator" aria-orientation="vertical" aria-label="Resize Notes and Resume panes" aria-valuenow={Math.round(splitRatio)} aria-valuemin={25} aria-valuemax={75} tabIndex={0} onPointerDown={startResize} onKeyDown={(event) => { if (event.key === "ArrowLeft") setSplitRatio((ratio) => Math.max(25, ratio - 3)); if (event.key === "ArrowRight") setSplitRatio((ratio) => Math.min(75, ratio + 3)); }}><div className="resizer-handle" /></div> : null}
+
         <section className="document-pane" aria-label="Candidate resume reference" aria-hidden={notesFocused}>
           {activeCase ? <>
             <div className="pane-toolbar resume-toolbar">
@@ -671,7 +719,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
                 </div>
                 {resumeView === "source" && resumeSources.length > 1 ? <label>Resume<select aria-label="Resume to view" value={selectedResume?.id ?? ""} onChange={(event) => setResumeSourceId(event.target.value)}>{resumeSources.map((source) => <option key={source.id} value={source.id}>{source.filename}</option>)}</select></label> : null}
                 {resumeView === "source" && resumeSourceUrl ? <Button asChild size="sm" variant="outline"><a href={resumeSourceUrl} target="_blank" rel="noreferrer">Open</a></Button> : null}
-                <Button size="sm" className="gold-button" onClick={openBrandResume}><FileText size={16} />Brand resume</Button>
+                <Button size="sm" className="gold-button" onClick={() => openFeature("brand-resume")}><FileText size={16} />Brand resume</Button>
               </div>
             </div>
             {resumeView === "form"
@@ -682,10 +730,13 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       </section>
 
       <section className="action-bar" aria-label="Candidate case actions">
-        <Button disabled={!activeCase} onClick={openCandidateWriteUp}><Play size={18} aria-hidden="true" />{hasSavedWriteUp ? "Review write-up" : "Write up candidate"}</Button>
-        <Button variant="outline" disabled={!activeCase} onClick={() => setActionMessage(questionMessage)}><CircleHelp size={18} aria-hidden="true" />Questions</Button>
+        <Button disabled={!activeCase} onClick={() => openFeature("write-up-candidate")}><Play size={18} aria-hidden="true" />{hasSavedWriteUp ? "Review write-up" : "Write up candidate"}</Button>
+        <Button variant="outline" disabled={!activeCase} onClick={() => openFeature("vet-candidate")}><CircleHelp size={18} aria-hidden="true" />Vet candidate</Button>
+        <Button variant="outline" disabled={!activeCase} onClick={() => openFeature("brand-resume")}>All features</Button>
         <output className="action-message" aria-live="polite">{actionMessage}</output>
       </section>
+
+      <CapabilityEngine key={initialFeatureId} open={capabilityOpen} onOpenChange={setCapabilityOpen} activeCase={activeCase} roleSelected={Boolean(roleId)} connectors={connectors} runs={capabilityRuns} onRunsChange={saveCapabilityRuns} onDraftChange={applyCapabilityDraft} onOpenBrandResume={openBrandResume} initialFeatureId={initialFeatureId} />
 
       <Dialog open={Boolean(creationMode)} onOpenChange={(open) => { if (!open) setCreationMode(null); }}><DialogContent><DialogHeader><DialogTitle>{creationMode === "role" ? "Add role" : "Add candidate"}</DialogTitle><DialogDescription>This creates an internal workstation record only. It does not create a Loxo or Tracker record.</DialogDescription></DialogHeader><div className="dialog-fields"><label>{creationMode === "role" ? "Role title" : "Candidate name"}<Input value={creationPrimary} onChange={(event) => setCreationPrimary(event.target.value)} /></label><label>{creationMode === "role" ? "Client or company" : "Current title"}<Input value={creationSecondary} onChange={(event) => setCreationSecondary(event.target.value)} /></label></div><DialogFooter><Button variant="outline" onClick={() => setCreationMode(null)}>Cancel</Button><Button onClick={() => void submitCreation()} disabled={!creationPrimary.trim()}>Add</Button></DialogFooter></DialogContent></Dialog>
 

@@ -11,6 +11,7 @@ export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 export const STORED_DOCUMENT_KINDS = [
   ...DOCUMENT_KINDS,
   "loxo_update",
+  "capability_runs",
 ] as const;
 export type StoredDocumentKind = (typeof STORED_DOCUMENT_KINDS)[number];
 
@@ -53,7 +54,7 @@ export type SubmissionDocument = {
   vacation: string; location: string; workStatus: string; interviewAvailability: string;
   startDateNotice: string; reasonForLeaving: string; profileSummary: string;
 };
-export type CaseDocument = { kind: StoredDocumentKind; revision: number; content: OutputData | string | SubmissionDocument | ResumeFormDocument; updatedAt: string };
+export type CaseDocument = { kind: StoredDocumentKind; revision: number; content: OutputData | string | SubmissionDocument | ResumeFormDocument | Record<string, unknown>; updatedAt: string };
 export type CaseSource = {
   id: string;
   kind: SourceKind;
