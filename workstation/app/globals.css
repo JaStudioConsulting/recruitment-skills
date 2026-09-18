@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "../vendor/shadcn-tailwind-4.13.0.css";
+@import "js-draw/Editor.css";
 
 :root {
   --background: #f4f7f6;
@@ -88,6 +89,8 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
 .error-banner { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; margin: 14px 30px 0; padding: 11px 14px; border: 1px solid #edc4bf; border-radius: 9px; color: #84271f; background: #fff3f1; }
 .error-banner button { margin-left: auto; }
 .desk-grid { min-height: 0; flex: 1 1 0; display: grid; grid-template-columns: minmax(460px, 1.35fr) minmax(360px, .85fr); gap: 12px; overflow: hidden; padding: 16px 24px 10px; }
+.desk-grid.notes-focus { grid-template-columns: minmax(0, 1fr); }
+.desk-grid.notes-focus .document-pane { display: none; }
 .notes-pane, .document-pane { min-width: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); border-radius: 9px; background: white; box-shadow: 0 4px 15px rgb(31 64 51 / 4%); }
 .pane-toolbar { min-height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 18px; border-bottom: 1px solid var(--border); }
 .pane-toolbar h2 { margin: 0; font-size: 22px; letter-spacing: -.025em; }
@@ -95,11 +98,30 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
 .save-state { color: #6b7a73; font-size: 12px; font-weight: 700; }
 .save-state.saved { color: #2f7d4a; }
 .save-state.failed { color: #b42318; }
+.notes-toolbar-actions { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.notes-mode-switch { display: flex; padding: 3px; border: 1px solid var(--border); border-radius: 7px; background: #f3f6f4; }
+.notes-mode-switch button { min-height: 34px; padding: 0 12px; border: 0; border-radius: 5px; background: transparent; color: #637169; font-size: 13px; font-weight: 750; }
+.notes-mode-switch button[aria-pressed="true"] { background: white; color: var(--primary); box-shadow: 0 1px 3px rgb(23 79 63 / 14%); }
 .notes-controls { display: flex; align-items: center; gap: 8px; }
 .notes-controls label { display: flex; align-items: center; gap: 6px; color: #64736c; font-size: 12px; font-weight: 650; }
 .notes-controls select { min-height: 44px; max-width: 116px; border: 1px solid var(--border); border-radius: 6px; padding: 0 8px; background: white; }
+.notes-focus-button { flex: 0 0 auto; width: 40px; height: 40px; }
+.notes-workspace { position: relative; min-height: 0; flex: 1 1 0; margin: 12px; }
+.notes-mode-panel { position: absolute; inset: 0; display: flex; min-width: 0; min-height: 0; visibility: hidden; opacity: 0; pointer-events: none; }
+.notes-mode-panel.active { visibility: visible; opacity: 1; pointer-events: auto; }
 .scribble-surface { min-height: 0; flex: 1 1 0; resize: none; margin: 12px; width: calc(100% - 24px); overflow: auto; border-color: #dce4e0; border-radius: 6px; padding: 18px; line-height: 1.55; background: #fff; box-shadow: inset 0 1px 2px rgb(24 42 34 / 2%); }
+.notes-workspace .scribble-surface { width: 100%; height: 100%; margin: 0; }
 .scribble-surface:disabled { background: #f9fbfa; color: #718079; opacity: 1; }
+.handwriting-canvas-shell { position: relative; min-width: 0; min-height: 0; width: 100%; height: 100%; }
+.handwriting-canvas { width: 100%; height: 100%; opacity: 0; }
+.handwriting-canvas[data-ready="true"] { opacity: 1; }
+.handwriting-canvas-state, .handwriting-empty { width: 100%; height: 100%; display: grid; place-items: center; align-content: center; gap: 8px; border: 1px solid #dce4e0; border-radius: 6px; background: #f9fbfa; color: #6a7972; font-size: 14px; text-align: center; }
+.handwriting-canvas-state { position: absolute; inset: 0; z-index: 2; }
+.handwriting-canvas-state.error { color: #84271f; background: #fff3f1; }
+.handwriting-canvas .imageEditorContainer { min-height: 0; height: 100%; overflow: hidden; border: 1px solid #dce4e0; border-radius: 6px; --background-color-1: #fff; --foreground-color-1: #1b2b24; --background-color-2: #f4f7f5; --foreground-color-2: #263a31; --background-color-3: #e8efeb; --foreground-color-3: #174f3f; --selection-background-color: #d9eae3; --selection-foreground-color: #174f3f; --primary-action-foreground-color: #174f3f; }
+.handwriting-canvas .toolbar-edge-toolbar { --toolbar-button-height: 40px; --toolbar-button-size: 40px; }
+.handwriting-canvas .toolbar-root { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; }
+.handwriting-canvas .toolbar-root .toolbar-button { min-width: 38px; }
 .source-area { flex: 0 0 auto; padding: 0 12px 10px; }
 .source-toggle { width: 100%; min-height: 44px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; padding: 0 10px; border: 1px solid #dce4e0; border-radius: 7px; background: #f8faf9; color: #31433b; text-align: left; }
 .source-toggle:hover { background: #eef4f1; }
@@ -213,7 +235,9 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
   .document-pane { height: min(78dvh, 680px); min-height: 520px; }
   .pane-toolbar { align-items: flex-start; }
   .notes-toolbar { flex-direction: column; }
-  .notes-controls { width: 100%; }
+  .notes-toolbar-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+  .notes-controls { flex: 1 1 auto; }
+  .desk-grid.notes-focus .notes-pane { height: min(84dvh, 760px); }
   .source-actions { grid-template-columns: 1fr 1fr; }
   .source-row { grid-template-columns: minmax(0, 1fr) auto; }
   .source-row select, .source-row button, .source-row > small { grid-column: 1 / -1; max-width: none; width: 100%; }

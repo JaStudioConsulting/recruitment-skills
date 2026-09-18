@@ -35,13 +35,15 @@ export const updateCaseSchema = z
   .object({
     expectedRevision: z.number().int().positive(),
     notes: z.string().max(2_000_000).optional(),
+    notesDrawingSvg: z.string().max(5_000_000).optional(),
     notesFont: z.string().trim().min(1).max(100).optional(),
     notesSize: z.number().int().min(12).max(72).optional(),
     status: caseStatusSchema.optional(),
   })
   .refine(
-    ({ notes, notesFont, notesSize, status }) =>
+    ({ notes, notesDrawingSvg, notesFont, notesSize, status }) =>
       notes !== undefined ||
+      notesDrawingSvg !== undefined ||
       notesFont !== undefined ||
       notesSize !== undefined ||
       status !== undefined,

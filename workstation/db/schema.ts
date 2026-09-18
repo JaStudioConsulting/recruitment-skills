@@ -52,6 +52,7 @@ export const candidateCases = sqliteTable(
       .references(() => candidates.id, { onDelete: "restrict" }),
     status: text("status").notNull().default("active"),
     notes: text("notes").notNull().default(""),
+    notesDrawingSvg: text("notes_drawing_svg").notNull().default(""),
     notesFont: text("notes_font").notNull().default("System"),
     notesSize: integer("notes_size").notNull().default(20),
     revision: integer("revision").notNull().default(1),

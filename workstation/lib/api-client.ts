@@ -17,7 +17,7 @@ export const workstationApi = {
   createRole: (input: { title: string; client: string }) => request<RoleRecord>("/api/roles", { method: "POST", body: JSON.stringify(input) }),
   createCandidate: (input: { name: string; currentTitle: string }) => request<CandidateRecord>("/api/candidates", { method: "POST", body: JSON.stringify(input) }),
   openCase: (input: { roleId: string; candidateId: string }) => request<CandidateCase>("/api/cases", { method: "POST", body: JSON.stringify(input) }),
-  updateCase: (caseId: string, input: { expectedRevision: number; notes?: string; notesFont?: string; notesSize?: number; status?: string }) => request<CandidateCase>(`/api/cases/${caseId}`, { method: "PATCH", body: JSON.stringify(input) }),
+  updateCase: (caseId: string, input: { expectedRevision: number; notes?: string; notesDrawingSvg?: string; notesFont?: string; notesSize?: number; status?: string }) => request<CandidateCase>(`/api/cases/${caseId}`, { method: "PATCH", body: JSON.stringify(input) }),
   saveDocument: (caseId: string, kind: StoredDocumentKind, input: { expectedRevision: number; content: CaseDocument["content"] }) => request<CaseDocument>(`/api/cases/${caseId}/documents/${kind}`, { method: "PUT", body: JSON.stringify(input) }),
   async uploadSource(caseId: string, kind: SourceKind, file: File): Promise<CandidateCase> {
     const body = new FormData(); body.set("kind", kind); body.set("file", file);

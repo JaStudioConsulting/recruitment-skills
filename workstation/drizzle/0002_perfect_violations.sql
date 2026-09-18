@@ -1,0 +1,1 @@
+ALTER TABLE `candidate_cases` ADD `notes_drawing_svg` text DEFAULT '' NOT NULL;

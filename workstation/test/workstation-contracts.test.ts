@@ -161,6 +161,7 @@ function caseFixture(revisions: {
     candidateId: "candidate-1",
     status: "active",
     notes: "",
+    notesDrawingSvg: "",
     notesFont: "System",
     notesSize: 20,
     revision: 2,
@@ -784,11 +785,13 @@ describe("workstation request schemas", () => {
 
   it("requires optimistic revisions and at least one bounded case change", () => {
     expect(updateCaseSchema.safeParse({ expectedRevision: 1, notes: "Call notes" }).success).toBe(true);
+    expect(updateCaseSchema.safeParse({ expectedRevision: 1, notesDrawingSvg: "<svg />" }).success).toBe(true);
     expect(updateCaseSchema.safeParse({ expectedRevision: 1 }).success).toBe(false);
     expect(updateCaseSchema.safeParse({ expectedRevision: 0, notes: "Call notes" }).success).toBe(false);
     expect(updateCaseSchema.safeParse({ expectedRevision: 1, notesSize: 11 }).success).toBe(false);
     expect(updateCaseSchema.safeParse({ expectedRevision: 1, notesSize: 73 }).success).toBe(false);
     expect(updateCaseSchema.safeParse({ expectedRevision: 1, notesFont: "" }).success).toBe(false);
+    expect(updateCaseSchema.safeParse({ expectedRevision: 1, notesDrawingSvg: "x".repeat(5_000_001) }).success).toBe(false);
   });
 
   it("allows revision 0 only for repository-controlled first materialization and validates safe source kinds", () => {

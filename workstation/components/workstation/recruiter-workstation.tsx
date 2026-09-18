@@ -10,12 +10,15 @@ import {
   Link2,
   LoaderCircle,
   Paperclip,
+  PanelRightClose,
+  PanelRightOpen,
   Play,
   Plus,
   UploadCloud,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { HandwritingCanvas } from "@/components/workstation/handwriting-canvas";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +49,7 @@ import {
 
 type User = { id: string; displayName: string };
 type CreationMode = "role" | "candidate" | null;
+type NotesMode = "type" | "draw";
 type ResumeMode = "named_submission" | "internal_mpc" | "external_blind_mpc";
 type WriteUpMode = "candidate_submission" | "full_package";
 
@@ -107,6 +111,9 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const [creationPrimary, setCreationPrimary] = useState("");
   const [creationSecondary, setCreationSecondary] = useState("");
   const [notes, setNotes] = useState("");
+  const [notesDrawingSvg, setNotesDrawingSvg] = useState("");
+  const [notesMode, setNotesMode] = useState<NotesMode>("draw");
+  const [notesFocused, setNotesFocused] = useState(false);
   const [notesFont, setNotesFont] = useState("System");
   const [notesSize, setNotesSize] = useState(20);
   const [caseStatus, setCaseStatus] = useState("active");
@@ -131,7 +138,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const multiFileInput = useRef<HTMLInputElement | null>(null);
   const activeCaseRef = useRef<CandidateCase | null>(null);
-  const caseDraftRef = useRef({ notes: "", notesFont: "System", notesSize: 20, status: "active" });
+  const caseDraftRef = useRef({ notes: "", notesDrawingSvg: "", notesFont: "System", notesSize: 20, status: "active" });
   const caseEditVersionRef = useRef(0);
   const caseSavePromiseRef = useRef<Promise<boolean> | null>(null);
   const documentDraftRef = useRef<Record<StoredDocumentKind, CaseDocument["content"]>>({
@@ -155,6 +162,8 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const replaceCase = useCallback((next: CandidateCase) => {
     storeCaseRecord(next);
     setNotes(next.notes);
+    setNotesDrawingSvg(next.notesDrawingSvg);
+    setNotesMode(next.notesDrawingSvg ? "draw" : next.notes.trim() ? "type" : "draw");
     setNotesFont(next.notesFont);
     setNotesSize(next.notesSize);
     setCaseStatus(next.status);
@@ -163,7 +172,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       .filter((source) => source.kind === "resume")
       .sort((left, right) => right.captureTime.localeCompare(left.captureTime));
     setResumeSourceId(resumeSources[0]?.id ?? "");
-    caseDraftRef.current = { notes: next.notes, notesFont: next.notesFont, notesSize: next.notesSize, status: next.status };
+    caseDraftRef.current = { notes: next.notes, notesDrawingSvg: next.notesDrawingSvg, notesFont: next.notesFont, notesSize: next.notesSize, status: next.status };
     caseEditVersionRef.current = 0;
     documentDraftRef.current = {
       resume: contentAsResume(next.documents.resume),
@@ -251,7 +260,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     if (caseTimer.current) clearTimeout(caseTimer.current);
     caseTimer.current = setTimeout(() => void persistCase(), 750);
     return () => { if (caseTimer.current) clearTimeout(caseTimer.current); };
-  }, [activeCase, notes, notesFont, notesSize, caseStatus, persistCase]);
+  }, [activeCase, notes, notesDrawingSvg, notesFont, notesSize, caseStatus, persistCase]);
 
   const persistDocument = useCallback(async (kind: StoredDocumentKind) => {
     if (documentTimers.current[kind]) clearTimeout(documentTimers.current[kind]);
@@ -501,10 +510,27 @@ export function RecruiterWorkstation({ user }: { user: User }) {
 
       {pageError ? <div className="error-banner"><AlertTriangle size={17} />{pageError}<Button size="sm" variant="outline" onClick={() => { setLoading(true); setPageError(""); void loadWorkspace(); }}>Retry</Button></div> : null}
 
-      <section className="desk-grid">
+      <section className={`desk-grid${notesFocused ? " notes-focus" : ""}`}>
         <section className="notes-pane" aria-label="Apple Pencil and typed notes">
-          <div className="pane-toolbar notes-toolbar"><div><h2>Notes</h2><span className={`save-state ${caseSaveState}`}>{saveLabel(caseSaveState)}</span></div><div className="notes-controls"><label>Font<select value={notesFont} disabled={!activeCase} onChange={(event) => { const notesFont = event.target.value; setNotesFont(notesFont); changeCaseDraft({ notesFont }); }}>{FONT_OPTIONS.map((font) => <option key={font}>{font}</option>)}</select></label><label>Size<select value={notesSize} disabled={!activeCase} onChange={(event) => { const notesSize = Number(event.target.value); setNotesSize(notesSize); changeCaseDraft({ notesSize }); }}>{SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}</select></label></div></div>
-          <Textarea className="scribble-surface" aria-label="Candidate notes" disabled={!activeCase} value={notes} onChange={(event) => { const notes = event.target.value; setNotes(notes); changeCaseDraft({ notes }); }} placeholder={activeCase ? "Write with Apple Pencil Scribble or type your call notes." : "Select a role and candidate to open a private case."} style={{ fontFamily: notesFont === "System" ? "var(--font-ui)" : notesFont, fontSize: `${notesSize}px` }} />
+          <div className="pane-toolbar notes-toolbar">
+            <div><h2>Notes</h2><span className={`save-state ${caseSaveState}`}>{saveLabel(caseSaveState)}</span></div>
+            <div className="notes-toolbar-actions">
+              <div className="notes-mode-switch" aria-label="Notes input mode">
+                <button type="button" aria-pressed={notesMode === "draw"} onClick={() => setNotesMode("draw")}>Draw</button>
+                <button type="button" aria-pressed={notesMode === "type"} onClick={() => setNotesMode("type")}>Type</button>
+              </div>
+              {notesMode === "type" ? <div className="notes-controls"><label>Font<select value={notesFont} disabled={!activeCase} onChange={(event) => { const notesFont = event.target.value; setNotesFont(notesFont); changeCaseDraft({ notesFont }); }}>{FONT_OPTIONS.map((font) => <option key={font}>{font}</option>)}</select></label><label>Size<select value={notesSize} disabled={!activeCase} onChange={(event) => { const notesSize = Number(event.target.value); setNotesSize(notesSize); changeCaseDraft({ notesSize }); }}>{SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}</select></label></div> : null}
+              <Button size="icon" variant="outline" className="notes-focus-button" onClick={() => setNotesFocused((focused) => !focused)} aria-label={notesFocused ? "Show resume panel" : "Hide resume panel"} title={notesFocused ? "Show resume" : "Hide resume"}>{notesFocused ? <PanelRightOpen size={17} /> : <PanelRightClose size={17} />}</Button>
+            </div>
+          </div>
+          <div className="notes-workspace">
+            <div className={notesMode === "type" ? "notes-mode-panel active" : "notes-mode-panel"} aria-hidden={notesMode !== "type"}>
+              <Textarea className="scribble-surface" aria-label="Candidate typed notes" disabled={!activeCase} value={notes} onChange={(event) => { const notes = event.target.value; setNotes(notes); changeCaseDraft({ notes }); }} placeholder={activeCase ? "Type notes or use Apple Pencil Scribble." : "Select a role and candidate to open a private case."} style={{ fontFamily: notesFont === "System" ? "var(--font-ui)" : notesFont, fontSize: `${notesSize}px` }} />
+            </div>
+            <div className={notesMode === "draw" ? "notes-mode-panel active" : "notes-mode-panel"} aria-hidden={notesMode !== "draw"}>
+              {activeCase ? <HandwritingCanvas key={activeCase.id} caseId={activeCase.id} disabled={!activeCase} value={notesDrawingSvg} onChange={(notesDrawingSvg) => { setNotesDrawingSvg(notesDrawingSvg); changeCaseDraft({ notesDrawingSvg }); }} /> : <div className="handwriting-empty">Select a role and candidate to start handwriting notes.</div>}
+            </div>
+          </div>
           <div className="source-area">
             <button type="button" className="source-toggle" aria-expanded={sourcePanelOpen} onClick={() => setSourcePanelOpen((open) => !open)}>
               <span>Sources <strong>{activeCase?.sources.length ?? 0}</strong></span>
@@ -542,7 +568,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
           </div>
         </section>
 
-        <section className="document-pane" aria-label="Candidate resume reference">
+        <section className="document-pane" aria-label="Candidate resume reference" aria-hidden={notesFocused}>
           {activeCase ? <>
             <div className="pane-toolbar resume-toolbar">
               <div><h2>Resume</h2>{selectedResume ? <span className={`source-status ${selectedResume.lifecycleStatus}`}>{selectedResume.lifecycleStatus}</span> : null}</div>

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 const workstation = await readFile(new URL("../components/workstation/recruiter-workstation.tsx", import.meta.url), "utf8");
+const handwriting = await readFile(new URL("../components/workstation/handwriting-canvas.tsx", import.meta.url), "utf8");
 
 function rule(selector: string) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -28,6 +29,16 @@ describe("bounded recruiter workstation layout", () => {
     expect(rule(".action-bar")).toMatch(/position:\s*sticky/);
     expect(rule(".action-bar")).toMatch(/bottom:\s*0/);
     expect(rule(".action-bar")).toMatch(/safe-area-inset-bottom/);
+  });
+
+  it("supports persistent drawing notes and a resume-collapse focus view", () => {
+    expect(handwriting).toContain('import("js-draw")');
+    expect(handwriting).toContain("loadFromSVG");
+    expect(handwriting).toContain("toSVG");
+    expect(workstation).toContain('aria-label="Notes input mode"');
+    expect(workstation).toContain('aria-label={notesFocused ? "Show resume panel" : "Hide resume panel"}');
+    expect(rule(".desk-grid.notes-focus")).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    expect(rule(".desk-grid.notes-focus .document-pane")).toMatch(/display:\s*none/);
   });
 
   it("supports stacked portrait and split landscape tablet layouts", () => {
