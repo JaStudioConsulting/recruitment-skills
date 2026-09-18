@@ -74,7 +74,7 @@ const [capabilities, tools, plugins, hosts, workflows] = await Promise.all(["cap
 if ([capabilities, tools, plugins, hosts, workflows].every(Boolean)) {
   if (capabilities.schema_version !== 2 || capabilities.front_door?.id !== "recruiter" || capabilities.front_door?.path !== "recruiter/SKILL.md") problems.push("recruiter must remain the sole front door");
   const capabilityIds = ids(capabilities.capabilities, "capability", problems);
-  if (capabilityIds.size !== 23) problems.push(`expected 23 internal capabilities, found ${capabilityIds.size}`);
+  if (capabilityIds.size !== 24) problems.push(`expected 24 internal capabilities, found ${capabilityIds.size}`);
   for (const item of capabilities.capabilities || []) {
     if (!item.path?.endsWith("/GUIDE.md")) problems.push(`capability ${item.id} must use GUIDE.md`);
     const target = path.resolve(skillsRoot, item.path || "");
