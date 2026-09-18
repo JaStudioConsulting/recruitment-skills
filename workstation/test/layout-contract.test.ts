@@ -35,6 +35,8 @@ describe("bounded recruiter workstation layout", () => {
     expect(handwriting).toContain('import("js-draw")');
     expect(handwriting).toContain("loadFromSVG");
     expect(handwriting).toContain("toSVG");
+    expect(handwriting).toContain("BackgroundComponentBackgroundType.SolidColor");
+    expect(handwriting).toContain("autoresize: true");
     expect(workstation).toContain('aria-label="Notes input mode"');
     expect(workstation).toContain('aria-label={notesFocused ? "Show resume panel" : "Hide resume panel"}');
     expect(rule(".desk-grid.notes-focus")).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)/);

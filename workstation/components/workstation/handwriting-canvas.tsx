@@ -37,7 +37,7 @@ export function HandwritingCanvas({ caseId, disabled, value, onChange }: Handwri
     const listeners: Array<{ remove: () => void }> = [];
 
     void import("js-draw")
-      .then(async ({ Editor: JsDrawEditor, EditorEventType }) => {
+      .then(async ({ BackgroundComponentBackgroundType, Color4, Editor: JsDrawEditor, EditorEventType }) => {
         if (cancelled) return;
         host.replaceChildren();
         editor = new JsDrawEditor(host, {
@@ -52,6 +52,17 @@ export function HandwritingCanvas({ caseId, disabled, value, onChange }: Handwri
 
         if (initialValueRef.current.trim()) await editor.loadFromSVG(initialValueRef.current, true);
         if (cancelled) return;
+
+        // Notes are a continuous writing surface, not a fixed-size document page.
+        // A fill-screen background follows the visible viewport when the Notes panel
+        // is resized, while autoresize keeps strokes outside the old page bounds in
+        // the exported SVG.
+        editor.dispatchNoAnnounce(editor.setBackgroundStyle({
+          color: Color4.white,
+          type: BackgroundComponentBackgroundType.SolidColor,
+          autoresize: true,
+        }), false);
+        editor.rerender();
 
         const saveDrawing = () => {
           if (!editor || disabledRef.current) return;
