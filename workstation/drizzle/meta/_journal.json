@@ -8,6 +8,13 @@
       "when": 1789657988124,
       "tag": "0000_recruiter_workstation",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789691028096,
+      "tag": "0001_yummy_talisman",
+      "breakpoints": true
     }
   ]
 }

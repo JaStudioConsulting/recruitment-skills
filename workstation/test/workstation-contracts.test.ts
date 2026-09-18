@@ -44,12 +44,20 @@ import {
   createRoleSchema,
   documentKindSchema,
   openCaseSchema,
+  reviewSourceSchema,
   saveDocumentSchema,
   sourceKindSchema,
   updateCaseSchema,
 } from "../lib/contracts/workstation";
 import { mergeCandidateCaseSnapshots } from "../lib/case-merge";
-import type { CandidateCase } from "../lib/workstation-types";
+import { completeStoredDocuments } from "../lib/document-model";
+import {
+  DOCUMENT_KINDS,
+  GENERATED_OUTPUT_KINDS,
+  STORED_DOCUMENT_KINDS,
+  type CandidateCase,
+  type StoredDocumentKind,
+} from "../lib/workstation-types";
 
 function expectSyncCode(
   action: () => unknown,
@@ -136,8 +144,12 @@ async function approvalFixture() {
   return { payload, preconditions, preview, grant, idempotencyKey };
 }
 
-function caseFixture(revisions: { resume: number; write_up: number }): CandidateCase {
-  const document = (kind: "resume" | "write_up" | "submission" | "email", revision: number) => ({
+function caseFixture(revisions: {
+  resume: number;
+  write_up: number;
+  loxo_update?: number;
+}): CandidateCase {
+  const document = (kind: StoredDocumentKind, revision: number) => ({
     kind,
     revision,
     content: kind === "resume" ? { time: 0, version: "2.31.0", blocks: [] } : "",
@@ -160,6 +172,7 @@ function caseFixture(revisions: { resume: number; write_up: number }): Candidate
       write_up: document("write_up", revisions.write_up),
       submission: document("submission", 1),
       email: document("email", 1),
+      loxo_update: document("loxo_update", revisions.loxo_update ?? 1),
     },
     sources: [],
     updatedAt: "2026-09-17T12:00:00.000Z",
@@ -168,8 +181,8 @@ function caseFixture(revisions: { resume: number; write_up: number }): Candidate
 
 describe("overlapping case responses", () => {
   it("never regresses a newer document revision when a slower case save arrives", () => {
-    const current = caseFixture({ resume: 2, write_up: 3 });
-    const slowerCaseResponse = caseFixture({ resume: 1, write_up: 2 });
+    const current = caseFixture({ resume: 2, write_up: 3, loxo_update: 4 });
+    const slowerCaseResponse = caseFixture({ resume: 1, write_up: 2, loxo_update: 3 });
     slowerCaseResponse.notes = "newer notes response";
 
     const merged = mergeCandidateCaseSnapshots(current, slowerCaseResponse);
@@ -177,6 +190,44 @@ describe("overlapping case responses", () => {
     expect(merged.notes).toBe("newer notes response");
     expect(merged.documents.resume.revision).toBe(2);
     expect(merged.documents.write_up.revision).toBe(3);
+    expect(merged.documents.loxo_update.revision).toBe(4);
+  });
+});
+
+describe("stored document compatibility", () => {
+  it("adds only a revision-zero Loxo placeholder to a legacy case", () => {
+    const legacyCase = caseFixture({ resume: 7, write_up: 5 });
+    const legacyDocuments = DOCUMENT_KINDS.map(
+      (kind) => legacyCase.documents[kind],
+    );
+
+    const completed = completeStoredDocuments(legacyDocuments);
+
+    for (const kind of DOCUMENT_KINDS) {
+      expect(completed[kind]).toBe(legacyCase.documents[kind]);
+    }
+    expect(completed.write_up).toMatchObject({ kind: "write_up", revision: 5 });
+    expect(completed.loxo_update).toEqual({
+      kind: "loxo_update",
+      revision: 0,
+      content: "",
+      updatedAt: "",
+    });
+  });
+
+  it("preserves an already materialized Loxo update", () => {
+    const current = caseFixture({ resume: 2, write_up: 3, loxo_update: 6 });
+    current.documents.loxo_update.content = "- Salary expectation: $110,000";
+
+    const completed = completeStoredDocuments(
+      STORED_DOCUMENT_KINDS.map((kind) => current.documents[kind]),
+    );
+
+    expect(completed.loxo_update).toBe(current.documents.loxo_update);
+    expect(completed.loxo_update).toMatchObject({
+      revision: 6,
+      content: "- Salary expectation: $110,000",
+    });
   });
 });
 
@@ -682,13 +733,30 @@ describe("stable hashing", () => {
 });
 
 describe("workstation request schemas", () => {
+  it("keeps four canonical generated outputs while retaining legacy write_up storage", () => {
+    expect(GENERATED_OUTPUT_KINDS).toEqual([
+      "resume",
+      "submission",
+      "email",
+      "loxo_update",
+    ]);
+    expect(STORED_DOCUMENT_KINDS).toEqual([
+      "resume",
+      "write_up",
+      "submission",
+      "email",
+      "loxo_update",
+    ]);
+    expect(DOCUMENT_KINDS).toEqual(["resume", "write_up", "submission", "email"]);
+  });
+
   it("accepts only declared case and document enums", () => {
     for (const status of ["active", "screening", "submission_ready", "on_hold", "closed"]) {
       expect(caseStatusSchema.parse(status)).toBe(status);
     }
     expect(caseStatusSchema.safeParse("submitted_without_approval").success).toBe(false);
 
-    for (const kind of ["resume", "write_up", "submission", "email"]) {
+    for (const kind of ["resume", "write_up", "submission", "email", "loxo_update"]) {
       expect(documentKindSchema.parse(kind)).toBe(kind);
     }
     expect(documentKindSchema.safeParse("tracker_update").success).toBe(false);
@@ -723,16 +791,25 @@ describe("workstation request schemas", () => {
     expect(updateCaseSchema.safeParse({ expectedRevision: 1, notesFont: "" }).success).toBe(false);
   });
 
-  it("requires a positive revision for document saves and a safe source kind", () => {
+  it("allows revision 0 only for repository-controlled first materialization and validates safe source kinds", () => {
     expect(
       saveDocumentSchema.safeParse({
         expectedRevision: 2,
         content: { time: 1, blocks: [{ type: "paragraph", data: { text: "Saved text" } }] },
       }).success,
     ).toBe(true);
-    expect(saveDocumentSchema.safeParse({ expectedRevision: 0, content: {} }).success).toBe(false);
-    expect(sourceKindSchema.parse("resume_pdf")).toBe("resume_pdf");
+    expect(saveDocumentSchema.safeParse({ expectedRevision: 0, content: "Loxo update bullets" }).success).toBe(true);
+    expect(saveDocumentSchema.safeParse({ expectedRevision: -1, content: {} }).success).toBe(false);
+    for (const kind of ["job_description", "resume", "transcript", "call_notes", "pasted_text", "other"]) {
+      expect(sourceKindSchema.parse(kind)).toBe(kind);
+    }
+    expect(sourceKindSchema.safeParse("resume_pdf").success).toBe(false);
     expect(sourceKindSchema.safeParse("resume/pdf").success).toBe(false);
     expect(sourceKindSchema.safeParse("<script>").success).toBe(false);
+    expect(reviewSourceSchema.parse({
+      lifecycleStatus: "reviewed",
+      kind: "call_notes",
+    })).toEqual({ lifecycleStatus: "reviewed", kind: "call_notes" });
+    expect(reviewSourceSchema.safeParse({ lifecycleStatus: "classified" }).success).toBe(false);
   });
 });

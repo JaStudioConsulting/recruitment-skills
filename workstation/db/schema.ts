@@ -79,7 +79,7 @@ export const caseDocuments = sqliteTable(
       .notNull()
       .references(() => candidateCases.id, { onDelete: "restrict" }),
     kind: text("kind", {
-      enum: ["resume", "write_up", "submission", "email"],
+      enum: ["resume", "write_up", "submission", "email", "loxo_update"],
     }).notNull(),
     contentJson: text("content_json").notNull(),
     revision: integer("revision").notNull().default(1),
@@ -107,6 +107,9 @@ export const caseSources = sqliteTable(
     sha256: text("sha256").notNull(),
     storageKey: text("storage_key").notNull(),
     reviewStatus: text("review_status").notNull().default("unreviewed"),
+    lifecycleStatus: text("lifecycle_status").notNull().default("uploaded"),
+    parsedText: text("parsed_text"),
+    classificationMethod: text("classification_method"),
     createdBy: text("created_by").notNull(),
     createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },

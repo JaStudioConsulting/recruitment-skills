@@ -13,6 +13,7 @@ export const documentKindSchema = z.enum([
   "write_up",
   "submission",
   "email",
+  "loxo_update",
 ]);
 
 export const createRoleSchema = z.object({
@@ -48,17 +49,27 @@ export const updateCaseSchema = z
   );
 
 export const saveDocumentSchema = z.object({
-  expectedRevision: z.number().int().positive(),
+  // Revision 0 is reserved for first materialization of loxo_update on cases
+  // created before that stored document kind existed. Repository code rejects
+  // revision 0 for every other document kind.
+  expectedRevision: z.number().int().nonnegative(),
   content: z.unknown().refine((value) => value !== undefined, {
     message: "Document content is required.",
   }),
 });
 
-export const sourceKindSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(60)
-  .regex(/^[a-z0-9_-]+$/i, "Source kind contains unsupported characters.");
+export const sourceKindSchema = z.enum([
+  "job_description",
+  "resume",
+  "transcript",
+  "call_notes",
+  "pasted_text",
+  "other",
+]);
+
+export const reviewSourceSchema = z.object({
+  kind: sourceKindSchema.optional(),
+  lifecycleStatus: z.literal("reviewed"),
+});
 
 export type UpdateCaseInput = z.infer<typeof updateCaseSchema>;
