@@ -1,13 +1,59 @@
 import { describe, expect, it } from "vitest";
+import JSZip from "jszip";
 
 import {
   canReviewSource,
   inspectSourceContent,
+  inspectUploadedSourceContent,
   normalizeSourceLifecycleStatus,
 } from "../lib/server/source-intake";
 
 function bytes(value: string) {
   return new TextEncoder().encode(value).buffer as ArrayBuffer;
+}
+
+function simplePdf(text: string) {
+  const escaped = text.replace(/([\\()])/g, "\\$1");
+  const stream = `BT\n/F1 11 Tf\n72 720 Td\n(${escaped}) Tj\nET`;
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(new TextEncoder().encode(pdf).byteLength);
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xref = new TextEncoder().encode(pdf).byteLength;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  pdf += offsets.slice(1).map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`).join("");
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return new TextEncoder().encode(pdf).buffer as ArrayBuffer;
+}
+
+async function simpleDocx(paragraphs: string[]) {
+  const zip = new JSZip();
+  zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`);
+  zip.folder("_rels")?.file(".rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`);
+  const body = paragraphs
+    .map((paragraph) => `<w:p><w:r><w:t>${paragraph}</w:t></w:r></w:p>`)
+    .join("");
+  zip.folder("word")?.file("document.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}</w:body></w:document>`);
+  const output = await zip.generateAsync({ type: "uint8array" });
+  return output.buffer.slice(output.byteOffset, output.byteOffset + output.byteLength) as ArrayBuffer;
 }
 
 describe("source intake", () => {
@@ -61,6 +107,58 @@ describe("source intake", () => {
       parsedText: null,
       classificationMethod: "filename",
     });
+  });
+
+  it("extracts and classifies text from an uploaded PDF", async () => {
+    const result = await inspectUploadedSourceContent({
+      bytes: simplePdf("Professional Experience Plant Manager Education Certifications Skills"),
+      contentType: "application/pdf",
+      filename: "Alex Morgan Resume.pdf",
+    });
+
+    expect(result).toMatchObject({
+      kind: "resume",
+      lifecycleStatus: "classified",
+      classificationMethod: "filename",
+    });
+    expect(result.parsedText).toContain("Professional Experience");
+  });
+
+  it("fails closed when a DOCX cannot be parsed", async () => {
+    const result = await inspectUploadedSourceContent({
+      bytes: bytes("not a real docx"),
+      contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      filename: "Alex Morgan Resume.docx",
+    });
+
+    expect(result).toMatchObject({
+      kind: "resume",
+      lifecycleStatus: "uploaded",
+      parsedText: null,
+      classificationMethod: "filename",
+    });
+  });
+
+  it("extracts and classifies text from a valid DOCX", async () => {
+    const result = await inspectUploadedSourceContent({
+      bytes: await simpleDocx([
+        "Alex Morgan",
+        "Professional Experience",
+        "Plant Manager",
+        "Education",
+        "Skills",
+      ]),
+      contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      filename: "Alex Morgan Resume.docx",
+    });
+
+    expect(result).toMatchObject({
+      kind: "resume",
+      lifecycleStatus: "classified",
+      classificationMethod: "filename",
+    });
+    expect(result.parsedText).toContain("Professional Experience");
+    expect(result.parsedText).toContain("Plant Manager");
   });
 
   it("honours an explicit canonical source kind for parsed text", () => {

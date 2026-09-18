@@ -4,6 +4,7 @@ import type {
 } from "@/lib/workstation-types";
 
 export const MAX_PARSED_TEXT_BYTES = 2 * 1024 * 1024;
+export const MAX_PARSABLE_DOCUMENT_BYTES = 10 * 1024 * 1024;
 
 const TEXT_CONTENT_TYPES = new Set(["text/plain", "text/markdown"]);
 
@@ -175,4 +176,40 @@ export function inspectSourceContent(input: {
         parsedText,
         classificationMethod: "uncertain",
       };
+}
+
+export async function inspectUploadedSourceContent(input: {
+  bytes: ArrayBuffer;
+  contentType: string;
+  filename: string;
+  requestedKind?: SourceKind;
+}): Promise<SourceIntakeResult> {
+  if (TEXT_CONTENT_TYPES.has(input.contentType)) return inspectSourceContent(input);
+  if (input.bytes.byteLength > MAX_PARSABLE_DOCUMENT_BYTES) return inspectSourceContent(input);
+
+  let parsedText: string | null = null;
+  try {
+    if (input.contentType === "application/pdf") {
+      const { extractText } = await import("unpdf");
+      const result = await extractText(new Uint8Array(input.bytes), { mergePages: true });
+      parsedText = result.text;
+    } else if (input.contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      const mammoth = await import("mammoth");
+      try {
+        parsedText = (await mammoth.extractRawText({ arrayBuffer: input.bytes })).value;
+      } catch (error) {
+        if (typeof Buffer === "undefined") throw error;
+        parsedText = (await mammoth.extractRawText({ buffer: Buffer.from(input.bytes) })).value;
+      }
+    }
+  } catch {
+    return inspectSourceContent(input);
+  }
+
+  if (!parsedText?.trim()) return inspectSourceContent(input);
+  return inspectSourceContent({
+    ...input,
+    bytes: new TextEncoder().encode(parsedText.trim()).buffer as ArrayBuffer,
+    contentType: "text/plain",
+  });
 }

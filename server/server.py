@@ -202,6 +202,18 @@ def _sweep_expired_files() -> None:
             pass
 
 
+def _discard_expired_file(path: str, token: str) -> bool:
+    """Remove an expired generated PDF before a download can serve it."""
+    try:
+        if os.path.getmtime(path) >= time.time() - FILE_TTL_SECONDS:
+            return False
+        os.remove(path)
+        _FILE_NAMES.pop(token, None)
+        return True
+    except OSError:
+        return True
+
+
 def _not_configured(tool: str, connector: str) -> dict:
     return {
         "ok": False,
@@ -314,7 +326,7 @@ def _build_app():
     async def download(request):
         token = (request.path_params.get("token") or "").replace("/", "").replace("..", "")
         path = os.path.join(FILES_DIR, token + ".pdf")
-        if not token or not os.path.exists(path):
+        if not token or not os.path.exists(path) or _discard_expired_file(path, token):
             return PlainTextResponse("Not found or expired.", status_code=404)
         return FileResponse(
             path,

@@ -30,6 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { workstationApi } from "@/lib/api-client";
+import { buildCaseHistoryEntries } from "@/lib/case-history";
 import { mergeCandidateCaseSnapshots } from "@/lib/case-merge";
 import { emptyResumeForm, resumeFormHasContent, resumeFormToCandidate, toResumeForm, type ResumeFormDocument } from "@/lib/resume-form";
 import type { BrandResumeResult } from "@/lib/server/resume-builder";
@@ -72,6 +73,12 @@ const SOURCE_KIND_LABELS: Record<SourceKind, string> = {
   other: "Other",
 };
 const SOURCE_ACCEPT = ".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg";
+const PREFILL_FIELD_LABELS: Partial<Record<keyof SubmissionDocument, string>> = {
+  name: "Name",
+  title: "Title",
+  location: "Location",
+  profileSummary: "Profile Summary",
+};
 
 function saveLabel(state: SaveState) {
   return { saved: "Saved", saving: "Saving", unsaved: "Unsaved", failed: "Save failed" }[state];
@@ -157,6 +164,14 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     activeCaseRef.current = merged;
     setActiveCase(merged);
     setCases((current) => [merged, ...current.filter((item) => item.id !== merged.id)]);
+  }, []);
+
+  const cacheCaseRecord = useCallback((next: CandidateCase) => {
+    setCases((current) => {
+      const existing = current.find((item) => item.id === next.id) ?? null;
+      const merged = mergeCandidateCaseSnapshots(existing, next);
+      return [merged, ...current.filter((item) => item.id !== merged.id)];
+    });
   }, []);
 
   const replaceCase = useCallback((next: CandidateCase) => {
@@ -378,13 +393,15 @@ export function RecruiterWorkstation({ user }: { user: User }) {
 
   const uploadSources = async (files: readonly File[], kinds: readonly SourceKind[] = []) => {
     if (!activeCase || files.length === 0 || sourceBusy) return;
+    const uploadCaseId = activeCase.id;
     if (caseSaveState !== "saved" && !(await persistCase())) return;
     if (documentSaveState !== "saved" && !(await flushDocuments())) return;
     setSourceBusy(true);
     setActionMessage(`Uploading ${files.length} source${files.length === 1 ? "" : "s"}...`);
     try {
-      const next = await workstationApi.uploadSources(activeCase.id, files, kinds);
-      replaceCase(next);
+      const next = await workstationApi.uploadSources(uploadCaseId, files, kinds);
+      if (activeCaseRef.current?.id === uploadCaseId) replaceCase(next);
+      else cacheCaseRecord(next);
       setActionMessage(`${files.length} immutable source${files.length === 1 ? "" : "s"} added. Review the status below.`);
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : "The source could not be uploaded.");
@@ -395,12 +412,30 @@ export function RecruiterWorkstation({ user }: { user: User }) {
 
   const reviewSource = async (sourceId: string, kind?: SourceKind) => {
     if (!activeCase || sourceBusy) return;
+    const reviewCaseId = activeCase.id;
     setSourceBusy(true);
     setActionMessage("Saving source review...");
     try {
-      const next = await workstationApi.reviewSource(activeCase.id, sourceId, kind);
-      replaceCase(next);
-      setActionMessage("Source classification reviewed and saved.");
+      if (caseSaveState !== "saved" && !(await persistCase())) return;
+      if (documentSaveState !== "saved" && !(await flushDocuments())) return;
+      const before = contentAsSubmission(activeCaseRef.current?.documents.submission);
+      const next = await workstationApi.reviewSource(reviewCaseId, sourceId, kind);
+      const after = contentAsSubmission(next.documents.submission);
+      const filled = (Object.keys(PREFILL_FIELD_LABELS) as Array<keyof SubmissionDocument>)
+        .filter((field) => !before[field].trim() && after[field].trim())
+        .map((field) => PREFILL_FIELD_LABELS[field]);
+      if (activeCaseRef.current?.id !== reviewCaseId) {
+        cacheCaseRecord(next);
+      } else {
+        const hasLocalEdits = caseEditVersionRef.current > 0 || STORED_DOCUMENT_KINDS.some(
+          (item) => documentVersionRef.current[item] !== documentSavedVersionRef.current[item],
+        );
+        if (hasLocalEdits) storeCaseRecord(next);
+        else replaceCase(next);
+      }
+      setActionMessage(filled.length
+        ? `Resume confirmed. Filled blank Candidate Write-up fields: ${filled.join(", ")}. Review before use.`
+        : "Source classification reviewed. Existing Candidate Write-up fields were preserved.");
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : "The source review could not be saved.");
     } finally {
@@ -425,6 +460,11 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     if (!activeCase) return 0;
     return activeCase.facts.filter((fact) => fact.status !== "confirmed").length;
   }, [activeCase]);
+
+  const historyEntries = useMemo(
+    () => buildCaseHistoryEntries(cases, candidates, roles),
+    [cases, candidates, roles],
+  );
 
   const resumeSources = useMemo(
     () => activeCase?.sources
@@ -492,7 +532,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       }
       return writeUpMode === "full_package"
         ? "Sources are ready for the repository-defined full package. Generation still needs the authenticated recruiter runtime."
-        : "Resume and call notes are ready for a candidate submission draft. Generation still needs the authenticated recruiter runtime.";
+        : "Reviewed resume facts fill blank Candidate Write-up fields. Call-only facts stay blank until confirmed.";
     }
     return "";
   };
@@ -520,6 +560,24 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       </header>
 
       <section className="context-bar" aria-label="Current recruiting case">
+        <div className="context-control history-control">
+          <span>History</span>
+          <div className="select-wrap">
+            <select
+              aria-label="Candidate history"
+              value={activeCase?.id ?? ""}
+              disabled={!historyEntries.length || caseSaveState === "saving"}
+              onChange={(event) => {
+                const selected = historyEntries.find((item) => item.caseId === event.target.value);
+                if (selected) void openSelectedCase(selected.roleId, selected.candidateId);
+              }}
+            >
+              {!historyEntries.length ? <option value="">No candidate history yet</option> : null}
+              {historyEntries.map((item) => <option key={item.caseId} value={item.caseId}>{item.label}</option>)}
+            </select>
+            <ChevronDown size={16} />
+          </div>
+        </div>
         <ContextSelect label="Role" value={roleId} onChange={(value) => void openSelectedCase(value, candidateId)} onAdd={() => setCreationMode("role")} disabled={caseSaveState === "saving"}>
           <option value="">Select a role...</option>
           {roles.map((item) => <option key={item.id} value={item.id}>{item.title}{item.client ? ` · ${item.client}` : ""}</option>)}
@@ -623,7 +681,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
 
       <Dialog open={brandOpen} onOpenChange={setBrandOpen}><DialogContent className="writeup-dialog"><DialogHeader><DialogTitle>Brand resume</DialogTitle><DialogDescription>Choose the presentation mode defined by the recruitment-skills repository.</DialogDescription></DialogHeader><div className="writeup-mode-options" aria-label="Branded resume presentation mode"><button type="button" aria-pressed={resumeMode === "named_submission"} onClick={() => setResumeMode("named_submission")}><strong>Named submission</strong><span>Candidate name and real employers</span></button><button type="button" aria-pressed={resumeMode === "internal_mpc"} onClick={() => setResumeMode("internal_mpc")}><strong>Internal-team MPC</strong><span>Candidate name and real employers</span></button><button type="button" aria-pressed={resumeMode === "external_blind_mpc"} onClick={() => setResumeMode("external_blind_mpc")}><strong>External-client blind MPC</strong><span>No name, contact details, or real employer names</span></button></div><div className="writeup-readiness">{resumeReadinessMessage("brand")}</div><BrandResult result={brandResult} /><DialogFooter><Button variant="outline" onClick={() => setBrandOpen(false)}>Done</Button><Button className="gold-button" disabled={brandBusy || !activeCase || resumeMode === "external_blind_mpc" || !resumeForm.name.trim() || !resumeFormHasContent(resumeForm)} onClick={() => void buildResumePdf()}>{brandBusy ? <><LoaderCircle className="spin" size={16} />Building (can take a minute)</> : <><FileText size={16} />Build PDF</>}</Button></DialogFooter></DialogContent></Dialog>
 
-      <Dialog open={writeUpOpen} onOpenChange={setWriteUpOpen}><DialogContent className="writeup-dialog"><DialogHeader><DialogTitle>Candidate write-up</DialogTitle><DialogDescription>{hasSavedWriteUp ? "Review the saved candidate submission. Unknown facts remain blank." : "Choose an output set defined by the recruitment-skills repository. Every output stays source-grounded."}</DialogDescription></DialogHeader><div className="writeup-mode-options" aria-label="Candidate write-up output set"><button type="button" aria-pressed={writeUpMode === "candidate_submission"} onClick={() => setWriteUpMode("candidate_submission")}><strong>Candidate submission draft</strong><span>Submission-style write-up only</span></button><button type="button" aria-pressed={writeUpMode === "full_package"} onClick={() => setWriteUpMode("full_package")}><strong>Full after-call package</strong><span>Branded resume, submission, email draft, and Loxo bullets</span></button></div><div className="writeup-readiness">{resumeReadinessMessage("write_up")}</div><div className="writeup-dialog-body"><SubmissionForm value={submission} onChange={(next) => { setSubmission(next); scheduleDocumentSave("submission", next); }} /></div><DialogFooter><span className={`save-state ${documentSaveState}`}>{saveLabel(documentSaveState)} · {internalUnconfirmed} unconfirmed fact{internalUnconfirmed === 1 ? "" : "s"}</span><Button onClick={() => setWriteUpOpen(false)}>Done</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={writeUpOpen} onOpenChange={setWriteUpOpen}><DialogContent className="writeup-dialog"><DialogHeader><DialogTitle>Candidate write-up</DialogTitle><DialogDescription>{hasSavedWriteUp ? "Review the saved candidate submission. Unknown facts remain blank." : "Choose an output set defined by the recruitment-skills repository. Every output stays source-grounded."}</DialogDescription></DialogHeader><div className="writeup-mode-options" aria-label="Candidate write-up output set"><button type="button" aria-pressed={writeUpMode === "candidate_submission"} onClick={() => setWriteUpMode("candidate_submission")}><strong>Candidate submission draft</strong><span>Submission-style write-up only</span></button><button type="button" aria-pressed={writeUpMode === "full_package"} onClick={() => setWriteUpMode("full_package")}><strong>Full after-call package</strong><span>Branded resume, submission, email draft, and Loxo bullets</span></button></div><div className="writeup-readiness">{resumeReadinessMessage("write_up")}</div><p className="prefill-note">Confirmed resumes fill only blank Name, Title, Location, and Profile Summary fields. Existing edits and call-only facts are never overwritten.</p><div className="writeup-dialog-body"><SubmissionForm value={submission} onChange={(next) => { setSubmission(next); scheduleDocumentSave("submission", next); }} /></div><DialogFooter><span className={`save-state ${documentSaveState}`}>{saveLabel(documentSaveState)} · {internalUnconfirmed} unconfirmed fact{internalUnconfirmed === 1 ? "" : "s"}</span><Button onClick={() => setWriteUpOpen(false)}>Done</Button></DialogFooter></DialogContent></Dialog>
     </main>
   );
 }

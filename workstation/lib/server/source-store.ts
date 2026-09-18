@@ -6,7 +6,7 @@ import {
   getOwnedSource,
   insertSource,
 } from "@/lib/server/case-repository";
-import { inspectSourceContent } from "@/lib/server/source-intake";
+import { inspectUploadedSourceContent } from "@/lib/server/source-intake";
 import type { SourceKind } from "@/lib/workstation-types";
 
 const MAX_SOURCE_BYTES = 20 * 1024 * 1024;
@@ -73,7 +73,7 @@ async function storeSource(input: {
   const bytes = await file.arrayBuffer();
   const sha256 = hex(await crypto.subtle.digest("SHA-256", bytes));
   const filename = cleanFilename(file.name);
-  const intake = inspectSourceContent({
+  const intake = await inspectUploadedSourceContent({
     bytes,
     contentType: input.contentType,
     filename,
