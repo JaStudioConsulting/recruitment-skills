@@ -22,6 +22,7 @@ export type CapabilityDraft = {
   loxoUpdate?: string;
   artifact?: { filename: string; downloadUrl: string };
   artifactPayload?: Record<string, unknown>;
+  autofill?: Record<string, string>;
 };
 
 export type CapabilityRunsDocument = Record<string, CapabilityDraft>;
@@ -37,3 +38,7 @@ export type CapabilityRunResponse =
   | { status: "completed"; draft: CapabilityDraft }
   | { status: "cancelled"; detail: string }
   | { status: "local_only" | "unavailable" | "refused"; detail: string; missing?: string[] };
+
+export type ManualArtifactBuildResponse =
+  | { status: "built"; filename: string; downloadUrl: string }
+  | { status: "refused" | "unavailable"; detail: string; problems: Array<{ path: string; message: string }> };

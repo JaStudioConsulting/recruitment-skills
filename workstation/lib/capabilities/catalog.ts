@@ -24,6 +24,8 @@ export type FeatureDefinition = {
   guide_paths: string[];
   contract_paths?: string[];
   result_kind: FeatureResultKind;
+  fields?: string[];
+  columns?: string[];
   runtime: FeatureRuntime;
   requirements: FeatureRequirement[];
   outside_world: boolean;

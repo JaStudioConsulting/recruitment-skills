@@ -1,13 +1,17 @@
 "use client";
 
-import { Check, CircleAlert, Play, Square } from "lucide-react";
+import { Check, CircleAlert, ClipboardCopy, Play, Plus, Square, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ResumeFormEditor } from "@/components/workstation/resume-form";
+import { ManualPdfEditor } from "@/components/workstation/manual-pdf-editor";
 import { FEATURES, FEATURE_GROUPS, missingRequired, requirementStates, type FeatureDefinition } from "@/lib/capabilities/catalog";
+import { fillInAvailable, labelledFieldsText, tableText } from "@/lib/capabilities/manual-drafts";
+import { emptyArtifactPayload, validateManualArtifactPayload, type ManualProblem } from "@/lib/capabilities/manual-artifacts";
+import { autofillCount, clearAutofillSource, createAutofilledDraft } from "@/lib/capabilities/deterministic-autofill";
 import type { CapabilityDraft, CapabilityRunsDocument } from "@/lib/capabilities/types";
 import { workstationApi } from "@/lib/api-client";
 import type { CandidateCase, ConnectorCapability, SubmissionDocument } from "@/lib/workstation-types";
@@ -49,6 +53,8 @@ export function CapabilityEngine({
   const [providerId, setProviderId] = useState("gemini");
   const [model, setModel] = useState("auto");
   const [running, setRunning] = useState(false);
+  const [buildingPdf, setBuildingPdf] = useState(false);
+  const [pdfProblems, setPdfProblems] = useState<ManualProblem[]>([]);
   const [message, setMessage] = useState("");
   const runIdRef = useRef("");
 
@@ -74,6 +80,7 @@ export function CapabilityEngine({
   const draft = runs[feature.id];
   const blockedReason = runtimeBlock(feature);
   const canRun = Boolean(activeCase) && !running && !blockedReason && provider.available && missing.length === 0;
+  const canFill = Boolean(activeCase) && !running && !buildingPdf && fillInAvailable(feature);
 
   const setProvider = (nextId: string) => {
     const next = PROVIDERS.find((item) => item.id === nextId) ?? PROVIDERS[0];
@@ -115,8 +122,50 @@ export function CapabilityEngine({
     setMessage("Cancelled. No result was saved.");
   };
 
+  const fillIn = () => {
+    if (!activeCase || !canFill) return;
+    if (draft && !window.confirm("Replace this feature's saved draft with a new fill-in draft from the reviewed sources?")) return;
+    const filled = createAutofilledDraft(feature, activeCase);
+    onRunsChange({ ...runs, [feature.id]: filled });
+    onDraftChange(filled);
+    setPdfProblems([]);
+    const count = autofillCount(filled);
+    setMessage(count ? `Auto-filled ${count} field${count === 1 ? "" : "s"}. Review before building.` : "Empty draft saved. Fill in only confirmed information.");
+  };
+
+  const buildManualPdf = async () => {
+    if (!activeCase || !draft || draft.resultKind !== "pdf") return;
+    const payload = draft.artifactPayload ?? emptyArtifactPayload(feature.id);
+    const problems = validateManualArtifactPayload(feature.id, payload);
+    setPdfProblems(problems);
+    if (problems.length) {
+      setMessage("Fix the named fields before building the PDF.");
+      return;
+    }
+    setBuildingPdf(true);
+    setMessage("Building (the free server can take up to a minute to wake)");
+    try {
+      const result = await workstationApi.buildCapabilityArtifact(activeCase.id, feature.id, payload);
+      if (result.status !== "built") {
+        setPdfProblems(result.problems);
+        setMessage(result.detail);
+        return;
+      }
+      const updated = { ...draft, artifact: { filename: result.filename, downloadUrl: result.downloadUrl }, updatedAt: new Date().toISOString() };
+      onRunsChange({ ...runs, [feature.id]: updated });
+      onDraftChange(updated);
+      setMessage("PDF built as a draft. Inspect every page before use.");
+    } catch (error) {
+      setPdfProblems([{ path: "payload", message: error instanceof Error ? error.message : "The PDF builder did not finish." }]);
+      setMessage(error instanceof Error ? error.message : "The PDF builder did not finish.");
+    } finally {
+      setBuildingPdf(false);
+    }
+  };
+
   const updateDraft = (next: CapabilityDraft) => {
     const updated = { ...next, updatedAt: new Date().toISOString() };
+    setPdfProblems([]);
     onRunsChange({ ...runs, [feature.id]: updated });
     onDraftChange(updated);
   };
@@ -126,7 +175,7 @@ export function CapabilityEngine({
       <DialogContent className="capability-dialog">
         <DialogHeader>
           <DialogTitle>Recruiting features</DialogTitle>
-          <DialogDescription>Choose plain-language work, pick the AI and model, then review the saved draft. Nothing is sent or published.</DialogDescription>
+          <DialogDescription>Fill in a draft yourself on any host, or optionally draft with local AI. Nothing is sent or published.</DialogDescription>
         </DialogHeader>
         <div className="capability-layout">
           <nav className="capability-nav" aria-label="Recruiting features">
@@ -138,7 +187,7 @@ export function CapabilityEngine({
           </nav>
           <section className="capability-main">
             <div className="capability-heading"><div><h2>{feature.label}</h2><span className="draft-badge">Every result is a draft</span></div><FeatureStatus feature={feature} requirements={requirements} /></div>
-            <div className="requirement-card"><h3>What this needs</h3>{requirements.map((requirement) => <div key={requirement.id} className={requirement.met ? "met" : "missing"}>{requirement.met ? <Check size={15} /> : <CircleAlert size={15} />}<span>{requirement.label}{requirement.required ? "" : " (optional)"}</span></div>)}</div>
+            <div className="requirement-card"><h3>What AI drafting needs</h3>{requirements.map((requirement) => <div key={requirement.id} className={requirement.met ? "met" : "missing"}>{requirement.met ? <Check size={15} /> : <CircleAlert size={15} />}<span>{requirement.label}{requirement.required ? "" : " (optional)"}</span></div>)}</div>
             {feature.outside_world_note ? <p className="outside-note">{feature.outside_world_note}</p> : null}
             <label className="capability-extra">Additional facts or instructions<Textarea value={extraInput} onChange={(event) => setExtraInput(event.target.value)} placeholder="Paste only confirmed information needed for this run." /></label>
             <div className="ai-picker">
@@ -148,13 +197,14 @@ export function CapabilityEngine({
             <p className="provider-detail">{providerDetail}</p>
             {blockedReason ? <p className="capability-message">{blockedReason}</p> : null}
             {message ? <p className="capability-message" role="status">{message}</p> : null}
-            {draft ? <DraftEditor draft={draft} onChange={updateDraft} /> : <div className="capability-empty">No saved draft for this feature yet.</div>}
+            {draft ? <DraftEditor feature={feature} draft={draft} onChange={updateDraft} buildingPdf={buildingPdf} pdfProblems={pdfProblems} onBuildPdf={() => void buildManualPdf()} /> : <div className="capability-empty">Choose Fill in myself to auto-fill an editable draft from reviewed sources. Unrecognized facts stay empty.</div>}
           </section>
         </div>
         <DialogFooter>
           {draft?.resultKind === "resume" ? <Button variant="outline" onClick={() => { onOpenChange(false); onOpenBrandResume(); }}>Review and build PDF</Button> : null}
-          <Button variant="outline" disabled={running} onClick={() => onOpenChange(false)}>Close</Button>
-          {running ? <Button variant="destructive" onClick={() => void cancel()}><Square size={14} />Cancel</Button> : <Button disabled={!canRun} onClick={() => void run()}><Play size={15} />Run feature</Button>}
+          <Button variant="outline" disabled={running || buildingPdf} onClick={() => onOpenChange(false)}>Close</Button>
+          {fillInAvailable(feature) ? <Button variant="outline" disabled={!canFill} onClick={fillIn}>Fill in myself</Button> : null}
+          {running ? <Button variant="destructive" onClick={() => void cancel()}><Square size={14} />Cancel</Button> : <Button disabled={!canRun || buildingPdf} onClick={() => void run()}><Play size={15} />Draft with AI · Local only</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -171,9 +221,7 @@ function runtimeBlock(feature: FeatureDefinition): string {
 function featureStatus(feature: FeatureDefinition, requirements: ReturnType<typeof requirementStates>) {
   const blocked = runtimeBlock(feature);
   if (blocked) return { label: "Not available yet", tone: "blocked" };
-  const missing = missingRequired(requirements);
-  if (missing.length) return { label: `Needs ${missing[0].label.toLowerCase()}`, tone: "needs" };
-  if (feature.runtime === "local_ai" || feature.runtime === "local_ai_web") return { label: "Local only", tone: "local" };
+  void requirements;
   return { label: "Ready", tone: "ready" };
 }
 
@@ -182,14 +230,15 @@ function FeatureStatus({ feature, requirements }: { feature: FeatureDefinition; 
   return <span className={`feature-status large ${status.tone}`}>{status.label}</span>;
 }
 
-function DraftEditor({ draft, onChange }: { draft: CapabilityDraft; onChange: (draft: CapabilityDraft) => void }) {
+function DraftEditor({ feature, draft, onChange, buildingPdf, pdfProblems, onBuildPdf }: { feature: FeatureDefinition; draft: CapabilityDraft; onChange: (draft: CapabilityDraft) => void; buildingPdf: boolean; pdfProblems: ManualProblem[]; onBuildPdf: () => void }) {
   return <div className="capability-result"><div className="capability-result-title"><Input value={draft.title} aria-label="Draft title" onChange={(event) => onChange({ ...draft, title: event.target.value })} /><span>Draft</span></div>
-    {draft.resultKind === "resume" && draft.resume ? <ResumeFormEditor value={draft.resume} onChange={(resume) => onChange({ ...draft, resume })} /> : null}
-    {draft.resultKind === "submission" && draft.submission ? <SubmissionDraft value={draft.submission} onChange={(submission) => onChange({ ...draft, submission })} emailDraft={draft.emailDraft ?? ""} loxoUpdate={draft.loxoUpdate ?? ""} onEmail={(emailDraft) => onChange({ ...draft, emailDraft })} onLoxo={(loxoUpdate) => onChange({ ...draft, loxoUpdate })} /> : null}
-    {(draft.resultKind === "document" || draft.resultKind === "pdf") ? <Textarea className="capability-document" value={draft.document ?? ""} onChange={(event) => onChange({ ...draft, document: event.target.value })} /> : null}
-    {draft.resultKind === "pdf" && draft.artifact ? <div className="outside-note"><a href={draft.artifact.downloadUrl} target="_blank" rel="noreferrer">Download {draft.artifact.filename}</a><br />Visual review of every page is required before use.</div> : null}
-    {draft.resultKind === "form" ? <div className="capability-fields">{(draft.fields ?? []).map((field, index) => <label key={`${field.label}-${index}`}>{field.label}<Textarea value={field.value} onChange={(event) => onChange({ ...draft, fields: draft.fields?.map((item, itemIndex) => itemIndex === index ? { ...item, value: event.target.value } : item) })} /></label>)}</div> : null}
-    {draft.resultKind === "table" && draft.table ? <div className="capability-table-wrap"><table><thead><tr>{draft.table.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}</tr></thead><tbody>{draft.table.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex}><Input aria-label={`${draft.table?.columns[cellIndex]} row ${rowIndex + 1}`} value={cell} onChange={(event) => onChange({ ...draft, table: { columns: draft.table!.columns, rows: draft.table!.rows.map((item, itemIndex) => itemIndex === rowIndex ? item.map((value, valueIndex) => valueIndex === cellIndex ? event.target.value : value) : item) } })} /></td>)}</tr>)}</tbody></table></div> : null}
+    {autofillCount(draft) ? <p className="autofill-summary">Auto-filled {autofillCount(draft)} field{autofillCount(draft) === 1 ? "" : "s"}. Review before building.</p> : null}
+    {draft.resultKind === "resume" && draft.resume ? <ResumeFormEditor value={draft.resume} fieldSources={draft.autofill} onChange={(resume, path) => onChange(path ? clearAutofillSource({ ...draft, resume }, path) : { ...draft, resume })} /> : null}
+    {draft.resultKind === "submission" && draft.submission ? <SubmissionDraft value={draft.submission} fieldSources={draft.autofill} onChange={(submission, path) => onChange(clearAutofillSource({ ...draft, submission }, path))} emailDraft={draft.emailDraft ?? ""} loxoUpdate={draft.loxoUpdate ?? ""} onEmail={(emailDraft) => onChange(clearAutofillSource({ ...draft, emailDraft }, "emailDraft"))} onLoxo={(loxoUpdate) => onChange(clearAutofillSource({ ...draft, loxoUpdate }, "loxoUpdate"))} /> : null}
+    {draft.resultKind === "document" ? <CopyBlock label="Document" text={draft.document ?? ""} source={draft.autofill?.document}><Textarea className="capability-document" aria-label="Document draft" value={draft.document ?? ""} onChange={(event) => onChange(clearAutofillSource({ ...draft, document: event.target.value }, "document"))} /></CopyBlock> : null}
+    {draft.resultKind === "pdf" ? <ManualPdfEditor featureId={feature.id} payload={draft.artifactPayload ?? emptyArtifactPayload(feature.id)} artifact={draft.artifact} building={buildingPdf} problems={pdfProblems} fieldSources={draft.autofill} onChange={(artifactPayload, path) => onChange(clearAutofillSource({ ...draft, artifactPayload, artifact: undefined }, `artifactPayload.${path}`))} onBuild={onBuildPdf} /> : null}
+    {draft.resultKind === "form" ? <CopyBlock label="Offer letter fields" text={labelledFieldsText(draft.fields ?? [])}><div className="capability-fields">{(draft.fields ?? []).map((field, index) => <label key={`${field.label}-${index}`}>{field.label}<SourceMarker source={draft.autofill?.[`fields.${index}.value`]} /><Textarea value={field.value} onChange={(event) => onChange(clearAutofillSource({ ...draft, fields: draft.fields?.map((item, itemIndex) => itemIndex === index ? { ...item, value: event.target.value } : item) }, `fields.${index}.value`))} /></label>)}</div></CopyBlock> : null}
+    {draft.resultKind === "table" && draft.table ? <TableDraft draft={draft} onChange={onChange} /> : null}
     {draft.unknowns.length ? <div className="unknowns"><strong>Confirm before use</strong><ul>{draft.unknowns.map((unknown, index) => <li key={index}>{unknown}</li>)}</ul></div> : null}
   </div>;
 }
@@ -200,6 +249,26 @@ const SUBMISSION_FIELDS: Array<[keyof SubmissionDocument, string]> = [
   ["startDateNotice", "Start Date / Notice Period"], ["reasonForLeaving", "Reason for Leaving"], ["profileSummary", "Profile Summary"],
 ];
 
-function SubmissionDraft({ value, onChange, emailDraft, loxoUpdate, onEmail, onLoxo }: { value: SubmissionDocument; onChange: (value: SubmissionDocument) => void; emailDraft: string; loxoUpdate: string; onEmail: (value: string) => void; onLoxo: (value: string) => void }) {
-  return <div className="capability-fields">{SUBMISSION_FIELDS.map(([key, label]) => <label key={key}>{label}<Textarea value={value[key]} onChange={(event) => onChange({ ...value, [key]: event.target.value })} /></label>)}<label>Email draft<Textarea value={emailDraft} onChange={(event) => onEmail(event.target.value)} /></label><label>Loxo update bullets<Textarea value={loxoUpdate} onChange={(event) => onLoxo(event.target.value)} /></label></div>;
+function SubmissionDraft({ value, fieldSources, onChange, emailDraft, loxoUpdate, onEmail, onLoxo }: { value: SubmissionDocument; fieldSources?: Record<string, string>; onChange: (value: SubmissionDocument, path: string) => void; emailDraft: string; loxoUpdate: string; onEmail: (value: string) => void; onLoxo: (value: string) => void }) {
+  return <div className="manual-output-stack"><CopyBlock label="Candidate submission" text={SUBMISSION_FIELDS.map(([key, label]) => `${label}: ${value[key]}`).join("\n")}><div className="capability-fields">{SUBMISSION_FIELDS.map(([key, label]) => <label key={key}>{label}<SourceMarker source={fieldSources?.[`submission.${key}`]} /><Textarea value={value[key]} onChange={(event) => onChange({ ...value, [key]: event.target.value }, `submission.${key}`)} /></label>)}</div></CopyBlock><CopyBlock label="Email draft" text={emailDraft} copyLabel="Copy all" source={fieldSources?.emailDraft}><Textarea aria-label="Email draft" value={emailDraft} onChange={(event) => onEmail(event.target.value)} /></CopyBlock><CopyBlock label="Loxo update bullets" text={loxoUpdate} source={fieldSources?.loxoUpdate}><Textarea aria-label="Loxo update bullets" value={loxoUpdate} onChange={(event) => onLoxo(event.target.value)} /></CopyBlock></div>;
+}
+
+function CopyBlock({ label, text, copyLabel = "Copy", source, children }: { label: string; text: string; copyLabel?: string; source?: string; children: React.ReactNode }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
+  };
+  return <section className="copy-block"><div className="copy-block-heading"><strong>{label}</strong>{source ? <SourceMarker source={source} /> : null}<Button type="button" size="sm" variant="outline" onClick={() => void copy()}><ClipboardCopy size={14} />{copied ? "Copied" : copyLabel}</Button></div>{children}</section>;
+}
+
+function TableDraft({ draft, onChange }: { draft: CapabilityDraft; onChange: (draft: CapabilityDraft) => void }) {
+  const table = draft.table!;
+  const updateCell = (rowIndex: number, cellIndex: number, value: string) => onChange(clearAutofillSource({ ...draft, table: { columns: table.columns, rows: table.rows.map((row, index) => index === rowIndex ? row.map((cell, column) => column === cellIndex ? value : cell) : row) } }, `table.rows.${rowIndex}.${cellIndex}`));
+  return <CopyBlock label="Editable table" copyLabel="Copy as table" text={tableText(table.columns, table.rows)}><div className="capability-table-actions"><Button type="button" size="sm" variant="outline" onClick={() => onChange({ ...draft, table: { ...table, rows: [...table.rows, table.columns.map(() => "")] } })}><Plus size={14} />Add row</Button></div><div className="capability-table-wrap"><table><thead><tr>{table.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}<th>Row</th></tr></thead><tbody>{table.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex}><SourceMarker source={draft.autofill?.[`table.rows.${rowIndex}.${cellIndex}`]} /><Input aria-label={`${table.columns[cellIndex]} row ${rowIndex + 1}`} value={cell} onChange={(event) => updateCell(rowIndex, cellIndex, event.target.value)} /></td>)}<td><Button type="button" size="sm" variant="outline" aria-label={`Remove row ${rowIndex + 1}`} onClick={() => onChange(clearAutofillSource({ ...draft, table: { ...table, rows: table.rows.filter((_, index) => index !== rowIndex) } }, `table.rows.${rowIndex}`))}><Trash2 size={14} />Remove row</Button></td></tr>)}</tbody></table></div></CopyBlock>;
+}
+
+function SourceMarker({ source }: { source?: string }) {
+  return source ? <small className="autofill-source">from {source}</small> : null;
 }
