@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 
 import { FEATURES } from "../lib/capabilities/catalog";
@@ -111,51 +112,144 @@ describe("manual PDF payloads", () => {
   });
 });
 
+const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
+const lines = (value: string) => value.split(/\r?\n/).filter(Boolean);
+
 const RESUME_LAYOUTS = [
   {
-    name: "single column",
-    text: `Alex Example\nMaintenance Manager\nPROFESSIONAL SUMMARY\nKeeps plant equipment available.\nCORE SKILLS\nPreventive Maintenance, Team Leadership\nPROFESSIONAL EXPERIENCE\nMaintenance Manager\nExample Components | Toronto, ON\nJan 2020 - Present\n- Led maintenance planning.\nEDUCATION\nDiploma, Mechanical Technology`,
-    expected: ["resume.name", "resume.headline", "resume.summary", "resume.skills", "resume.jobs.0.title", "resume.jobs.0.company", "resume.jobs.0.location", "resume.jobs.0.dates", "resume.jobs.0.bullets", "resume.education"],
+    name: "A",
+    text: fixture("resume-layout-a.txt"),
+    expected: {
+      name: "Jordan Mercer",
+      headline: "Operations Manager",
+      summary: "Manufacturing maintenance leader with experience improving equipment reliability.",
+      skills: ["Preventive maintenance planning and weekly scheduling", "CMMS administration", "Team leadership", "Vendor management", "Safety compliance", "Root cause analysis", "Budget control", "Capital projects", "Reliability improvement", "Cross-functional communication"],
+      jobs: [
+        { title: "Maintenance Manager (Contract)", company: "Atlas & Finch (Industrial Services)", location: "Hamilton, ON", dates: "Jan-2023 - Present", bullets: ["Led maintenance planning across three synthetic facilities.", "Managed the maintenance budget."] },
+        { title: "Reliability Supervisor", company: "Blue Maple Foods", location: "Mississauga, ON", dates: "Apr-2020 - Dec-2022", bullets: ["Improved preventive maintenance compliance."] },
+        { title: "Maintenance Planner", company: "Cedar Works Ltd.", location: "Burlington, ON", dates: "Jan-2018 - Mar-2020", bullets: ["Planned weekly work orders."] },
+        { title: "Maintenance Coordinator", company: "Delta Process Systems", location: "Oakville, ON", dates: "2016 - 2017", bullets: ["Coordinated shutdown schedules."] },
+        { title: "Millwright Lead", company: "Evergreen Components", location: "Guelph, ON", dates: "May-2013 - Dec-2015", bullets: ["Led a synthetic trades team."] },
+        { title: "Industrial Mechanic", company: "Foundry Test Group", location: "Cambridge, ON", dates: "Jun-2010 - Apr-2013", bullets: ["Completed corrective maintenance."] },
+      ],
+      education: ["Diploma, Mechanical Engineering Technology - Example College", "Certificate, Maintenance Management - Sample Institute"],
+      sections: [{ heading: "TECHNICAL TOOLS", items: "Maximo\nSAP" }],
+    },
   },
   {
-    name: "pipe header",
-    text: `Blair Sample\nProduction Supervisor\nEXPERIENCE\nProduction Supervisor | Sample Plastics | Feb 2021 - Present\nDirected daily production.\nSKILLS\nScheduling, Safety`,
-    expected: ["resume.name", "resume.headline", "resume.skills", "resume.jobs.0.title", "resume.jobs.0.company", "resume.jobs.0.dates", "resume.jobs.0.bullets"],
+    name: "B",
+    text: fixture("resume-layout-b.txt"),
+    expected: {
+      name: "Morgan Ellis",
+      headline: "Senior Accountant",
+      summary: "Accounting professional with manufacturing reporting and close experience.",
+      skills: ["Month-end close", "Financial reporting", "Inventory accounting", "Variance analysis"],
+      jobs: [
+        { title: "Senior Accountant", company: "Granite Ledger Manufacturing", location: "Toronto, ON", dates: "Feb-2022 - Present", bullets: ["Prepared monthly financial statements.", "Reconciled inventory accounts."] },
+        { title: "Plant Accountant", company: "Harbour Fixture Company", location: "Etobicoke, ON", dates: "2019 - 2021", bullets: ["Supported plant reporting."] },
+      ],
+      education: ["Bachelor of Commerce - Example University"],
+      sections: [],
+    },
   },
   {
-    name: "dates first",
-    text: `Casey Fixture\nPlant Accountant\nWORK HISTORY\n04/2022 - 08/2025\nPlant Accountant\nFixture Industries | Hamilton, ON\nPrepared monthly close.\nEDUCATION\nBachelor of Commerce`,
-    expected: ["resume.name", "resume.headline", "resume.jobs.0.title", "resume.jobs.0.company", "resume.jobs.0.location", "resume.jobs.0.dates", "resume.jobs.0.bullets", "resume.education"],
+    name: "C",
+    text: fixture("resume-layout-c.txt"),
+    expected: {
+      name: "Riley Chen",
+      headline: "Maintenance Director",
+      summary: "Reliability leader with multi-site manufacturing experience.",
+      skills: ["Asset reliability", "Shutdown planning", "Team development"],
+      jobs: [
+        { title: "Maintenance Director", company: "Northwind Foods", location: "Toronto / Mississauga, ON", dates: "2026 - Present", bullets: ["Leads site maintenance strategy."] },
+        { title: "Reliability Manager", company: "Orchard Test Products", location: "Hamilton, ON", dates: "Oct-2016 - 2026", bullets: ["Managed reliability programs."] },
+        { title: "Maintenance Planner", company: "Prairie Components", location: "London, ON", dates: "Jan-2012 - Mar-2016", bullets: ["Planned preventive work."] },
+      ],
+      education: ["Diploma, Industrial Maintenance - Sample College", "CMRP - Synthetic Institute"],
+      sections: [],
+    },
   },
   {
-    name: "year only",
-    text: `Dana Layout\nMaintenance Planner\nEMPLOYMENT\nMaintenance Planner\nYear Only Manufacturing\n2019 - 2021\nPlanned preventive work.`,
-    expected: ["resume.name", "resume.headline", "resume.jobs.0.title", "resume.jobs.0.company", "resume.jobs.0.dates", "resume.jobs.0.bullets"],
-  },
-  {
-    name: "sentence duties",
-    text: `Evan Format\nOperations Manager\nEXPERIENCE\nOperations Manager, Sentence Works (Welland, ON)\nApril 2023 to current\nManaged daily operations. Coordinated production schedules.`,
-    expected: ["resume.name", "resume.headline", "resume.jobs.0.title", "resume.jobs.0.company", "resume.jobs.0.location", "resume.jobs.0.dates", "resume.jobs.0.bullets"],
-  },
-  {
-    name: "messy spacing",
-    text: `  Frankie   Example  \n  Senior   Buyer  \n TECHNICAL SKILLS : \n ERP , Purchasing , Negotiation \n PROFESSIONAL EXPERIENCE : \n Senior Buyer \n Messy Components | London, ON \n Sept 2018 — Mar 2024 \n • Managed supplier contracts.`,
-    expected: ["resume.name", "resume.headline", "resume.skills", "resume.jobs.0.title", "resume.jobs.0.company", "resume.jobs.0.location", "resume.jobs.0.dates", "resume.jobs.0.bullets"],
+    name: "D",
+    text: fixture("resume-layout-d.txt"),
+    expected: {
+      name: "Taylor Dawson",
+      headline: "Manufacturing Leader",
+      summary: "Lead safe maintenance and production improvements in a manufacturing operation.",
+      skills: ["Preventive maintenance planning and scheduling", "Supervisor coaching", "Root cause analysis"],
+      jobs: [
+        { title: "Maintenance Manager (Contract Assignments)", company: "NORTHSTAR INDUSTRIES INC.", location: "SUDBURY, ON", dates: "Apr-2023 - Present", bullets: ["Led maintenance planning for two synthetic production lines.", "Coordinated weekly shutdown work."] },
+        { title: "Reliability Supervisor", company: "EASTERN FABRICATION LTD.", location: "NORTH BAY, ON", dates: "Oct-2022 - Mar-2023", bullets: ["Improved work-order quality and technician follow-through."] },
+        { title: "Maintenance Planner", company: "NORTHERN COMPONENTS INC.", location: "SAULT STE. MARIE, ON", dates: "May-2022 - Sep-2022", bullets: ["Planned preventive tasks and maintained the backlog."] },
+      ],
+      education: ["Industrial Maintenance Certificate - Example College"],
+      sections: [],
+    },
   },
 ] as const;
 
 describe("deterministic source auto-fill", () => {
-  it("parses six synthetic resume layouts and records honest fill rates", () => {
+  it.each(RESUME_LAYOUTS)("parses reviewer layout $name exactly", (layout) => {
+    const parsed = parseResumeText(layout.text, `${layout.name}.txt`);
+    const actualJobs = parsed.form.jobs.map((job) => ({ ...job, bullets: lines(job.bullets) }));
+    expect(parsed.form.name).toBe(layout.expected.name);
+    expect(parsed.form.headline).toBe(layout.expected.headline);
+    expect(parsed.form.summary).toBe(layout.expected.summary);
+    expect(lines(parsed.form.skills)).toEqual(layout.expected.skills);
+    expect(parsed.form.jobs).toHaveLength(layout.expected.jobs.length);
+    expect(actualJobs).toEqual(layout.expected.jobs);
+    expect(actualJobs.map((job) => job.bullets.length)).toEqual(layout.expected.jobs.map((job) => job.bullets.length));
+    expect(lines(parsed.form.education)).toEqual(layout.expected.education);
+    expect(parsed.form.sections).toEqual(layout.expected.sections);
+  });
+
+  it("reports correctness-based field accuracy and dated-job recovery", () => {
     const metrics = RESUME_LAYOUTS.map((layout) => {
       const parsed = parseResumeText(layout.text, `${layout.name}.txt`);
-      const filled = layout.expected.filter((path) => parsed.sources[path]).length;
-      return { layout: layout.name, filled, expected: layout.expected.length, rate: Math.round((filled / layout.expected.length) * 100) };
+      const actualJobs = parsed.form.jobs.map((job) => ({ ...job, bullets: lines(job.bullets) }));
+      const fields: Array<[unknown, unknown]> = [
+        [parsed.form.name, layout.expected.name], [parsed.form.headline, layout.expected.headline],
+        [parsed.form.summary, layout.expected.summary], [lines(parsed.form.skills), layout.expected.skills],
+        [lines(parsed.form.education), layout.expected.education], [parsed.form.sections, layout.expected.sections],
+        ...layout.expected.jobs.flatMap((job, index) => [
+          [actualJobs[index]?.title, job.title] as [unknown, unknown], [actualJobs[index]?.company, job.company] as [unknown, unknown],
+          [actualJobs[index]?.location, job.location] as [unknown, unknown], [actualJobs[index]?.dates, job.dates] as [unknown, unknown],
+          [actualJobs[index]?.bullets, job.bullets] as [unknown, unknown],
+        ]),
+      ];
+      const correct = fields.filter(([actual, expected]) => JSON.stringify(actual) === JSON.stringify(expected)).length;
+      return { layout: layout.name, correct, expected: fields.length, accuracy: Math.round((correct / fields.length) * 100), jobsFound: parsed.form.jobs.length, jobsExpected: layout.expected.jobs.length };
     });
-    console.info("AUTOFILL_FILL_RATES", JSON.stringify(metrics));
-    expect(metrics).toEqual(RESUME_LAYOUTS.map((layout) => ({ layout: layout.name, filled: layout.expected.length, expected: layout.expected.length, rate: 100 })));
-    expect(parseResumeText(RESUME_LAYOUTS[1].text, "pipe.txt").form.jobs[0]).toMatchObject({ title: "Production Supervisor", company: "Sample Plastics", dates: "Feb-2021 - Present" });
-    expect(parseResumeText(RESUME_LAYOUTS[2].text, "dates-first.txt").form.jobs[0]).toMatchObject({ dates: "Apr-2022 - Aug-2025" });
-    expect(parseResumeText(RESUME_LAYOUTS[3].text, "year.txt").form.jobs[0].dates).toBe("2019 - 2021");
+    console.info("RESUME_FIELD_ACCURACY", JSON.stringify(metrics));
+    expect(metrics.every((metric) => metric.jobsFound === metric.jobsExpected)).toBe(true);
+    expect(metrics.every((metric) => metric.accuracy >= 90)).toBe(true);
+  });
+
+  it("leaves an unknown title, company, or location empty instead of shifting adjacent values", () => {
+    const parsed = parseResumeText(`Avery Cautious
+Maintenance Professional
+SUMMARY
+Synthetic maintenance experience.
+SKILLS
+Planning
+EXPERIENCE
+Jan 2020 - Present
+Solo Company Ltd.
+Toronto, ON
+• Managed preventive work.
+Maintenance Lead
+2018 - 2019
+Ottawa, ON
+• Led scheduled maintenance.
+Maintenance Planner
+2016 - 2017
+Sample Systems
+• Planned work orders.`, "conservative-fields.txt");
+    expect(parsed.form.jobs).toEqual([
+      { title: "", company: "Solo Company Ltd.", location: "Toronto, ON", dates: "Jan-2020 - Present", bullets: "Managed preventive work." },
+      { title: "Maintenance Lead", company: "", location: "Ottawa, ON", dates: "2018 - 2019", bullets: "Led scheduled maintenance." },
+      { title: "Maintenance Planner", company: "Sample Systems", location: "", dates: "2016 - 2017", bullets: "Planned work orders." },
+    ]);
   });
 
   it("strips contact details from a synthetic resume before any field is filled", () => {
@@ -169,7 +263,7 @@ describe("deterministic source auto-fill", () => {
   it("pre-fills resume, JD, and only explicitly labelled call facts with provenance", () => {
     const candidateCase = {
       sources: [
-        { kind: "resume", filename: "synthetic-resume.txt", lifecycleStatus: "reviewed", parsedText: RESUME_LAYOUTS[0].text },
+        { kind: "resume", filename: "synthetic-resume.txt", lifecycleStatus: "reviewed", parsedText: fixture("synthetic-autofill-resume.txt") },
         { kind: "job_description", filename: "synthetic-jd.txt", lifecycleStatus: "reviewed", parsedText: "Job Title: Maintenance Manager\nClient: Synthetic Manufacturing\nLocation: Toronto, ON" },
         { kind: "call_notes", filename: "synthetic-call.txt", lifecycleStatus: "reviewed", parsedText: "Compensation: $100,000\nNotice: Two weeks\nLocation: Hamilton, ON\nCandidate sounded enthusiastic" },
       ],
