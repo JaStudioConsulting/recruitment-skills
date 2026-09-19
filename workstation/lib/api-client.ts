@@ -1,5 +1,5 @@
 import type { BrandResumeRequest, BrandResumeResult } from "./server/resume-builder";
-import type { CapabilityRunRequest, CapabilityRunResponse } from "./capabilities/types";
+import type { CapabilityRunRequest, CapabilityRunResponse, ManualArtifactBuildResponse } from "./capabilities/types";
 import type { CandidateCase, CandidateRecord, CaseDocument, RoleRecord, SourceKind, StoredDocumentKind, WorkspacePayload } from "./workstation-types";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -23,6 +23,7 @@ export const workstationApi = {
   brandResume: (caseId: string, input: BrandResumeRequest) => request<BrandResumeResult>(`/api/cases/${caseId}/brand-resume`, { method: "POST", body: JSON.stringify(input) }),
   saveDocument: (caseId: string, kind: StoredDocumentKind, input: { expectedRevision: number; content: CaseDocument["content"] }) => request<CaseDocument>(`/api/cases/${caseId}/documents/${kind}`, { method: "PUT", body: JSON.stringify(input) }),
   runCapability: (caseId: string, featureId: string, input: CapabilityRunRequest) => request<CapabilityRunResponse>(`/api/cases/${caseId}/capabilities/${featureId}`, { method: "POST", body: JSON.stringify(input) }),
+  buildCapabilityArtifact: (caseId: string, featureId: string, payload: Record<string, unknown>) => request<ManualArtifactBuildResponse>(`/api/cases/${caseId}/artifacts/${featureId}`, { method: "POST", body: JSON.stringify({ payload }) }),
   cancelCapability: (caseId: string, runId: string) => request<{ status: "cancelled" | "not_running" }>(`/api/cases/${caseId}/capabilities/cancel/${runId}`, { method: "POST" }),
   async uploadSource(caseId: string, kind: SourceKind, file: File): Promise<CandidateCase> {
     const body = new FormData(); body.set("kind", kind); body.set("file", file);

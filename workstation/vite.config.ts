@@ -18,6 +18,7 @@ const localBindingConfig = {
   compatibility_flags: ["nodejs_compat"],
   vars: {
     ...(process.env.RECRUITMENT_MCP_URL ? { RECRUITMENT_MCP_URL: process.env.RECRUITMENT_MCP_URL } : {}),
+    ...(process.env.BROKER_TOKEN ? { BROKER_TOKEN: process.env.BROKER_TOKEN } : {}),
     ...(process.env.LOCAL_AI_URL ? { LOCAL_AI_URL: process.env.LOCAL_AI_URL } : {}),
     ...(process.env.LOCAL_AI_TOKEN ? { LOCAL_AI_TOKEN: process.env.LOCAL_AI_TOKEN } : {}),
   },

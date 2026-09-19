@@ -1,0 +1,321 @@
+import type { ResumeFormDocument, ResumeFormJob, ResumeFormSection } from "../resume-form";
+import type { CandidateCase, CaseSource } from "../workstation-types";
+import type { FeatureDefinition } from "./catalog";
+import { stringAtPath, setValueAtPath } from "./manual-artifacts";
+import { createEmptyDraft } from "./manual-drafts";
+import type { CapabilityDraft } from "./types";
+
+const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+const URL = /(?:https?:\/\/|www\.)\S+|\b(?:[a-z0-9-]+\.)*linkedin\.com\/\S*/gi;
+const PHONE = /(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}(?!\d)/g;
+const CONTACT_LABEL = /^\s*(?:e-?mail|phone|mobile|cell|contact(?:\s+no\.?|\s+number)?|linkedin|website|url|address)\s*[:|-]?\s*/i;
+const BULLET = /^\s*(?:[-*•●▪◦]|\d+[.)])\s*/;
+const MONTHS: Record<string, string> = {
+  jan: "Jan", january: "Jan", feb: "Feb", february: "Feb", mar: "Mar", march: "Mar", apr: "Apr", april: "Apr",
+  may: "May", jun: "Jun", june: "Jun", jul: "Jul", july: "Jul", aug: "Aug", august: "Aug", sep: "Sep",
+  sept: "Sep", september: "Sep", oct: "Oct", october: "Oct", nov: "Nov", november: "Nov", dec: "Dec", december: "Dec",
+};
+const MONTH_PATTERN = "(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)";
+const ENDPOINT_PATTERN = `(?:${MONTH_PATTERN}\\s+\\d{4}|\\d{1,2}\\/\\d{4}|\\d{4})`;
+const DATE_RANGE = new RegExp(`(${ENDPOINT_PATTERN})\\s*(?:-|–|—|to)\\s*(Present|Current|${ENDPOINT_PATTERN})`, "i");
+
+type ParsedResume = { form: ResumeFormDocument; sources: Record<string, string> };
+type JdFacts = { title: string; client: string; location: string; source: string };
+
+function stripContactLine(line: string): string {
+  let next = line.replace(EMAIL, "").replace(URL, "").replace(PHONE, "");
+  if (CONTACT_LABEL.test(next)) next = next.replace(CONTACT_LABEL, "");
+  return next.replace(/^[\s|,;:-]+|[\s|,;:-]+$/g, "").replace(/\s{2,}/g, " ").trim();
+}
+
+export function stripContactDetails(text: string): string {
+  return text.split(/\r?\n/).map(stripContactLine).filter(Boolean).join("\n");
+}
+
+function cleanLines(text: string): string[] {
+  return stripContactDetails(text).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+}
+
+function looksLikeName(line: string): boolean {
+  const words = line.split(/\s+/);
+  return words.length >= 2 && words.length <= 4 && !/\d/.test(line) && words.every((word) => /^[A-Z][A-Za-z'’-]*$/.test(word));
+}
+
+function headingKind(line: string): "summary" | "skills" | "experience" | "education" | "other" | null {
+  const plain = line.replace(/[:|]+$/, "").trim();
+  const normalized = plain.toLowerCase().replace(/&/g, "and").replace(/[^a-z ]/g, "").replace(/\s+/g, " ");
+  if (["summary", "professional summary", "profile", "professional profile", "objective", "career objective"].includes(normalized)) return "summary";
+  if (["skills", "core skills", "core competencies", "technical skills", "areas of expertise"].includes(normalized)) return "skills";
+  if (["experience", "work experience", "work history", "professional experience", "employment", "employment history"].includes(normalized)) return "experience";
+  if (["education", "education and certifications", "certifications", "licenses", "licences", "education certifications and licenses"].includes(normalized)) return "education";
+  const letters = plain.replace(/[^A-Za-z]/g, "");
+  if (plain.length <= 60 && letters.length >= 3 && (letters === letters.toUpperCase() || /:$/.test(line))) return "other";
+  return null;
+}
+
+function titleLike(line: string): boolean {
+  return line.length <= 80 && !BULLET.test(line) && !DATE_RANGE.test(line) && !headingKind(line) && !/[.!?]$/.test(line);
+}
+
+function normalizeEndpoint(value: string): string {
+  const trimmed = value.trim();
+  if (/^(present|current)$/i.test(trimmed)) return "Present";
+  if (/^\d{4}$/.test(trimmed)) return trimmed;
+  const numeric = trimmed.match(/^(\d{1,2})\/(\d{4})$/);
+  if (numeric) {
+    const month = Number(numeric[1]);
+    return month >= 1 && month <= 12 ? `${Object.values(MONTHS).filter((item, index, values) => values.indexOf(item) === index)[month - 1]}-${numeric[2]}` : trimmed;
+  }
+  const named = trimmed.match(/^([A-Za-z]+)\s+(\d{4})$/);
+  return named && MONTHS[named[1].toLowerCase()] ? `${MONTHS[named[1].toLowerCase()]}-${named[2]}` : trimmed;
+}
+
+export function normalizeDateRange(line: string): string {
+  const match = line.match(DATE_RANGE);
+  return match ? `${normalizeEndpoint(match[1])} - ${normalizeEndpoint(match[2])}` : "";
+}
+
+function parseCompanyLocation(value: string): { company: string; location: string } {
+  const parenthesized = value.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+  if (parenthesized) return { company: parenthesized[1].trim(), location: parenthesized[2].trim() };
+  const parts = value.split("|").map((item) => item.trim()).filter(Boolean);
+  return parts.length >= 2 ? { company: parts[0], location: parts.slice(1).join(" | ") } : { company: value.trim(), location: "" };
+}
+
+function parseJob(lines: string[], dateIndex: number, nextDateIndex: number, previousDateIndex: number): ResumeFormJob {
+  const dateLine = lines[dateIndex];
+  const dateMatch = dateLine.match(DATE_RANGE)!;
+  const beforeDate = dateLine.slice(0, dateMatch.index).replace(/[|,:-]+\s*$/, "").trim();
+  let title = "", company = "", location = "";
+  const consumed = new Set<number>([dateIndex]);
+  if (beforeDate) {
+    const segments = beforeDate.split("|").map((part) => part.trim()).filter(Boolean);
+    if (segments.length >= 2) [title, company] = segments;
+    else {
+      const combined = beforeDate.match(/^([^,]+),\s*(.+)$/);
+      if (combined) { title = combined[1].trim(); ({ company, location } = parseCompanyLocation(combined[2])); }
+      else title = beforeDate;
+    }
+  }
+  const startsWithDate = (dateMatch.index ?? 0) === 0;
+  const standaloneDate = dateLine.trim().toLowerCase() === dateMatch[0].trim().toLowerCase();
+  const candidates: Array<[number, string]> = [];
+  if (standaloneDate) {
+    for (let index = dateIndex - 1; index > previousDateIndex && candidates.length < 2; index -= 1) {
+      if (!BULLET.test(lines[index]) && titleLike(lines[index])) candidates.unshift([index, lines[index]]); else break;
+    }
+  }
+  if (startsWithDate && candidates.length === 0) {
+    for (let index = dateIndex + 1; index < nextDateIndex && candidates.length < 2; index += 1) {
+      if (!BULLET.test(lines[index]) && titleLike(lines[index])) candidates.push([index, lines[index]]); else break;
+    }
+  } else if (!company) {
+    for (let index = dateIndex - 1; index > previousDateIndex && candidates.length < 2; index -= 1) {
+      if (!BULLET.test(lines[index]) && titleLike(lines[index])) candidates.unshift([index, lines[index]]); else break;
+    }
+  }
+  for (const [index, candidate] of candidates) {
+    consumed.add(index);
+    if (!title) { title = candidate; continue; }
+    if (!company) ({ company, location } = parseCompanyLocation(candidate));
+  }
+  if (title && !company) {
+    const combined = title.match(/^([^,]+),\s*(.+)$/);
+    if (combined) { title = combined[1].trim(); ({ company, location } = parseCompanyLocation(combined[2])); }
+  }
+  const bulletLines = lines.slice(dateIndex + 1, nextDateIndex).filter((_, offset) => !consumed.has(dateIndex + 1 + offset));
+  const bullets = bulletLines.flatMap((line) => {
+    const cleaned = line.replace(BULLET, "").trim();
+    if (!cleaned) return [];
+    return BULLET.test(line) ? [cleaned] : cleaned.split(/(?<=[.!?])\s+(?=[A-Z0-9])/).filter(Boolean);
+  });
+  return { title, company, location, dates: normalizeDateRange(dateLine), bullets: bullets.join("\n") };
+}
+
+function parseJobs(lines: string[]): ResumeFormJob[] {
+  const dates = lines.map((line, index) => DATE_RANGE.test(line) ? index : -1).filter((index) => index >= 0);
+  return dates.map((dateIndex, index) => parseJob(lines, dateIndex, dates[index + 1] ?? lines.length, dates[index - 1] ?? -1))
+    .filter((job) => job.title || job.company || job.dates || job.bullets);
+}
+
+export function parseResumeText(text: string, filename: string): ParsedResume {
+  const lines = cleanLines(text);
+  const form: ResumeFormDocument = { format: "tttg-resume-form-v1", name: "", headline: "", summary: "", skills: "", jobs: [], educationHeading: "", education: "", sections: [] };
+  const sources: Record<string, string> = {};
+  let cursor = 0;
+  if (lines[0] && looksLikeName(lines[0])) { form.name = lines[0]; sources["resume.name"] = filename; cursor = 1; }
+  if (lines[cursor] && titleLike(lines[cursor])) { form.headline = lines[cursor]; sources["resume.headline"] = filename; cursor += 1; }
+  const sections: Array<{ heading: string; kind: NonNullable<ReturnType<typeof headingKind>>; lines: string[] }> = [];
+  let active: typeof sections[number] | null = null;
+  for (const line of lines.slice(cursor)) {
+    const kind = headingKind(line);
+    if (kind) { active = { heading: line.replace(/[:|]+$/, "").trim(), kind, lines: [] }; sections.push(active); }
+    else if (active) active.lines.push(line);
+  }
+  const summary = sections.find((section) => section.kind === "summary");
+  if (summary?.lines.length) { form.summary = summary.lines.join("\n"); sources["resume.summary"] = filename; }
+  const skills = sections.find((section) => section.kind === "skills");
+  if (skills?.lines.length) {
+    form.skills = skills.lines.flatMap((line) => line.replace(BULLET, "").split(",")).map((item) => item.trim()).filter(Boolean).join("\n");
+    if (form.skills) sources["resume.skills"] = filename;
+  }
+  const experience = sections.find((section) => section.kind === "experience");
+  form.jobs = experience ? parseJobs(experience.lines) : [];
+  form.jobs.forEach((job, index) => Object.entries(job).forEach(([key, value]) => { if (value) sources[`resume.jobs.${index}.${key}`] = filename; }));
+  const education = sections.filter((section) => section.kind === "education");
+  if (education.length) {
+    form.educationHeading = education.map((section) => section.heading).join(" and ");
+    form.education = education.flatMap((section) => section.lines).map((line) => line.replace(BULLET, "").trim()).filter(Boolean).join("\n");
+    if (form.educationHeading) sources["resume.educationHeading"] = filename;
+    if (form.education) sources["resume.education"] = filename;
+  }
+  form.sections = sections.filter((section) => section.kind === "other" && section.lines.length).map<ResumeFormSection>((section) => ({ heading: section.heading, items: section.lines.map((line) => line.replace(BULLET, "").trim()).join("\n") }));
+  form.sections.forEach((section, index) => {
+    sources[`resume.sections.${index}.heading`] = filename;
+    sources[`resume.sections.${index}.items`] = filename;
+  });
+  if (!form.jobs.length) form.jobs = [{ title: "", company: "", location: "", dates: "", bullets: "" }];
+  return { form, sources };
+}
+
+function reviewedSource(candidateCase: CandidateCase | null, kinds: string[]): CaseSource | undefined {
+  return candidateCase?.sources.find((source) => source.lifecycleStatus === "reviewed" && Boolean(source.parsedText?.trim()) && kinds.includes(source.kind));
+}
+
+function labelled(text: string, labels: string[]): string {
+  for (const line of text.split(/\r?\n/)) {
+    for (const label of labels) {
+      const match = line.match(new RegExp(`^\\s*${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*[:|-]\\s*(.+?)\\s*$`, "i"));
+      if (match?.[1]) return match[1].trim();
+    }
+  }
+  return "";
+}
+
+export function parseJdText(text: string, filename: string): JdFacts {
+  const lines = cleanLines(text);
+  let title = labelled(text, ["Job Title", "Role", "Position"]);
+  let client = labelled(text, ["Client", "Company", "Employer"]);
+  const location = labelled(text, ["Location", "Work Location"]);
+  if (!title && lines[0]) {
+    const at = lines[0].match(/^(.{2,80}?)\s+at\s+(.{2,80})$/i);
+    if (at) { title = at[1].trim(); client ||= at[2].trim(); }
+    else if (titleLike(lines[0])) title = lines[0];
+  }
+  return { title, client, location, source: filename };
+}
+
+function explicitFacts(source: CaseSource | undefined): Record<string, string> {
+  const text = source?.parsedText ?? "";
+  return {
+    compensationTarget: labelled(text, ["Compensation Target", "Compensation", "Salary Expectation"]),
+    currentCompensation: labelled(text, ["Current Compensation", "Current Salary"]),
+    startDateNotice: labelled(text, ["Notice", "Notice Period"]),
+    location: labelled(text, ["Location"]),
+  };
+}
+
+function sourceTextDraft(sources: Array<CaseSource | undefined>): { document: string; source: string } {
+  const present = sources.filter((source): source is CaseSource => Boolean(source?.parsedText?.trim()));
+  const blocks = present.flatMap((source) => {
+    if (source.kind !== "call_notes" && source.kind !== "transcript") {
+      return [`${source.filename}\n${stripContactDetails(source.parsedText ?? "")}`];
+    }
+    const facts = explicitFacts(source);
+    const lines = [
+      ["Compensation Target", facts.compensationTarget],
+      ["Current Compensation", facts.currentCompensation],
+      ["Notice", facts.startDateNotice],
+      ["Location", facts.location],
+    ].filter((entry) => entry[1]).map(([label, value]) => `${label}: ${stripContactLine(value)}`);
+    return lines.length ? [`${source.filename}\n${lines.join("\n")}`] : [];
+  });
+  return { document: blocks.join("\n\n"), source: present.map((source) => source.filename).join(", ") };
+}
+
+export function createAutofilledDraft(feature: FeatureDefinition, candidateCase: CandidateCase | null, now = new Date().toISOString()): CapabilityDraft {
+  const draft = createEmptyDraft(feature, now);
+  const resumeSource = reviewedSource(candidateCase, ["resume"]);
+  const jdSource = reviewedSource(candidateCase, ["job_description"]);
+  const callSource = reviewedSource(candidateCase, ["transcript", "call_notes"]);
+  const resume = resumeSource ? parseResumeText(resumeSource.parsedText ?? "", resumeSource.filename) : null;
+  const jd = jdSource ? parseJdText(jdSource.parsedText ?? "", jdSource.filename) : { title: "", client: "", location: "", source: "" };
+  const call = explicitFacts(callSource);
+  const autofill: Record<string, string> = {};
+  if (draft.resume && resume) { draft.resume = resume.form; Object.assign(autofill, resume.sources); }
+  if (draft.submission) {
+    const values = { name: resume?.form.name ?? "", title: resume?.form.headline ?? "", compensationTarget: call.compensationTarget, currentCompensation: call.currentCompensation, location: call.location, startDateNotice: call.startDateNotice };
+    for (const [key, value] of Object.entries(values)) if (value) {
+      draft.submission = { ...draft.submission, [key]: value };
+      autofill[`submission.${key}`] = key === "name" || key === "title" ? resumeSource!.filename : callSource!.filename;
+    }
+  }
+  if (draft.fields) {
+    const offerValues: Record<string, [string, string]> = {
+      "Company Name": [jd.client, jd.source], "Candidate Full Name": [resume?.form.name ?? "", resumeSource?.filename ?? ""],
+      "Job Title": [jd.title, jd.source], "Base Salary and Pay Frequency": [call.compensationTarget, callSource?.filename ?? ""],
+      "Work Location": [call.location || jd.location, call.location ? callSource?.filename ?? "" : jd.source],
+    };
+    draft.fields = draft.fields.map((field, index) => {
+      const [value, source] = offerValues[field.label] ?? ["", ""];
+      if (value) autofill[`fields.${index}.value`] = source;
+      return { ...field, value };
+    });
+  }
+  if (draft.table && feature.id === "screen-applicants" && resume?.form.name) {
+    draft.table.rows[0][1] = resume.form.name;
+    autofill["table.rows.0.1"] = resumeSource!.filename;
+  }
+  if (draft.table && feature.id === "source-candidates") {
+    const firstJob = resume?.form.jobs.find((job) => job.company || job.dates);
+    const values = [resume?.form.name ?? "", firstJob?.company ?? "", firstJob?.dates ?? ""];
+    values.forEach((value, index) => {
+      if (!value) return;
+      draft.table!.rows[0][index] = value;
+      autofill[`table.rows.0.${index}`] = resumeSource!.filename;
+    });
+  }
+  if (draft.resultKind === "document") {
+    const relevant = feature.id === "draft-job-posting" ? sourceTextDraft([jdSource]) : sourceTextDraft([resumeSource, jdSource, callSource]);
+    if (relevant.document) { draft.document = relevant.document; autofill.document = relevant.source; }
+  }
+  if (draft.resultKind === "pdf" && draft.artifactPayload) {
+    if (feature.id === "reference-check-pdf") {
+      for (const [path, value, source] of [
+        ["candidate.full_name", resume?.form.name ?? "", resumeSource?.filename ?? ""],
+        ["candidate.position_applied_for", jd.title, jd.source], ["candidate.company_name", jd.client, jd.source],
+      ]) if (value) { draft.artifactPayload = setValueAtPath(draft.artifactPayload, path, value); autofill[`artifactPayload.${path}`] = source; }
+    } else {
+      for (const [path, value] of [["brief.document.company", jd.client], ["brief.document.role", jd.title], ["brief.document.location", jd.location]]) if (value) {
+        draft.artifactPayload = setValueAtPath(draft.artifactPayload, path, value);
+        autofill[`artifactPayload.${path}`] = jd.source;
+      }
+      const authorities = [jdSource, resumeSource].filter((source): source is CaseSource => Boolean(source)).map((source) => source.filename);
+      if (authorities.length >= 2) {
+        draft.artifactPayload = setValueAtPath(draft.artifactPayload, "brief.source_control.authoritative_sources", authorities);
+        autofill["artifactPayload.brief.source_control.authoritative_sources"] = authorities.join(", ");
+      }
+    }
+  }
+  draft.autofill = autofill;
+  return draft;
+}
+
+export function clearAutofillSource(draft: CapabilityDraft, path: string): CapabilityDraft {
+  if (!draft.autofill || !Object.keys(draft.autofill).some((key) => key === path || key.startsWith(`${path}.`))) return draft;
+  const autofill = { ...draft.autofill };
+  for (const key of Object.keys(autofill)) if (key === path || key.startsWith(`${path}.`)) delete autofill[key];
+  return { ...draft, autofill };
+}
+
+export function autofillCount(draft: CapabilityDraft): number {
+  return Object.keys(draft.autofill ?? {}).length;
+}
+
+export function artifactAutofillSource(draft: CapabilityDraft, path: string): string | undefined {
+  return draft.autofill?.[`artifactPayload.${path}`];
+}
+
+export function hasAutofilledArtifactValue(draft: CapabilityDraft, path: string): boolean {
+  return Boolean(draft.artifactPayload && stringAtPath(draft.artifactPayload, path));
+}

@@ -1,0 +1,6 @@
+Compensation: $100,000
+Current Compensation: $92,000
+Notice: Two weeks
+Location: Hamilton, Ontario
+
+The remaining sentence is deliberately unlabeled and must not become a field value.
