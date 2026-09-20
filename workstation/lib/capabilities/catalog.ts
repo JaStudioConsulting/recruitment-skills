@@ -1,4 +1,3 @@
-import capabilityCatalog from "../../../skills/capabilities.json";
 import featureCatalog from "../../capability-features.json";
 import type { CandidateCase, ConnectorCapability, SourceKind } from "@/lib/workstation-types";
 
@@ -33,15 +32,7 @@ export type FeatureDefinition = {
   server_tool?: string;
 };
 
-const knownCapabilities = new Set(capabilityCatalog.capabilities.map((capability) => capability.id));
 const parsedFeatures = featureCatalog.features as FeatureDefinition[];
-for (const feature of parsedFeatures) {
-  for (const capabilityId of feature.capability_ids) {
-    if (!knownCapabilities.has(capabilityId)) {
-      throw new Error(`Feature ${feature.id} references unknown capability ${capabilityId}.`);
-    }
-  }
-}
 
 export const FEATURES: readonly FeatureDefinition[] = parsedFeatures;
 

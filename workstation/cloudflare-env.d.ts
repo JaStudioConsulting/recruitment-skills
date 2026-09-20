@@ -12,5 +12,9 @@ declare namespace Cloudflare {
     LOCAL_AI_URL?: string;
     /** Per-launch secret shared only by the Workstation server and local AI broker. */
     LOCAL_AI_TOKEN?: string;
+    /** Owner email used only when an embedded Sites request omits the stable user ID header. */
+    SITE_OWNER_EMAIL?: string;
+    /** Existing stable owner ID, preserving access to the owner's stored workspace records. */
+    SITE_OWNER_USER_ID?: string;
   }
 }
