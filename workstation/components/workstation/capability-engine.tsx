@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ResumeFormEditor } from "@/components/workstation/resume-form";
 import { ManualPdfEditor } from "@/components/workstation/manual-pdf-editor";
-import { FEATURES, FEATURE_GROUPS, missingRequired, requirementStates, type FeatureDefinition } from "@/lib/capabilities/catalog";
+import { FEATURES, FEATURE_GROUPS, featureStatus, missingRequired, requirementStates, type FeatureDefinition } from "@/lib/capabilities/catalog";
 import { fillInAvailable, labelledFieldsText, tableText } from "@/lib/capabilities/manual-drafts";
 import { emptyArtifactPayload, validateManualArtifactPayload, type ManualProblem } from "@/lib/capabilities/manual-artifacts";
 import { autofillCount, clearAutofillSource, createAutofilledDraft } from "@/lib/capabilities/deterministic-autofill";
@@ -216,13 +216,6 @@ function runtimeBlock(feature: FeatureDefinition): string {
   if (feature.runtime === "loxo_read_adapter") return "Not available yet: the read-only Loxo adapter is not connected.";
   if (feature.runtime === "tracker_read_adapter") return "Not available yet: the read-only Tracker adapter is not connected.";
   return "";
-}
-
-function featureStatus(feature: FeatureDefinition, requirements: ReturnType<typeof requirementStates>) {
-  const blocked = runtimeBlock(feature);
-  if (blocked) return { label: "Not available yet", tone: "blocked" };
-  void requirements;
-  return { label: "Ready", tone: "ready" };
 }
 
 function FeatureStatus({ feature, requirements }: { feature: FeatureDefinition; requirements: ReturnType<typeof requirementStates> }) {

@@ -1,4 +1,3 @@
-import capabilityCatalog from "../../../skills/capabilities.json";
 import featureCatalog from "../../capability-features.json";
 import type { CandidateCase, ConnectorCapability, SourceKind } from "@/lib/workstation-types";
 
@@ -33,15 +32,7 @@ export type FeatureDefinition = {
   server_tool?: string;
 };
 
-const knownCapabilities = new Set(capabilityCatalog.capabilities.map((capability) => capability.id));
 const parsedFeatures = featureCatalog.features as FeatureDefinition[];
-for (const feature of parsedFeatures) {
-  for (const capabilityId of feature.capability_ids) {
-    if (!knownCapabilities.has(capabilityId)) {
-      throw new Error(`Feature ${feature.id} references unknown capability ${capabilityId}.`);
-    }
-  }
-}
 
 export const FEATURES: readonly FeatureDefinition[] = parsedFeatures;
 
@@ -78,4 +69,22 @@ export function requirementStates(input: {
 
 export function missingRequired(states: readonly RequirementState[]): RequirementState[] {
   return states.filter((requirement) => requirement.required && !requirement.met);
+}
+
+export function featureStatus(feature: FeatureDefinition, requirements: readonly RequirementState[]) {
+  if (["server_pending", "loxo_read_adapter", "tracker_read_adapter"].includes(feature.runtime)) {
+    return { label: "Not available yet", tone: "blocked" } as const;
+  }
+  const missing = missingRequired(requirements);
+  if (missing.length === 0) return { label: "Ready to draft", tone: "ready" } as const;
+  if (missing.every((requirement) => requirement.kind === "source" || requirement.kind === "source_or_input")) {
+    return { label: "Needs sources", tone: "needs" } as const;
+  }
+  if (missing.every((requirement) => requirement.kind === "user_input")) {
+    return { label: "Needs details", tone: "needs" } as const;
+  }
+  if (missing.every((requirement) => requirement.kind === "role")) {
+    return { label: "Needs role", tone: "needs" } as const;
+  }
+  return { label: "Needs inputs", tone: "needs" } as const;
 }

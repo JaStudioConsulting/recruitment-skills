@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -20,9 +21,18 @@ const CALLBACK_PATH = "/callback";
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   const requestHeaders = await headers();
-  const userId = requestHeaders.get(USER_ID_HEADER);
   const email = requestHeaders.get(USER_EMAIL_HEADER);
-  if (!userId || !email) return null;
+  if (!email) return null;
+
+  const authenticatedUserId = requestHeaders.get(USER_ID_HEADER);
+  const ownerEmail = env.SITE_OWNER_EMAIL?.trim().toLowerCase();
+  const ownerUserId = env.SITE_OWNER_USER_ID?.trim();
+  const userId =
+    authenticatedUserId ||
+    (ownerEmail && ownerUserId && email.trim().toLowerCase() === ownerEmail
+      ? ownerUserId
+      : null);
+  if (!userId) return null;
 
   const encodedFullName = requestHeaders.get(USER_FULL_NAME_HEADER);
   const fullName =

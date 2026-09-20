@@ -59,12 +59,6 @@ type WriteUpMode = "candidate_submission" | "full_package";
 
 const FONT_OPTIONS = ["System", "Avenir Next", "Georgia", "Bradley Hand", "Times New Roman"];
 const SIZE_OPTIONS = [16, 18, 20, 22, 24];
-const SOURCE_CHECKLIST = [
-  { kind: "resume", label: "Resume" },
-  { kind: "transcript", label: "Transcript" },
-  { kind: "job_description", label: "Job description" },
-  { kind: "call_notes", label: "Call notes" },
-] as const;
 const SOURCE_KIND_LABELS: Record<SourceKind, string> = {
   job_description: "Job description",
   resume: "Resume",
@@ -80,6 +74,21 @@ const PREFILL_FIELD_LABELS: Partial<Record<keyof SubmissionDocument, string>> = 
   location: "Location",
   profileSummary: "Profile Summary",
 };
+type SourceReadinessState = "missing" | "attached" | "reviewed";
+
+function sourceReadinessState(sources: CaseSource[], kinds: SourceKind[]): SourceReadinessState {
+  const matches = sources.filter((source) => kinds.includes(source.kind));
+  if (matches.some((source) => source.lifecycleStatus === "reviewed" && Boolean(source.parsedText?.trim()))) return "reviewed";
+  return matches.length ? "attached" : "missing";
+}
+
+function sourceReadinessLabel(state: SourceReadinessState) {
+  return {
+    missing: "Missing",
+    attached: "Attached · review needed",
+    reviewed: "Reviewed + readable",
+  }[state];
+}
 
 function saveLabel(state: SaveState) {
   return { saved: "Saved", saving: "Saving", unsaved: "Unsaved", failed: "Save failed" }[state];
@@ -151,7 +160,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const [pastedSource, setPastedSource] = useState("");
   const [pastedSourceKind, setPastedSourceKind] = useState<SourceKind>("call_notes");
   const [sourceBusy, setSourceBusy] = useState(false);
-  const [sourcePanelOpen, setSourcePanelOpen] = useState(false);
+  const [sourcePanelOpen, setSourcePanelOpen] = useState(true);
   const [dropActive, setDropActive] = useState(false);
   const [sourceReviewKinds, setSourceReviewKinds] = useState<Record<string, SourceKind>>({});
   const [capabilityOpen, setCapabilityOpen] = useState(false);
@@ -528,6 +537,15 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     ? `/api/cases/${activeCase.id}/sources/${selectedResume.id}?inline=1`
     : "";
   const hasSavedWriteUp = submissionHasContent(submission);
+  const afterCallReadiness = useMemo(() => {
+    const sources = activeCase?.sources ?? [];
+    return [
+      { id: "resume", label: "Resume", state: sourceReadinessState(sources, ["resume"]) },
+      { id: "call", label: "Call notes / transcript", state: sourceReadinessState(sources, ["call_notes", "transcript"]) },
+      { id: "job", label: "Job description", state: sourceReadinessState(sources, ["job_description"]) },
+    ] as const;
+  }, [activeCase]);
+  const afterCallReadyCount = afterCallReadiness.filter((step) => step.state === "reviewed").length;
 
   const brandReadinessMessage = () => {
     if (!activeCase) return "Select a role and candidate first.";
@@ -601,7 +619,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     <main className="workstation-shell">
       <header className="brand-bar">
         <div className="brand-lockup"><span className="brand-wordmark">TOP TIER TALENT GROUP</span><span className="brand-line" /></div>
-        <div className="brand-title"><strong>Recruiter Workstation</strong><span>One workspace. From conversation to submission.</span></div>
+        <div className="brand-title"><h1>Recruiter Workstation</h1><span>One workspace. From conversation to submission.</span></div>
         <div className="operator"><span className={`save-dot ${caseSaveState}`}><Check size={13} /></span><span>{saveLabel(caseSaveState)}</span><span className="operator-name">{user.displayName}</span></div>
       </header>
 
@@ -663,7 +681,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
           </div>
           <div className="source-area">
             <button type="button" className="source-toggle" aria-expanded={sourcePanelOpen} onClick={() => setSourcePanelOpen((open) => !open)}>
-              <span>Sources <strong>{activeCase?.sources.length ?? 0}</strong></span>
+              <span>Sources <strong>{afterCallReadyCount} of 3 ready</strong></span>
               <small>{sourcePanelOpen ? "Collapse" : "Add or review"}</small>
               <ChevronDown size={17} aria-hidden="true" />
             </button>
@@ -683,11 +701,11 @@ export function RecruiterWorkstation({ user }: { user: User }) {
                 <span><strong>Drop source files here</strong><small>or tap to choose multiple files</small></span>
               </button>
               <div className="source-controls">
-                <div className="source-checklist" aria-label="Required source checklist">
-                  {SOURCE_CHECKLIST.map(({ kind, label }) => {
-                    const attached = activeCase?.sources.some((source) => source.kind === kind) ?? false;
-                    return <span key={kind} className={attached ? "is-attached" : ""} aria-label={`${label}: ${attached ? "attached" : "not attached"}`}><i aria-hidden="true">{attached ? <Check size={13} /> : null}</i>{label}</span>;
-                  })}
+                <div className="source-checklist" aria-label="After-call source readiness">
+                  {afterCallReadiness.map(({ id, label, state }) => <span key={id} className={`is-${state}`} aria-label={`${label}: ${sourceReadinessLabel(state)}`}>
+                    <i aria-hidden="true">{state === "reviewed" ? <Check size={13} /> : state === "attached" ? <FileText size={12} /> : null}</i>
+                    <span><strong>{label}</strong><small>{sourceReadinessLabel(state)}</small></span>
+                  </span>)}
                 </div>
                 <Button size="sm" variant="outline" disabled={!activeCase || sourceBusy} onClick={() => setPasteOpen(true)}><Link2 size={15} aria-hidden="true" />Paste text</Button>
               </div>
@@ -730,7 +748,11 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       </section>
 
       <section className="action-bar" aria-label="Candidate case actions">
-        <Button disabled={!activeCase} onClick={() => openFeature("write-up-candidate")}><Play size={18} aria-hidden="true" />{hasSavedWriteUp ? "Review write-up" : "Write up candidate"}</Button>
+        <div className="after-call-progress" aria-label={`After-call readiness: ${afterCallReadyCount} of 3 sources ready`}>
+          <span>After-call readiness <strong>{afterCallReadyCount}/3 ready</strong></span>
+          <progress max={3} value={afterCallReadyCount}>{afterCallReadyCount} of 3</progress>
+        </div>
+        <Button disabled={!activeCase} onClick={() => openFeature("write-up-candidate")}><Play size={18} aria-hidden="true" />{hasSavedWriteUp ? "Review after-call drafts" : "Create after-call drafts"}</Button>
         <Button variant="outline" disabled={!activeCase} onClick={() => openFeature("vet-candidate")}><CircleHelp size={18} aria-hidden="true" />Vet candidate</Button>
         <Button variant="outline" disabled={!activeCase} onClick={() => openFeature("brand-resume")}>All features</Button>
         <output className="action-message" aria-live="polite">{actionMessage}</output>
