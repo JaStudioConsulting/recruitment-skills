@@ -55,6 +55,14 @@ export type SubmissionDocument = {
   startDateNotice: string; reasonForLeaving: string; profileSummary: string;
 };
 export type CaseDocument = { kind: StoredDocumentKind; revision: number; content: OutputData | string | SubmissionDocument | ResumeFormDocument | Record<string, unknown>; updatedAt: string };
+export type DocumentVersion = {
+  kind: StoredDocumentKind;
+  revision: number;
+  content: CaseDocument["content"];
+  sourceRefs: string[];
+  origin: "generated" | "edited";
+  createdAt: string;
+};
 export type CaseSource = {
   id: string;
   kind: SourceKind;
@@ -68,6 +76,7 @@ export type CaseSource = {
   parsedText: string | null;
   classificationMethod: "explicit" | "filename" | "content" | "manual" | "uncertain" | null;
 };
+export type JobSource = CaseSource & { roleId: string; contextStatus: "active" | "superseded" };
 export type CandidateCase = {
   id: string; roleId: string; candidateId: string; status: string; notes: string;
   notesDrawingSvg: string; notesFont: string; notesSize: number; revision: number; facts: CandidateFact[];
@@ -75,7 +84,13 @@ export type CandidateCase = {
   documents: Record<StoredDocumentKind, CaseDocument>; sources: CaseSource[]; updatedAt: string;
 };
 export type ConnectorCapability = { id: string; label: string; status: "available" | "not_connected" | "unsupported"; detail: string };
-export type WorkspacePayload = { roles: RoleRecord[]; candidates: CandidateRecord[]; cases: CandidateCase[]; connectors: ConnectorCapability[] };
+export type WorkspacePayload = {
+  roles: RoleRecord[];
+  candidates: CandidateRecord[];
+  cases: CandidateCase[];
+  jobSourcesByRoleId: Record<string, JobSource[]>;
+  connectors: ConnectorCapability[];
+};
 
 export const EMPTY_RESUME: OutputData = { time: 0, version: "2.31.0", blocks: [] };
 export const EMPTY_SUBMISSION: SubmissionDocument = {

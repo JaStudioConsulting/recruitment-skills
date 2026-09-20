@@ -6,6 +6,7 @@ import {
   inspectSourceContent,
   inspectUploadedSourceContent,
   normalizeSourceLifecycleStatus,
+  sourceIsUsable,
 } from "../lib/server/source-intake";
 
 function bytes(value: string) {
@@ -57,6 +58,11 @@ async function simpleDocx(paragraphs: string[]) {
 }
 
 describe("source intake", () => {
+  it("uses confident classifications immediately and holds only uncertain text", () => {
+    expect(sourceIsUsable({ parsedText: "Professional Experience", lifecycleStatus: "classified", classificationMethod: "content" })).toBe(true);
+    expect(sourceIsUsable({ parsedText: "Ambiguous note", lifecycleStatus: "parsed", classificationMethod: "uncertain" })).toBe(false);
+    expect(sourceIsUsable({ parsedText: null, lifecycleStatus: "uploaded", classificationMethod: "filename" })).toBe(false);
+  });
   it("parses and classifies a clearly named plain-text resume", () => {
     expect(inspectSourceContent({
       bytes: bytes("Professional Experience\nPlant Manager\nEducation\nSkills"),

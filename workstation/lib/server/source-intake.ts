@@ -97,6 +97,19 @@ export function canReviewSource(
     (lifecycleStatus === "parsed" && requestedKind !== undefined);
 }
 
+export function sourceIsUsable(source: {
+  parsedText: string | null;
+  lifecycleStatus: string;
+  classificationMethod: string | null;
+}) {
+  if (!source.parsedText?.trim()) return false;
+  if (source.lifecycleStatus === "reviewed") return true;
+  return source.lifecycleStatus === "classified" &&
+    (source.classificationMethod === "explicit" ||
+      source.classificationMethod === "filename" ||
+      source.classificationMethod === "content");
+}
+
 export function inspectSourceContent(input: {
   bytes: ArrayBuffer;
   contentType: string;

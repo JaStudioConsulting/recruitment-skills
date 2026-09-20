@@ -1,6 +1,6 @@
 import type { BrandResumeRequest, BrandResumeResult } from "./server/resume-builder";
 import type { CapabilityRunRequest, CapabilityRunResponse, ManualArtifactBuildResponse } from "./capabilities/types";
-import type { CandidateCase, CandidateRecord, CaseDocument, RoleRecord, SourceKind, StoredDocumentKind, WorkspacePayload } from "./workstation-types";
+import type { CandidateCase, CandidateRecord, CaseDocument, DocumentVersion, JobSource, RoleRecord, SourceKind, StoredDocumentKind, WorkspacePayload } from "./workstation-types";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, headers: { "content-type": "application/json", ...(init?.headers || {}) } });
@@ -21,7 +21,8 @@ export const workstationApi = {
   openCase: (input: { roleId: string; candidateId: string }) => request<CandidateCase>("/api/cases", { method: "POST", body: JSON.stringify(input) }),
   updateCase: (caseId: string, input: { expectedRevision: number; notes?: string; notesDrawingSvg?: string; notesFont?: string; notesSize?: number; status?: string }) => request<CandidateCase>(`/api/cases/${caseId}`, { method: "PATCH", body: JSON.stringify(input) }),
   brandResume: (caseId: string, input: BrandResumeRequest) => request<BrandResumeResult>(`/api/cases/${caseId}/brand-resume`, { method: "POST", body: JSON.stringify(input) }),
-  saveDocument: (caseId: string, kind: StoredDocumentKind, input: { expectedRevision: number; content: CaseDocument["content"] }) => request<CaseDocument>(`/api/cases/${caseId}/documents/${kind}`, { method: "PUT", body: JSON.stringify(input) }),
+  saveDocument: (caseId: string, kind: StoredDocumentKind, input: { expectedRevision: number; content: CaseDocument["content"]; origin?: "generated" | "edited"; sourceRefs?: string[] }) => request<CaseDocument>(`/api/cases/${caseId}/documents/${kind}`, { method: "PUT", body: JSON.stringify(input) }),
+  listDocumentVersions: (caseId: string, kind: StoredDocumentKind) => request<DocumentVersion[]>(`/api/cases/${caseId}/documents/${kind}/versions`),
   runCapability: (caseId: string, featureId: string, input: CapabilityRunRequest) => request<CapabilityRunResponse>(`/api/cases/${caseId}/capabilities/${featureId}`, { method: "POST", body: JSON.stringify(input) }),
   buildCapabilityArtifact: (caseId: string, featureId: string, payload: Record<string, unknown>) => request<ManualArtifactBuildResponse>(`/api/cases/${caseId}/artifacts/${featureId}`, { method: "POST", body: JSON.stringify({ payload }) }),
   cancelCapability: (caseId: string, runId: string) => request<{ status: "cancelled" | "not_running" }>(`/api/cases/${caseId}/capabilities/cancel/${runId}`, { method: "POST" }),
@@ -63,6 +64,22 @@ export const workstationApi = {
     sourceId: string,
     kind?: SourceKind,
   ) => request<CandidateCase>(`/api/cases/${caseId}/sources/${sourceId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ lifecycleStatus: "reviewed", ...(kind ? { kind } : {}) }),
+  }),
+  async uploadJobSources(roleId: string, files: readonly File[], kinds: readonly SourceKind[] = []): Promise<JobSource[]> {
+    if (kinds.length && kinds.length !== files.length) throw new Error("Source kinds must match the uploaded files.");
+    const body = new FormData();
+    for (const file of files) body.append("files", file);
+    for (const kind of kinds) body.append("kinds", kind);
+    const response = await fetch(`/api/roles/${roleId}/sources`, { method: "POST", body });
+    if (!response.ok) {
+      const error: unknown = await response.json().catch(() => null);
+      throw new Error(error && typeof error === "object" && "error" in error && typeof error.error === "string" ? error.error : "Job source upload failed.");
+    }
+    return response.json() as Promise<JobSource[]>;
+  },
+  reviewJobSource: (roleId: string, sourceId: string, kind?: SourceKind) => request<JobSource[]>(`/api/roles/${roleId}/sources/${sourceId}`, {
     method: "PATCH",
     body: JSON.stringify({ lifecycleStatus: "reviewed", ...(kind ? { kind } : {}) }),
   }),

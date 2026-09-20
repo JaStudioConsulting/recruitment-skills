@@ -4,8 +4,9 @@ import {
   AlertTriangle,
   Check,
   ChevronDown,
-  CircleHelp,
+  Edit3,
   FileText,
+  FolderOpen,
   Link2,
   LoaderCircle,
   PanelRightClose,
@@ -16,7 +17,6 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CapabilityEngine } from "@/components/workstation/capability-engine";
 import { HandwritingCanvas } from "@/components/workstation/handwriting-canvas";
 import { ResumeFormEditor } from "@/components/workstation/resume-form";
 import {
@@ -30,11 +30,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { workstationApi } from "@/lib/api-client";
-import type { CapabilityDraft, CapabilityRunsDocument } from "@/lib/capabilities/types";
-import { buildCaseHistoryEntries } from "@/lib/case-history";
+import { createAutofilledDraft } from "@/lib/capabilities/deterministic-autofill";
+import { featureById } from "@/lib/capabilities/catalog";
+import type { CapabilityRunsDocument } from "@/lib/capabilities/types";
 import { mergeCandidateCaseSnapshots } from "@/lib/case-merge";
-import { emptyResumeForm, resumeFormHasContent, resumeFormToCandidate, toResumeForm, type ResumeFormDocument } from "@/lib/resume-form";
-import type { BrandResumeResult } from "@/lib/server/resume-builder";
+import { toResumeForm } from "@/lib/resume-form";
 import {
   EMPTY_RESUME,
   EMPTY_SUBMISSION,
@@ -43,22 +43,20 @@ import {
   type CandidateRecord,
   type CaseDocument,
   type CaseSource,
-  type ConnectorCapability,
+  type DocumentVersion,
+  type JobSource,
   type RoleRecord,
   type SaveState,
   type SourceKind,
   type StoredDocumentKind,
   type SubmissionDocument,
 } from "@/lib/workstation-types";
+import { sourceIsUsable } from "@/lib/server/source-intake";
 
 type User = { id: string; displayName: string };
 type CreationMode = "role" | "candidate" | null;
 type NotesMode = "type" | "draw";
-type ResumeMode = "named_submission" | "internal_mpc" | "external_blind_mpc";
-type WriteUpMode = "candidate_submission" | "full_package";
 
-const FONT_OPTIONS = ["System", "Avenir Next", "Georgia", "Bradley Hand", "Times New Roman"];
-const SIZE_OPTIONS = [16, 18, 20, 22, 24];
 const SOURCE_KIND_LABELS: Record<SourceKind, string> = {
   job_description: "Job description",
   resume: "Resume",
@@ -66,6 +64,11 @@ const SOURCE_KIND_LABELS: Record<SourceKind, string> = {
   call_notes: "Call notes",
   pasted_text: "Pasted text",
   other: "Other",
+};
+const JOB_SOURCE_KIND_LABELS: Record<SourceKind, string> = {
+  ...SOURCE_KIND_LABELS,
+  call_notes: "Client notes",
+  pasted_text: "Instructions",
 };
 const SOURCE_ACCEPT = ".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg";
 const PREFILL_FIELD_LABELS: Partial<Record<keyof SubmissionDocument, string>> = {
@@ -75,19 +78,12 @@ const PREFILL_FIELD_LABELS: Partial<Record<keyof SubmissionDocument, string>> = 
   profileSummary: "Profile Summary",
 };
 type SourceReadinessState = "missing" | "attached" | "reviewed";
+type OutputKind = "resume" | "submission" | "email" | "loxo_update";
 
 function sourceReadinessState(sources: CaseSource[], kinds: SourceKind[]): SourceReadinessState {
   const matches = sources.filter((source) => kinds.includes(source.kind));
-  if (matches.some((source) => source.lifecycleStatus === "reviewed" && Boolean(source.parsedText?.trim()))) return "reviewed";
+  if (matches.some(sourceIsUsable)) return "reviewed";
   return matches.length ? "attached" : "missing";
-}
-
-function sourceReadinessLabel(state: SourceReadinessState) {
-  return {
-    missing: "Missing",
-    attached: "Attached · review needed",
-    reviewed: "Reviewed + readable",
-  }[state];
 }
 
 function saveLabel(state: SaveState) {
@@ -101,10 +97,6 @@ function pastedSourceFilename(title: string) {
 
 function contentAsString(document: CaseDocument | undefined) {
   return typeof document?.content === "string" ? document.content : "";
-}
-
-function submissionHasContent(value: SubmissionDocument) {
-  return Object.values(value).some((field) => field.trim().length > 0);
 }
 
 function contentAsSubmission(document: CaseDocument | undefined) {
@@ -126,7 +118,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const [roles, setRoles] = useState<RoleRecord[]>([]);
   const [candidates, setCandidates] = useState<CandidateRecord[]>([]);
   const [cases, setCases] = useState<CandidateCase[]>([]);
-  const [connectors, setConnectors] = useState<ConnectorCapability[]>([]);
+  const [jobSourcesByRoleId, setJobSourcesByRoleId] = useState<Record<string, JobSource[]>>({});
   const [roleId, setRoleId] = useState("");
   const [candidateId, setCandidateId] = useState("");
   const [activeCase, setActiveCase] = useState<CandidateCase | null>(null);
@@ -144,34 +136,30 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const [caseStatus, setCaseStatus] = useState("active");
   const [caseSaveState, setCaseSaveState] = useState<SaveState>("saved");
   const [documentSaveState, setDocumentSaveState] = useState<SaveState>("saved");
-  const [submission, setSubmission] = useState<SubmissionDocument>({ ...EMPTY_SUBMISSION });
   const [actionMessage, setActionMessage] = useState("");
-  const [brandOpen, setBrandOpen] = useState(false);
-  const [resumeMode, setResumeMode] = useState<ResumeMode>("named_submission");
-  const [resumeForm, setResumeForm] = useState<ResumeFormDocument>(emptyResumeForm);
   const [resumeView, setResumeView] = useState<"source" | "form">("source");
-  const [brandBusy, setBrandBusy] = useState(false);
-  const [brandResult, setBrandResult] = useState<BrandResumeResult | null>(null);
-  const [writeUpOpen, setWriteUpOpen] = useState(false);
-  const [writeUpMode, setWriteUpMode] = useState<WriteUpMode>("candidate_submission");
   const [resumeSourceId, setResumeSourceId] = useState("");
   const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteScope, setPasteScope] = useState<"job" | "candidate">("candidate");
   const [pastedSourceTitle, setPastedSourceTitle] = useState("");
   const [pastedSource, setPastedSource] = useState("");
-  const [pastedSourceKind, setPastedSourceKind] = useState<SourceKind>("call_notes");
   const [sourceBusy, setSourceBusy] = useState(false);
   const [sourcePanelOpen, setSourcePanelOpen] = useState(true);
   const [dropActive, setDropActive] = useState(false);
+  const [jobDropActive, setJobDropActive] = useState(false);
   const [sourceReviewKinds, setSourceReviewKinds] = useState<Record<string, SourceKind>>({});
-  const [capabilityOpen, setCapabilityOpen] = useState(false);
-  const [initialFeatureId, setInitialFeatureId] = useState("brand-resume");
-  const [capabilityRuns, setCapabilityRuns] = useState<CapabilityRunsDocument>({});
   const [splitRatio, setSplitRatio] = useState(55);
+  const [outputKind, setOutputKind] = useState<OutputKind>("submission");
+  const [outputEditing, setOutputEditing] = useState(false);
+  const [outputDraft, setOutputDraft] = useState<CaseDocument["content"] | null>(null);
+  const [outputVersions, setOutputVersions] = useState<DocumentVersion[]>([]);
+  const [packageBusy, setPackageBusy] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const deskGridRef = useRef<HTMLDivElement | null>(null);
   const caseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const documentTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const multiFileInput = useRef<HTMLInputElement | null>(null);
+  const jobFileInput = useRef<HTMLInputElement | null>(null);
   const activeCaseRef = useRef<CandidateCase | null>(null);
   const caseDraftRef = useRef({ notes: "", notesDrawingSvg: "", notesFont: "System", notesSize: 20, status: "active" });
   const caseEditVersionRef = useRef(0);
@@ -211,10 +199,9 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     setNotesFont(next.notesFont);
     setNotesSize(next.notesSize);
     setCaseStatus(next.status);
-    setSubmission(contentAsSubmission(next.documents.submission));
-    setResumeForm(toResumeForm(next.documents.resume?.content));
-    setCapabilityRuns(contentAsCapabilityRuns(next.documents.capability_runs));
-    setBrandResult(null);
+    setOutputEditing(false);
+    setOutputDraft(null);
+    setOutputVersions([]);
     const resumeSources = next.sources
       .filter((source) => source.kind === "resume")
       .sort((left, right) => right.captureTime.localeCompare(left.captureTime));
@@ -241,7 +228,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       setRoles(payload.roles);
       setCandidates(payload.candidates);
       setCases(payload.cases);
-      setConnectors(payload.connectors);
+      setJobSourcesByRoleId(payload.jobSourcesByRoleId);
       const mostRecent = payload.cases[0];
       if (mostRecent) {
         setRoleId(mostRecent.roleId);
@@ -393,15 +380,6 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     }
   }, [caseSaveState, cases, documentSaveState, flushDocuments, persistCase, replaceCase]);
 
-  const scheduleDocumentSave = useCallback((kind: StoredDocumentKind, content: CaseDocument["content"]) => {
-    if (!activeCaseRef.current) return;
-    documentDraftRef.current[kind] = content;
-    documentVersionRef.current[kind] += 1;
-    setDocumentSaveState("unsaved");
-    if (documentTimers.current[kind]) clearTimeout(documentTimers.current[kind]);
-    documentTimers.current[kind] = setTimeout(() => void persistDocument(kind), 1100);
-  }, [persistDocument]);
-
   const startResize = useCallback((event: React.PointerEvent) => {
     event.preventDefault();
     setIsDragging(true);
@@ -420,29 +398,6 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     window.addEventListener("pointerup", stop);
   }, []);
 
-  const applyCapabilityDraft = useCallback((draft: CapabilityDraft) => {
-    if (draft.resume) {
-      setResumeForm(draft.resume);
-      setBrandResult(null);
-      scheduleDocumentSave("resume", draft.resume);
-    }
-    if (draft.submission) {
-      setSubmission(draft.submission);
-      scheduleDocumentSave("submission", draft.submission);
-    }
-    if (draft.emailDraft !== undefined) scheduleDocumentSave("email", draft.emailDraft);
-    if (draft.loxoUpdate !== undefined) scheduleDocumentSave("loxo_update", draft.loxoUpdate);
-  }, [scheduleDocumentSave]);
-
-  const saveCapabilityRuns = useCallback((next: CapabilityRunsDocument) => {
-    setCapabilityRuns(next);
-    scheduleDocumentSave("capability_runs", next);
-  }, [scheduleDocumentSave]);
-
-  const openFeature = (featureId: string) => {
-    setInitialFeatureId(featureId);
-    setCapabilityOpen(true);
-  };
 
   const submitCreation = async () => {
     if (!creationMode || !creationPrimary.trim()) return;
@@ -516,15 +471,135 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     }
   };
 
-  const internalUnconfirmed = useMemo(() => {
-    if (!activeCase) return 0;
-    return activeCase.facts.filter((fact) => fact.status !== "confirmed").length;
-  }, [activeCase]);
+  const uploadJobSources = async (files: readonly File[], kinds: readonly SourceKind[] = []) => {
+    if (!roleId || files.length === 0 || sourceBusy) return;
+    setSourceBusy(true);
+    setActionMessage(`Adding ${files.length} source${files.length === 1 ? "" : "s"} to this Job...`);
+    try {
+      const next = await workstationApi.uploadJobSources(roleId, files, kinds);
+      setJobSourcesByRoleId((current) => ({ ...current, [roleId]: next }));
+      const uncertain = next.filter((source) => source.lifecycleStatus === "parsed" && source.classificationMethod === "uncertain").length;
+      setActionMessage(uncertain
+        ? `${files.length} source${files.length === 1 ? "" : "s"} added. ${uncertain} needs one classification.`
+        : `${files.length} Job source${files.length === 1 ? "" : "s"} parsed and ready.`);
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "The Job source could not be uploaded.");
+    } finally {
+      setSourceBusy(false);
+    }
+  };
 
-  const historyEntries = useMemo(
-    () => buildCaseHistoryEntries(cases, candidates, roles),
-    [cases, candidates, roles],
-  );
+  const reviewJobSource = async (sourceId: string, kind?: SourceKind) => {
+    if (!roleId || sourceBusy) return;
+    setSourceBusy(true);
+    try {
+      const next = await workstationApi.reviewJobSource(roleId, sourceId, kind);
+      setJobSourcesByRoleId((current) => ({ ...current, [roleId]: next }));
+      setActionMessage("Job source classified and ready for every candidate in this Job.");
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "The Job source could not be classified.");
+    } finally {
+      setSourceBusy(false);
+    }
+  };
+
+  const loadVersions = useCallback(async (kind: OutputKind) => {
+    if (!activeCaseRef.current) return;
+    try {
+      setOutputVersions(await workstationApi.listDocumentVersions(activeCaseRef.current.id, kind));
+    } catch {
+      setOutputVersions([]);
+    }
+  }, []);
+
+  const saveOutputEdit = async () => {
+    const current = activeCaseRef.current;
+    if (!current || outputDraft === null) return;
+    setDocumentSaveState("saving");
+    try {
+      const document = await workstationApi.saveDocument(current.id, outputKind, {
+        expectedRevision: current.documents[outputKind].revision,
+        content: outputDraft,
+      });
+      storeCaseRecord({ ...current, documents: { ...current.documents, [outputKind]: document } });
+      setOutputEditing(false);
+      setOutputDraft(null);
+      setDocumentSaveState("saved");
+      await loadVersions(outputKind);
+      setActionMessage(`Saved version ${document.revision}.`);
+    } catch (error) {
+      setDocumentSaveState("failed");
+      setActionMessage(error instanceof Error ? error.message : "The output could not be saved.");
+    }
+  };
+
+  const createAfterCallPackage = async () => {
+    const current = activeCaseRef.current;
+    if (!current || packageBusy) return;
+    const feature = featureById("write-up-candidate");
+    if (!feature) return;
+    const shared = (jobSourcesByRoleId[current.roleId] ?? []).filter((source) => source.contextStatus === "active");
+    const effectiveCase = { ...current, sources: [...current.sources, ...shared] };
+    const required = {
+      resume: effectiveCase.sources.some((source) => source.kind === "resume" && sourceIsUsable(source)),
+      call: effectiveCase.sources.some((source) => (source.kind === "call_notes" || source.kind === "transcript") && sourceIsUsable(source)) || Boolean(current.notes.trim()),
+      job: effectiveCase.sources.some((source) => source.kind === "job_description" && sourceIsUsable(source)),
+    };
+    const missing = [!required.resume && "candidate resume", !required.call && "call notes or transcript", !required.job && "Job description"].filter(Boolean);
+    if (missing.length) {
+      setActionMessage(`Add ${missing.join(", ")} first. Clear files are parsed automatically.`);
+      return;
+    }
+    setPackageBusy(true);
+    setActionMessage("Creating source-grounded package...");
+    try {
+      const draft = createAutofilledDraft(feature, effectiveCase);
+      const nextSubmission = draft.submission ?? contentAsSubmission(current.documents.submission);
+      const activeRole = roles.find((role) => role.id === current.roleId);
+      const name = nextSubmission.name.trim();
+      const roleTitle = activeRole?.title.trim() ?? "";
+      const email = [
+        name && roleTitle ? `Presenting ${name} for the ${roleTitle} opportunity.` : "",
+        nextSubmission.profileSummary.trim(),
+        "CV attached.",
+      ].filter(Boolean).join("\n\n");
+      const loxo = [
+        nextSubmission.compensationTarget && `- Salary expectation: ${nextSubmission.compensationTarget}`,
+        nextSubmission.location && `- Location: ${nextSubmission.location}`,
+        nextSubmission.startDateNotice && `- Start date / notice: ${nextSubmission.startDateNotice}`,
+        nextSubmission.interviewAvailability && `- Interview availability: ${nextSubmission.interviewAvailability}`,
+      ].filter(Boolean).join("\n");
+      const packageValues: Array<[OutputKind, CaseDocument["content"]]> = [
+        ["resume", draft.resume ?? current.documents.resume.content],
+        ["submission", nextSubmission],
+        ["email", email],
+        ["loxo_update", loxo],
+      ];
+      const sourceRefs = effectiveCase.sources.filter(sourceIsUsable).map((source) => `${source.id}:${source.sha256}`);
+      let nextCase = activeCaseRef.current!;
+      for (const [kind, content] of packageValues) {
+        const document = await workstationApi.saveDocument(nextCase.id, kind, {
+          expectedRevision: nextCase.documents[kind].revision,
+          content,
+          origin: "generated",
+          sourceRefs,
+        });
+        nextCase = { ...nextCase, documents: { ...nextCase.documents, [kind]: document } };
+        storeCaseRecord(nextCase);
+      }
+      setOutputKind("submission");
+      setResumeView("form");
+      setOutputEditing(false);
+      await loadVersions("submission");
+      const unknowns = Object.entries(nextSubmission).filter(([, value]) => !value.trim()).length;
+      setActionMessage(`Package created. ${unknowns} item${unknowns === 1 ? "" : "s"} need confirmation; nothing was invented.`);
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "The package could not be created.");
+    } finally {
+      setPackageBusy(false);
+    }
+  };
+
 
   const resumeSources = useMemo(
     () => activeCase?.sources
@@ -536,81 +611,20 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const resumeSourceUrl = activeCase && selectedResume
     ? `/api/cases/${activeCase.id}/sources/${selectedResume.id}?inline=1`
     : "";
-  const hasSavedWriteUp = submissionHasContent(submission);
   const afterCallReadiness = useMemo(() => {
-    const sources = activeCase?.sources ?? [];
+    const sources = [
+      ...(activeCase?.sources ?? []),
+      ...(activeCase ? jobSourcesByRoleId[activeCase.roleId] ?? [] : []),
+    ];
     return [
       { id: "resume", label: "Resume", state: sourceReadinessState(sources, ["resume"]) },
       { id: "call", label: "Call notes / transcript", state: sourceReadinessState(sources, ["call_notes", "transcript"]) },
       { id: "job", label: "Job description", state: sourceReadinessState(sources, ["job_description"]) },
     ] as const;
-  }, [activeCase]);
+  }, [activeCase, jobSourcesByRoleId]);
   const afterCallReadyCount = afterCallReadiness.filter((step) => step.state === "reviewed").length;
 
-  const brandReadinessMessage = () => {
-    if (!activeCase) return "Select a role and candidate first.";
-    const pdfConnector = connectors.find((item) => item.id === "pdf");
-    if (pdfConnector && pdfConnector.status !== "available") return pdfConnector.detail;
-    if (resumeMode === "external_blind_mpc") {
-      return "External-client blind MPC is not available yet. Removing the name and replacing every employer with its industry is the recruiter AI step. Use Named submission or Internal-team MPC.";
-    }
-    if (!resumeForm.name.trim() || !resumeFormHasContent(resumeForm)) {
-      return "Fill in the TTTG resume form first: open TTTG resume in the Resume pane.";
-    }
-    return "Ready. Build PDF sends the TTTG resume form to the branded resume builder.";
-  };
 
-  const buildResumePdf = async () => {
-    if (!activeCase || brandBusy) return;
-    setBrandBusy(true);
-    setBrandResult(null);
-    try {
-      setBrandResult(await workstationApi.brandResume(activeCase.id, { mode: resumeMode, candidate: resumeFormToCandidate(resumeForm) }));
-    } catch (error) {
-      setBrandResult({ status: "unavailable", detail: error instanceof Error ? error.message : "The branded resume request failed. Nothing was built." });
-    } finally {
-      setBrandBusy(false);
-    }
-  };
-
-  const resumeReadinessMessage = (purpose: "brand" | "write_up") => {
-    if (purpose === "brand") return brandReadinessMessage();
-    if (!activeCase) return "Select a role and candidate first.";
-    if (!selectedResume) return "Add the candidate's resume first.";
-    if (selectedResume.lifecycleStatus !== "reviewed") {
-      return `Confirm ${selectedResume.filename} as the current resume in Sources first.`;
-    }
-    if (!selectedResume.parsedText) {
-      return `${selectedResume.filename} is stored and viewable, but the recruiter parser must read it before writing the candidate up.`;
-    }
-    if (purpose === "write_up") {
-      if (caseSaveState !== "saved") return "Wait for Notes to show Saved before writing the candidate up.";
-      const reviewedCallSource = activeCase.sources.some((source) =>
-        (source.kind === "call_notes" || source.kind === "transcript") &&
-        source.lifecycleStatus === "reviewed" &&
-        Boolean(source.parsedText?.trim()),
-      );
-      if (!notes.trim() && !reviewedCallSource) return "Add your call notes or a reviewed transcript before writing the candidate up.";
-      if (writeUpMode === "full_package") {
-        const reviewedJobDescription = activeCase.sources.some((source) =>
-          source.kind === "job_description" &&
-          source.lifecycleStatus === "reviewed" &&
-          Boolean(source.parsedText?.trim()),
-        );
-        if (!reviewedJobDescription) return "Add and confirm a readable job description for the full after-call package, or choose Candidate submission draft.";
-      }
-      return writeUpMode === "full_package"
-        ? "Sources are ready for the repository-defined full package. Generation still needs the authenticated recruiter runtime."
-        : "Reviewed resume facts fill blank Candidate Write-up fields. Call-only facts stay blank until confirmed.";
-    }
-    return "";
-  };
-
-  const openBrandResume = () => {
-    setBrandResult(null);
-    setActionMessage(resumeReadinessMessage("brand"));
-    setBrandOpen(true);
-  };
   if (loading && !roles.length && !candidates.length) {
     return <main className="center-state"><LoaderCircle className="spin" /> Loading workstation</main>;
   }
@@ -623,34 +637,45 @@ export function RecruiterWorkstation({ user }: { user: User }) {
         <div className="operator"><span className={`save-dot ${caseSaveState}`}><Check size={13} /></span><span>{saveLabel(caseSaveState)}</span><span className="operator-name">{user.displayName}</span></div>
       </header>
 
-      <section className="context-bar" aria-label="Current recruiting case">
-        <div className="context-control history-control">
-          <span>History</span>
-          <div className="select-wrap">
-            <select
-              aria-label="Candidate history"
-              value={activeCase?.id ?? ""}
-              disabled={!historyEntries.length || caseSaveState === "saving"}
-              onChange={(event) => {
-                const selected = historyEntries.find((item) => item.caseId === event.target.value);
-                if (selected) void openSelectedCase(selected.roleId, selected.candidateId);
-              }}
-            >
-              {!historyEntries.length ? <option value="">No candidate history yet</option> : null}
-              {historyEntries.map((item) => <option key={item.caseId} value={item.caseId}>{item.label}</option>)}
-            </select>
-            <ChevronDown size={16} />
-          </div>
-        </div>
-        <ContextSelect label="Role" value={roleId} onChange={(value) => void openSelectedCase(value, candidateId)} onAdd={() => setCreationMode("role")} disabled={caseSaveState === "saving"}>
-          <option value="">Select a role...</option>
+      <section className="context-bar job-context-bar" aria-label="Current Job folder and candidate">
+        <ContextSelect label="Job folder" value={roleId} onChange={(value) => void openSelectedCase(value, candidateId)} onAdd={() => setCreationMode("role")} disabled={caseSaveState === "saving"}>
+          <option value="">Select a Job...</option>
           {roles.map((item) => <option key={item.id} value={item.id}>{item.title}{item.client ? ` · ${item.client}` : ""}</option>)}
         </ContextSelect>
         <ContextSelect label="Candidate" value={candidateId} onChange={(value) => void openSelectedCase(roleId, value)} onAdd={() => setCreationMode("candidate")} disabled={caseSaveState === "saving"}>
           <option value="">Select a candidate...</option>
           {candidates.map((item) => <option key={item.id} value={item.id}>{item.name}{item.currentTitle ? ` · ${item.currentTitle}` : ""}</option>)}
         </ContextSelect>
+        <div className="job-breadcrumb"><FolderOpen size={16} /><span>{roles.find((role) => role.id === roleId)?.title ?? "Choose a Job folder"}</span>{activeCase ? <><span>/</span><strong>{candidates.find((candidate) => candidate.id === candidateId)?.name}</strong></> : null}</div>
       </section>
+
+      {roleId ? <section className="job-source-strip" aria-label="Shared Job sources">
+        <input ref={jobFileInput} type="file" accept={SOURCE_ACCEPT} multiple hidden onChange={(event) => { const files = Array.from(event.target.files || []); void uploadJobSources(files); event.currentTarget.value = ""; }} />
+        <button
+          type="button"
+          className={`job-source-drop${jobDropActive ? " is-dragging" : ""}`}
+          disabled={sourceBusy}
+          onClick={() => jobFileInput.current?.click()}
+          onDragEnter={(event) => { event.preventDefault(); setJobDropActive(true); }}
+          onDragOver={(event) => { event.preventDefault(); setJobDropActive(true); }}
+          onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setJobDropActive(false); }}
+          onDrop={(event) => { event.preventDefault(); setJobDropActive(false); void uploadJobSources(Array.from(event.dataTransfer.files)); }}
+        >
+          <UploadCloud size={18} />
+          <span><strong>Job knowledge</strong><small>Drop the JD, client notes, or instructions once. Every candidate in this Job uses them.</small></span>
+        </button>
+        <div className="job-source-list">{(jobSourcesByRoleId[roleId] ?? []).map((source) => {
+          const uncertain = source.lifecycleStatus === "parsed" && source.classificationMethod === "uncertain";
+          const unreadable = source.lifecycleStatus === "uploaded" && !source.parsedText;
+          const reviewKind = sourceReviewKinds[source.id] || "job_description";
+          return <div className="job-source-chip" key={source.id}>
+            <FileText size={14} /><span title={source.filename}>{source.filename}</span>
+            <small>{unreadable ? "Could not read automatically" : uncertain ? "What is this?" : JOB_SOURCE_KIND_LABELS[source.kind]}</small>
+            {uncertain ? <><select aria-label={`Classify ${source.filename}`} value={reviewKind} onChange={(event) => setSourceReviewKinds((current) => ({ ...current, [source.id]: event.target.value as SourceKind }))}><option value="job_description">Job description</option><option value="call_notes">Client notes</option><option value="pasted_text">Instructions</option></select><Button size="sm" variant="outline" onClick={() => void reviewJobSource(source.id, reviewKind)}>Use</Button></> : null}
+          </div>;
+        })}</div>
+        <Button size="sm" variant="outline" onClick={() => { setPasteScope("job"); setPasteOpen(true); }}><Link2 size={15} />Paste text</Button>
+      </section> : null}
 
       {pageError ? <div className="error-banner"><AlertTriangle size={17} />{pageError}<Button size="sm" variant="outline" onClick={() => { setLoading(true); setPageError(""); void loadWorkspace(); }}>Retry</Button></div> : null}
 
@@ -667,21 +692,20 @@ export function RecruiterWorkstation({ user }: { user: User }) {
                 <button type="button" aria-pressed={notesMode === "draw"} onClick={() => setNotesMode("draw")}>Draw</button>
                 <button type="button" aria-pressed={notesMode === "type"} onClick={() => setNotesMode("type")}>Type</button>
               </div>
-              {notesMode === "type" ? <div className="notes-controls"><label>Font<select value={notesFont} disabled={!activeCase} onChange={(event) => { const notesFont = event.target.value; setNotesFont(notesFont); changeCaseDraft({ notesFont }); }}>{FONT_OPTIONS.map((font) => <option key={font}>{font}</option>)}</select></label><label>Size<select value={notesSize} disabled={!activeCase} onChange={(event) => { const notesSize = Number(event.target.value); setNotesSize(notesSize); changeCaseDraft({ notesSize }); }}>{SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}</select></label></div> : null}
               <Button size="icon" variant="outline" className="notes-focus-button" onClick={() => setNotesFocused((focused) => !focused)} aria-label={notesFocused ? "Show resume panel" : "Hide resume panel"} title={notesFocused ? "Show resume" : "Hide resume"}>{notesFocused ? <PanelRightOpen size={17} /> : <PanelRightClose size={17} />}</Button>
             </div>
           </div>
           <div className="notes-workspace">
             <div className={notesMode === "type" ? "notes-mode-panel active" : "notes-mode-panel"} aria-hidden={notesMode !== "type"}>
-              <Textarea className="scribble-surface" aria-label="Candidate typed notes" disabled={!activeCase} value={notes} onChange={(event) => { const notes = event.target.value; setNotes(notes); changeCaseDraft({ notes }); }} placeholder={activeCase ? "Type notes or use Apple Pencil Scribble." : "Select a role and candidate to open a private case."} style={{ fontFamily: notesFont === "System" ? "var(--font-ui)" : notesFont, fontSize: `${notesSize}px` }} />
+              <Textarea className="scribble-surface" aria-label="Candidate typed notes" disabled={!activeCase} value={notes} onChange={(event) => { const notes = event.target.value; setNotes(notes); changeCaseDraft({ notes }); }} placeholder={activeCase ? "Type notes or use Apple Pencil Scribble." : "Select a Job folder and candidate to open a private case."} style={{ fontFamily: notesFont === "System" ? "var(--font-ui)" : notesFont, fontSize: `${notesSize}px` }} />
             </div>
             <div className={notesMode === "draw" ? "notes-mode-panel active" : "notes-mode-panel"} aria-hidden={notesMode !== "draw"}>
-              {activeCase ? <HandwritingCanvas key={activeCase.id} caseId={activeCase.id} disabled={!activeCase} value={notesDrawingSvg} onChange={(notesDrawingSvg) => { setNotesDrawingSvg(notesDrawingSvg); changeCaseDraft({ notesDrawingSvg }); }} /> : <div className="handwriting-empty">Select a role and candidate to start handwriting notes.</div>}
+              {activeCase ? <HandwritingCanvas key={activeCase.id} caseId={activeCase.id} disabled={!activeCase} value={notesDrawingSvg} onChange={(notesDrawingSvg) => { setNotesDrawingSvg(notesDrawingSvg); changeCaseDraft({ notesDrawingSvg }); }} /> : <div className="handwriting-empty">Select a Job folder and candidate to start handwriting notes.</div>}
             </div>
           </div>
           <div className="source-area">
             <button type="button" className="source-toggle" aria-expanded={sourcePanelOpen} onClick={() => setSourcePanelOpen((open) => !open)}>
-              <span>Sources <strong>{afterCallReadyCount} of 3 ready</strong></span>
+              <span>Candidate sources</span>
               <small>{sourcePanelOpen ? "Collapse" : "Add or review"}</small>
               <ChevronDown size={17} aria-hidden="true" />
             </button>
@@ -698,16 +722,10 @@ export function RecruiterWorkstation({ user }: { user: User }) {
                 onDrop={(event) => { event.preventDefault(); setDropActive(false); void uploadSources(Array.from(event.dataTransfer.files)); }}
               >
                 <UploadCloud size={22} aria-hidden="true" />
-                <span><strong>Drop source files here</strong><small>or tap to choose multiple files</small></span>
+                <span><strong>Drop the resume, transcript, or call notes</strong><small>Files are parsed and classified automatically</small></span>
               </button>
               <div className="source-controls">
-                <div className="source-checklist" aria-label="After-call source readiness">
-                  {afterCallReadiness.map(({ id, label, state }) => <span key={id} className={`is-${state}`} aria-label={`${label}: ${sourceReadinessLabel(state)}`}>
-                    <i aria-hidden="true">{state === "reviewed" ? <Check size={13} /> : state === "attached" ? <FileText size={12} /> : null}</i>
-                    <span><strong>{label}</strong><small>{sourceReadinessLabel(state)}</small></span>
-                  </span>)}
-                </div>
-                <Button size="sm" variant="outline" disabled={!activeCase || sourceBusy} onClick={() => setPasteOpen(true)}><Link2 size={15} aria-hidden="true" />Paste text</Button>
+                <Button size="sm" variant="outline" disabled={!activeCase || sourceBusy} onClick={() => { setPasteScope("candidate"); setPasteOpen(true); }}><Link2 size={15} aria-hidden="true" />Paste text</Button>
               </div>
               <div className="source-summary" aria-label="Attached source status">{activeCase?.sources.length ? activeCase.sources.map((source) => {
               const needsClassification = source.lifecycleStatus === "parsed" && source.classificationMethod === "uncertain";
@@ -716,8 +734,8 @@ export function RecruiterWorkstation({ user }: { user: User }) {
                 <div className="source-row-copy"><strong title={source.filename}>{source.filename}</strong><span>{SOURCE_KIND_LABELS[source.kind]}</span></div>
                 <span className={`source-status ${source.lifecycleStatus}`}>{source.lifecycleStatus}</span>
                 {needsClassification ? <select aria-label={`Classify ${source.filename}`} value={reviewKind} onChange={(event) => setSourceReviewKinds((current) => ({ ...current, [source.id]: event.target.value as SourceKind }))}>{(["resume", "transcript", "job_description", "call_notes"] as SourceKind[]).map((kind) => <option key={kind} value={kind}>{SOURCE_KIND_LABELS[kind]}</option>)}</select> : null}
-                {source.lifecycleStatus === "classified" || needsClassification ? <Button size="sm" variant="outline" disabled={sourceBusy} onClick={() => void reviewSource(source.id, needsClassification ? reviewKind : undefined)}>Confirm</Button> : null}
-                {source.lifecycleStatus === "uploaded" ? <small>Parser pending</small> : null}
+                {needsClassification ? <Button size="sm" variant="outline" disabled={sourceBusy} onClick={() => void reviewSource(source.id, reviewKind)}>Use</Button> : null}
+                {source.lifecycleStatus === "uploaded" ? <small>Could not read automatically</small> : null}
               </div>;
               }) : <span>No sources attached.</span>}</div>
             </div> : null}
@@ -729,44 +747,45 @@ export function RecruiterWorkstation({ user }: { user: User }) {
         <section className="document-pane" aria-label="Candidate resume reference" aria-hidden={notesFocused}>
           {activeCase ? <>
             <div className="pane-toolbar resume-toolbar">
-              <div><h2>Resume</h2>{selectedResume ? <span className={`source-status ${selectedResume.lifecycleStatus}`}>{selectedResume.lifecycleStatus}</span> : null}</div>
+              <div><h2>{resumeView === "source" ? "Source" : "After-call package"}</h2>{selectedResume && resumeView === "source" ? <span className={`source-status ${selectedResume.lifecycleStatus}`}>{sourceIsUsable(selectedResume) ? "ready" : selectedResume.lifecycleStatus}</span> : null}</div>
               <div className="resume-toolbar-actions">
                 <div className="resume-view-toggle" role="group" aria-label="Resume view">
-                  <Button size="sm" variant={resumeView === "source" ? "default" : "outline"} aria-pressed={resumeView === "source"} onClick={() => setResumeView("source")}>Source</Button>
-                  <Button size="sm" variant={resumeView === "form" ? "default" : "outline"} aria-pressed={resumeView === "form"} onClick={() => setResumeView("form")}>TTTG resume</Button>
+                  <Button size="sm" variant={resumeView === "source" ? "default" : "outline"} aria-pressed={resumeView === "source"} onClick={() => setResumeView("source")}>Original</Button>
+                  <Button size="sm" variant={resumeView === "form" ? "default" : "outline"} aria-pressed={resumeView === "form"} onClick={() => { setResumeView("form"); void loadVersions(outputKind); }}>Generated</Button>
                 </div>
                 {resumeView === "source" && resumeSources.length > 1 ? <label>Resume<select aria-label="Resume to view" value={selectedResume?.id ?? ""} onChange={(event) => setResumeSourceId(event.target.value)}>{resumeSources.map((source) => <option key={source.id} value={source.id}>{source.filename}</option>)}</select></label> : null}
                 {resumeView === "source" && resumeSourceUrl ? <Button asChild size="sm" variant="outline"><a href={resumeSourceUrl} target="_blank" rel="noreferrer">Open</a></Button> : null}
-                <Button size="sm" className="gold-button" onClick={() => openFeature("brand-resume")}><FileText size={16} />Brand resume</Button>
+                {resumeView === "form" && !outputEditing ? <Button size="sm" variant="outline" onClick={() => { setOutputDraft(activeCase.documents[outputKind].content); setOutputEditing(true); }}><Edit3 size={15} />Edit</Button> : null}
               </div>
             </div>
             {resumeView === "form"
-              ? <div className="resume-form-scroll"><ResumeFormEditor value={resumeForm} onChange={(next) => { setResumeForm(next); setBrandResult(null); scheduleDocumentSave("resume", next); }} /></div>
-              : <ResumeSourcePreview source={selectedResume} sourceUrl={resumeSourceUrl} />}
-          </> : <div className="document-empty"><FileText size={34} /><h2>Open a candidate case</h2><p>Select a role and candidate. The attached resume stays visible while you take notes.</p></div>}
+              ? <GeneratedOutputPanel key={`${outputKind}-${activeCase.documents[outputKind].revision}`}
+                  activeCase={activeCase}
+                  kind={outputKind}
+                  onKindChange={(kind) => { setOutputKind(kind); setOutputEditing(false); setOutputDraft(null); void loadVersions(kind); }}
+                  editing={outputEditing}
+                  draft={outputDraft}
+                  onDraftChange={setOutputDraft}
+                  onSave={() => void saveOutputEdit()}
+                  onCancel={() => { setOutputEditing(false); setOutputDraft(null); }}
+                  versions={outputVersions}
+                />
+              : <ResumeSourcePreview source={selectedResume} sourceUrl={resumeSourceUrl} onAdd={() => multiFileInput.current?.click()} />}
+          </> : <div className="document-empty"><FileText size={34} /><h2>Open a candidate</h2><p>Select a Job folder and candidate. The attached resume stays visible while you take notes.</p></div>}
         </section>
       </section>
 
       <section className="action-bar" aria-label="Candidate case actions">
-        <div className="after-call-progress" aria-label={`After-call readiness: ${afterCallReadyCount} of 3 sources ready`}>
-          <span>After-call readiness <strong>{afterCallReadyCount}/3 ready</strong></span>
-          <progress max={3} value={afterCallReadyCount}>{afterCallReadyCount} of 3</progress>
-        </div>
-        <Button disabled={!activeCase} onClick={() => openFeature("write-up-candidate")}><Play size={18} aria-hidden="true" />{hasSavedWriteUp ? "Review after-call drafts" : "Create after-call drafts"}</Button>
-        <Button variant="outline" disabled={!activeCase} onClick={() => openFeature("vet-candidate")}><CircleHelp size={18} aria-hidden="true" />Vet candidate</Button>
-        <Button variant="outline" disabled={!activeCase} onClick={() => openFeature("brand-resume")}>All features</Button>
+        <div className="after-call-progress"><span>{afterCallReadyCount === 3 ? "Sources ready" : "Add the remaining source files"}</span><small>Resume · call evidence · Job description</small></div>
+        <Button disabled={!activeCase || packageBusy} onClick={() => void createAfterCallPackage()}>{packageBusy ? <LoaderCircle className="spin" size={18} /> : <Play size={18} aria-hidden="true" />}Create after-call package</Button>
+        <Button variant="outline" disabled={!activeCase} onClick={() => { setResumeView("form"); void loadVersions(outputKind); }}>Open outputs</Button>
         <output className="action-message" aria-live="polite">{actionMessage}</output>
       </section>
 
-      <CapabilityEngine key={initialFeatureId} open={capabilityOpen} onOpenChange={setCapabilityOpen} activeCase={activeCase} roleSelected={Boolean(roleId)} connectors={connectors} runs={capabilityRuns} onRunsChange={saveCapabilityRuns} onDraftChange={applyCapabilityDraft} onOpenBrandResume={openBrandResume} initialFeatureId={initialFeatureId} />
+      <Dialog open={Boolean(creationMode)} onOpenChange={(open) => { if (!open) setCreationMode(null); }}><DialogContent><DialogHeader><DialogTitle>{creationMode === "role" ? "New Job folder" : "Add candidate"}</DialogTitle><DialogDescription>This creates an internal workstation record only. It does not create a Loxo or Tracker record.</DialogDescription></DialogHeader><div className="dialog-fields"><label>{creationMode === "role" ? "Job title" : "Candidate name"}<Input value={creationPrimary} onChange={(event) => setCreationPrimary(event.target.value)} /></label><label>{creationMode === "role" ? "Client or company" : "Current title"}<Input value={creationSecondary} onChange={(event) => setCreationSecondary(event.target.value)} /></label></div><DialogFooter><Button variant="outline" onClick={() => setCreationMode(null)}>Cancel</Button><Button onClick={() => void submitCreation()} disabled={!creationPrimary.trim()}>Add</Button></DialogFooter></DialogContent></Dialog>
 
-      <Dialog open={Boolean(creationMode)} onOpenChange={(open) => { if (!open) setCreationMode(null); }}><DialogContent><DialogHeader><DialogTitle>{creationMode === "role" ? "Add role" : "Add candidate"}</DialogTitle><DialogDescription>This creates an internal workstation record only. It does not create a Loxo or Tracker record.</DialogDescription></DialogHeader><div className="dialog-fields"><label>{creationMode === "role" ? "Role title" : "Candidate name"}<Input value={creationPrimary} onChange={(event) => setCreationPrimary(event.target.value)} /></label><label>{creationMode === "role" ? "Client or company" : "Current title"}<Input value={creationSecondary} onChange={(event) => setCreationSecondary(event.target.value)} /></label></div><DialogFooter><Button variant="outline" onClick={() => setCreationMode(null)}>Cancel</Button><Button onClick={() => void submitCreation()} disabled={!creationPrimary.trim()}>Add</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={pasteOpen} onOpenChange={setPasteOpen}><DialogContent><DialogHeader><DialogTitle>Paste {pasteScope === "job" ? "Job knowledge" : "candidate source"}</DialogTitle><DialogDescription>The original text is stored unchanged, then parsed and classified automatically.</DialogDescription></DialogHeader><label className="paste-kind">Title<Input value={pastedSourceTitle} onChange={(event) => setPastedSourceTitle(event.target.value)} placeholder={pasteScope === "job" ? "Example: Maintenance Manager JD" : "Example: September 18 screening call"} /></label><Textarea value={pastedSource} onChange={(event) => setPastedSource(event.target.value)} placeholder="Paste the source text exactly as received." className="paste-source-textarea" /><DialogFooter><Button variant="outline" onClick={() => setPasteOpen(false)}>Cancel</Button><Button disabled={(pasteScope === "job" ? !roleId : !activeCase) || !pastedSourceTitle.trim() || !pastedSource.trim() || sourceBusy} onClick={() => { if (!pastedSourceTitle.trim() || !pastedSource.trim()) return; const file = new File([pastedSource], pastedSourceFilename(pastedSourceTitle), { type: "text/plain" }); setPasteOpen(false); setPastedSourceTitle(""); setPastedSource(""); if (pasteScope === "job") void uploadJobSources([file]); else void uploadSources([file]); }}>Save source</Button></DialogFooter></DialogContent></Dialog>
 
-      <Dialog open={pasteOpen} onOpenChange={setPasteOpen}><DialogContent><DialogHeader><DialogTitle>Paste source text</DialogTitle><DialogDescription>Give the source a clear title. The original text is stored as an immutable attachment for this candidate case.</DialogDescription></DialogHeader><label className="paste-kind">Title<Input value={pastedSourceTitle} onChange={(event) => setPastedSourceTitle(event.target.value)} placeholder="Example: September 18 screening call" /></label><label className="paste-kind">Source type<select value={pastedSourceKind} onChange={(event) => setPastedSourceKind(event.target.value as SourceKind)}><option value="call_notes">Call notes</option><option value="transcript">Transcript</option><option value="job_description">Job description</option><option value="resume">Resume</option><option value="pasted_text">Other pasted text</option></select></label><Textarea value={pastedSource} onChange={(event) => setPastedSource(event.target.value)} placeholder="Paste transcript, notes, or source text exactly as received." className="paste-source-textarea" /><DialogFooter><Button variant="outline" onClick={() => setPasteOpen(false)}>Cancel</Button><Button disabled={!activeCase || !pastedSourceTitle.trim() || !pastedSource.trim() || sourceBusy} onClick={() => { if (!activeCase || !pastedSourceTitle.trim() || !pastedSource.trim()) return; const file = new File([pastedSource], pastedSourceFilename(pastedSourceTitle), { type: "text/plain" }); setPasteOpen(false); setPastedSourceTitle(""); setPastedSource(""); void uploadSources([file], [pastedSourceKind]); }}>Save source</Button></DialogFooter></DialogContent></Dialog>
-
-      <Dialog open={brandOpen} onOpenChange={setBrandOpen}><DialogContent className="writeup-dialog"><DialogHeader><DialogTitle>Brand resume</DialogTitle><DialogDescription>Choose the presentation mode defined by the recruitment-skills repository.</DialogDescription></DialogHeader><div className="writeup-mode-options" aria-label="Branded resume presentation mode"><button type="button" aria-pressed={resumeMode === "named_submission"} onClick={() => setResumeMode("named_submission")}><strong>Named submission</strong><span>Candidate name and real employers</span></button><button type="button" aria-pressed={resumeMode === "internal_mpc"} onClick={() => setResumeMode("internal_mpc")}><strong>Internal-team MPC</strong><span>Candidate name and real employers</span></button><button type="button" aria-pressed={resumeMode === "external_blind_mpc"} onClick={() => setResumeMode("external_blind_mpc")}><strong>External-client blind MPC</strong><span>No name, contact details, or real employer names</span></button></div><div className="writeup-readiness">{resumeReadinessMessage("brand")}</div><BrandResult result={brandResult} /><DialogFooter><Button variant="outline" onClick={() => setBrandOpen(false)}>Done</Button><Button className="gold-button" disabled={brandBusy || !activeCase || resumeMode === "external_blind_mpc" || !resumeForm.name.trim() || !resumeFormHasContent(resumeForm)} onClick={() => void buildResumePdf()}>{brandBusy ? <><LoaderCircle className="spin" size={16} />Building (can take a minute)</> : <><FileText size={16} />Build PDF</>}</Button></DialogFooter></DialogContent></Dialog>
-
-      <Dialog open={writeUpOpen} onOpenChange={setWriteUpOpen}><DialogContent className="writeup-dialog"><DialogHeader><DialogTitle>Candidate write-up</DialogTitle><DialogDescription>{hasSavedWriteUp ? "Review the saved candidate submission. Unknown facts remain blank." : "Choose an output set defined by the recruitment-skills repository. Every output stays source-grounded."}</DialogDescription></DialogHeader><div className="writeup-mode-options" aria-label="Candidate write-up output set"><button type="button" aria-pressed={writeUpMode === "candidate_submission"} onClick={() => setWriteUpMode("candidate_submission")}><strong>Candidate submission draft</strong><span>Submission-style write-up only</span></button><button type="button" aria-pressed={writeUpMode === "full_package"} onClick={() => setWriteUpMode("full_package")}><strong>Full after-call package</strong><span>Branded resume, submission, email draft, and Loxo bullets</span></button></div><div className="writeup-readiness">{resumeReadinessMessage("write_up")}</div><p className="prefill-note">Confirmed resumes fill only blank Name, Title, Location, and Profile Summary fields. Existing edits and call-only facts are never overwritten.</p><div className="writeup-dialog-body"><SubmissionForm value={submission} onChange={(next) => { setSubmission(next); scheduleDocumentSave("submission", next); }} /></div><DialogFooter><span className={`save-state ${documentSaveState}`}>{saveLabel(documentSaveState)} · {internalUnconfirmed} unconfirmed fact{internalUnconfirmed === 1 ? "" : "s"}</span><Button onClick={() => setWriteUpOpen(false)}>Done</Button></DialogFooter></DialogContent></Dialog>
     </main>
   );
 }
@@ -775,8 +794,64 @@ function ContextSelect({ label, value, onChange, onAdd, disabled, children }: { 
   return <div className="context-control"><span>{label}</span><div className="context-select-row"><div className="select-wrap"><select value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled}>{children}</select><ChevronDown size={16} /></div><Button size="icon" variant="outline" onClick={onAdd} aria-label={`Add ${label.toLowerCase()}`}><Plus size={18} /></Button></div></div>;
 }
 
-function ResumeSourcePreview({ source, sourceUrl }: { source: CaseSource | null; sourceUrl: string }) {
-  if (!source) return <div className="document-empty"><FileText size={34} /><h2>Add the candidate&apos;s resume</h2><p>It will stay here for quick reference while you write call notes.</p></div>;
+function GeneratedOutputPanel({
+  activeCase,
+  kind,
+  onKindChange,
+  editing,
+  draft,
+  onDraftChange,
+  onSave,
+  onCancel,
+  versions,
+}: {
+  activeCase: CandidateCase;
+  kind: OutputKind;
+  onKindChange: (kind: OutputKind) => void;
+  editing: boolean;
+  draft: CaseDocument["content"] | null;
+  onDraftChange: (content: CaseDocument["content"]) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  versions: DocumentVersion[];
+}) {
+  const document = activeCase.documents[kind];
+  const [viewRevision, setViewRevision] = useState(document.revision);
+  const effectiveRevision = viewRevision === document.revision || versions.some((version) => version.revision === viewRevision)
+    ? viewRevision
+    : document.revision;
+  const historical = versions.find((version) => version.revision === effectiveRevision);
+  const content = historical?.content ?? document.content;
+  const submission = contentAsSubmission({ ...document, content });
+  const resume = toResumeForm(content);
+  const missing = kind === "submission"
+    ? Object.entries(submission).filter(([, value]) => !value.trim()).map(([key]) => ({
+        compensationTarget: "Compensation target", currentCompensation: "Current compensation", vacation: "Vacation",
+        location: "Location", workStatus: "Work status", interviewAvailability: "Interview availability",
+        startDateNotice: "Start date / notice", reasonForLeaving: "Reason for leaving", profileSummary: "Profile summary",
+        name: "Name", title: "Title",
+      }[key] ?? key))
+    : [];
+  return <div className="generated-output-shell">
+    <div className="output-tabs" role="tablist">
+      {(["resume", "submission", "email", "loxo_update"] as OutputKind[]).map((item) => <button key={item} type="button" role="tab" aria-selected={kind === item} onClick={() => onKindChange(item)}>{({ resume: "Branded resume", submission: "Submission", email: "Email", loxo_update: "Loxo notes" })[item]}</button>)}
+    </div>
+    <div className="output-version-row"><span>Read-only preview</span><label>Version<select value={effectiveRevision} onChange={(event) => setViewRevision(Number(event.target.value))}><option value={document.revision}>Current · v{document.revision}</option>{versions.filter((version) => version.revision !== document.revision).map((version) => <option key={version.revision} value={version.revision}>v{version.revision} · {version.origin}</option>)}</select></label></div>
+    {editing ? <div className="output-editor">
+      {kind === "resume" ? <ResumeFormEditor value={toResumeForm(draft)} onChange={onDraftChange} /> : null}
+      {kind === "submission" ? <SubmissionForm value={contentAsSubmission({ ...document, content: draft ?? {} })} onChange={onDraftChange} /> : null}
+      {kind === "email" || kind === "loxo_update" ? <Textarea value={typeof draft === "string" ? draft : ""} onChange={(event) => onDraftChange(event.target.value)} aria-label={`Edit ${kind}`} /> : null}
+      <div className="output-edit-actions"><Button variant="outline" onClick={onCancel}>Cancel</Button><Button onClick={onSave}>Save changes</Button></div>
+    </div> : <article className="output-preview">
+      {kind === "resume" ? <><h2>{resume.name || "Branded resume"}</h2>{resume.headline ? <h3>{resume.headline}</h3> : null}{resume.summary ? <section><h4>Professional Summary</h4><p>{resume.summary}</p></section> : null}{resume.skills ? <section><h4>Core Competencies &amp; Skills</h4><p className="preserve-lines">{resume.skills}</p></section> : null}{resume.jobs.length ? <section><h4>Professional Experience</h4>{resume.jobs.map((job, index) => <div key={index} className="preview-job"><strong>{job.title}</strong><span>{[job.company, job.location, job.dates].filter(Boolean).join(" · ")}</span><p className="preserve-lines">{job.bullets}</p></div>)}</section> : null}</> : null}
+      {kind === "submission" ? <><h2>Candidate submission</h2><dl>{Object.entries(submission).filter(([, value]) => value.trim()).map(([key, value]) => <div key={key}><dt>{key.replace(/([A-Z])/g, " $1")}</dt><dd>{value}</dd></div>)}</dl>{missing.length ? <aside className="needs-confirmation"><strong>Needs confirmation</strong><ul>{missing.map((item) => <li key={item}>{item}</li>)}</ul></aside> : null}</> : null}
+      {kind === "email" || kind === "loxo_update" ? <><h2>{kind === "email" ? "Presentation email" : "Loxo update bullets"}</h2><pre>{typeof content === "string" && content.trim() ? content : "No source-backed content yet."}</pre></> : null}
+    </article>}
+  </div>;
+}
+
+function ResumeSourcePreview({ source, sourceUrl, onAdd }: { source: CaseSource | null; sourceUrl: string; onAdd: () => void }) {
+  if (!source) return <button type="button" className="document-empty document-drop-target" onClick={onAdd}><UploadCloud size={34} /><h2>Drop the candidate&apos;s resume here</h2><p>It will be parsed automatically and stay visible while you take notes.</p></button>;
   if (source.contentType === "application/pdf") return <iframe className="resume-source-frame" src={sourceUrl} title={`${source.filename} resume preview`} />;
   if (source.contentType.startsWith("image/")) {
     return <div className="resume-source-scroll">
@@ -786,26 +861,6 @@ function ResumeSourcePreview({ source, sourceUrl }: { source: CaseSource | null;
   }
   if (source.parsedText) return <div className="resume-source-scroll"><pre className="resume-source-text">{source.parsedText}</pre></div>;
   return <div className="document-empty"><FileText size={34} /><h2>{source.filename}</h2><p>This file is safely attached, but this format cannot be previewed inside the workstation yet.</p><Button asChild variant="outline"><a href={sourceUrl} target="_blank" rel="noreferrer">Open resume</a></Button></div>;
-}
-
-function BrandResult({ result }: { result: BrandResumeResult | null }) {
-  if (!result) return null;
-  if (result.status === "built") {
-    return <div className="brand-result built" role="status">
-      <strong>PDF built: {result.filename}</strong>
-      <a href={result.downloadUrl} target="_blank" rel="noreferrer">Download the branded resume</a>
-      <span>This link expires in {result.expiresInSeconds ? Math.round(result.expiresInSeconds / 60) : 60} minutes. Save the file now.</span>
-      {result.contactRemoved.length ? <span>Contact fields left off the resume: {result.contactRemoved.join(", ")}.</span> : null}
-      {result.notes.map((note) => <span key={note}>{note}</span>)}
-    </div>;
-  }
-  if (result.status === "refused") {
-    return <div className="brand-result refused" role="alert">
-      <strong><AlertTriangle size={16} />Not built. Fix these in the TTTG resume form, then build again:</strong>
-      <ul>{result.problems.map((problem) => <li key={problem}>{problem}</li>)}</ul>
-    </div>;
-  }
-  return <div className="brand-result unavailable" role="alert"><strong><AlertTriangle size={16} />Not built.</strong><span>{result.detail}</span></div>;
 }
 
 function SubmissionForm({ value, onChange }: { value: SubmissionDocument; onChange: (value: SubmissionDocument) => void }) {

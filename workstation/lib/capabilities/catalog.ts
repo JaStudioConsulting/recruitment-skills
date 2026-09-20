@@ -1,5 +1,6 @@
 import featureCatalog from "../../capability-features.json";
 import type { CandidateCase, ConnectorCapability, SourceKind } from "@/lib/workstation-types";
+import { sourceIsUsable } from "../server/source-intake";
 
 export const FEATURE_GROUPS = ["candidate", "role", "pipeline", "writing"] as const;
 export type FeatureGroup = (typeof FEATURE_GROUPS)[number];
@@ -59,7 +60,7 @@ export function requirementStates(input: {
     }
     if (requirement.kind === "source" || requirement.kind === "source_or_input") {
       const reviewedSource = activeCase?.sources.some(
-        (source) => source.lifecycleStatus === "reviewed" && requirement.source_kinds?.includes(source.kind),
+        (source) => sourceIsUsable(source) && requirement.source_kinds?.includes(source.kind),
       ) ?? false;
       met = reviewedSource || (requirement.kind === "source_or_input" && extraInput.trim().length > 0);
     }

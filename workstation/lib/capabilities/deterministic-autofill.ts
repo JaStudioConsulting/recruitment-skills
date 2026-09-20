@@ -1,5 +1,6 @@
 import type { ResumeFormDocument, ResumeFormJob, ResumeFormSection } from "../resume-form";
 import type { CandidateCase, CaseSource } from "../workstation-types";
+import { sourceIsUsable } from "../server/source-intake";
 import type { FeatureDefinition } from "./catalog";
 import { stringAtPath, setValueAtPath } from "./manual-artifacts";
 import { createEmptyDraft } from "./manual-drafts";
@@ -274,7 +275,7 @@ export function parseResumeText(text: string, filename: string): ParsedResume {
 }
 
 function reviewedSource(candidateCase: CandidateCase | null, kinds: string[]): CaseSource | undefined {
-  return candidateCase?.sources.find((source) => source.lifecycleStatus === "reviewed" && Boolean(source.parsedText?.trim()) && kinds.includes(source.kind));
+  return candidateCase?.sources.find((source) => sourceIsUsable(source) && kinds.includes(source.kind));
 }
 
 function labelled(text: string, labels: string[]): string {
@@ -307,6 +308,10 @@ function explicitFacts(source: CaseSource | undefined): Record<string, string> {
     currentCompensation: labelled(text, ["Current Compensation", "Current Salary"]),
     startDateNotice: labelled(text, ["Notice", "Notice Period"]),
     location: labelled(text, ["Location"]),
+    vacation: labelled(text, ["Vacation"]),
+    workStatus: labelled(text, ["Work Status", "Work Authorization"]),
+    interviewAvailability: labelled(text, ["Interview Availability", "Availability to Interview"]),
+    reasonForLeaving: labelled(text, ["Reason for Leaving", "Reason for Change"]),
   };
 }
 
@@ -339,7 +344,18 @@ export function createAutofilledDraft(feature: FeatureDefinition, candidateCase:
   const autofill: Record<string, string> = {};
   if (draft.resume && resume) { draft.resume = resume.form; Object.assign(autofill, resume.sources); }
   if (draft.submission) {
-    const values = { name: resume?.form.name ?? "", title: resume?.form.headline ?? "", compensationTarget: call.compensationTarget, currentCompensation: call.currentCompensation, location: call.location, startDateNotice: call.startDateNotice };
+    const values = {
+      name: resume?.form.name ?? "",
+      title: resume?.form.headline ?? "",
+      compensationTarget: call.compensationTarget,
+      currentCompensation: call.currentCompensation,
+      vacation: call.vacation,
+      location: call.location,
+      workStatus: call.workStatus,
+      interviewAvailability: call.interviewAvailability,
+      startDateNotice: call.startDateNotice,
+      reasonForLeaving: call.reasonForLeaving,
+    };
     for (const [key, value] of Object.entries(values)) if (value) {
       draft.submission = { ...draft.submission, [key]: value };
       autofill[`submission.${key}`] = key === "name" || key === "title" ? resumeSource!.filename : callSource!.filename;

@@ -4,8 +4,10 @@ import {
   candidateCases,
   candidates,
   caseActivity,
+  caseDocumentVersions,
   caseDocuments,
   caseSources,
+  roleSources,
   roles,
 } from "@/db/schema";
 import { ApiError } from "@/lib/server/api";
@@ -31,6 +33,8 @@ import {
   type CandidateRecord,
   type CaseDocument,
   type CaseSource,
+  type DocumentVersion,
+  type JobSource,
   type SourceKind,
   type SourceLifecycleStatus,
   type StoredDocumentKind,
@@ -92,6 +96,14 @@ function sourceRecord(row: typeof caseSources.$inferSelect): CaseSource {
   };
 }
 
+function jobSourceRecord(row: typeof roleSources.$inferSelect): JobSource {
+  return {
+    ...sourceRecord(row as typeof caseSources.$inferSelect),
+    roleId: row.roleId,
+    contextStatus: row.contextStatus === "superseded" ? "superseded" : "active",
+  };
+}
+
 function documentRecord(row: typeof caseDocuments.$inferSelect): CaseDocument {
   return {
     kind: row.kind,
@@ -114,6 +126,27 @@ export async function assertOwnedCase(userId: string, caseId: string) {
     .limit(1);
   if (!row) throw new ApiError(404, "Candidate case was not found.");
   return row;
+}
+
+export async function assertOwnedRole(userId: string, roleId: string) {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(roles)
+    .where(and(eq(roles.id, roleId), eq(roles.ownerId, userId)))
+    .limit(1);
+  if (!row) throw new ApiError(404, "Job folder was not found.");
+  return row;
+}
+
+export async function getRoleSources(userId: string, roleId: string): Promise<JobSource[]> {
+  await assertOwnedRole(userId, roleId);
+  const rows = await getDb()
+    .select()
+    .from(roleSources)
+    .where(eq(roleSources.roleId, roleId))
+    .orderBy(desc(roleSources.createdAt));
+  return rows.map(jobSourceRecord);
 }
 
 export async function getCandidateCase(
@@ -168,10 +201,14 @@ export async function loadWorkspace(userId: string): Promise<WorkspacePayload> {
   const caseRowsHydrated = await Promise.all(
     caseRows.map(({ id }) => getCandidateCase(userId, id)),
   );
+  const jobSourceEntries = await Promise.all(
+    roleRows.map(async (role) => [role.id, await getRoleSources(userId, role.id)] as const),
+  );
   return {
     roles: roleRows.map(roleRecord),
     candidates: candidateRows.map(candidateRecord),
     cases: caseRowsHydrated,
+    jobSourcesByRoleId: Object.fromEntries(jobSourceEntries),
     connectors: connectorCapabilities,
   };
 }
@@ -297,6 +334,18 @@ export async function openCandidateCase(
         updatedAt: timestamp,
       }),
     ),
+    ...STORED_DOCUMENT_KINDS.map((kind) =>
+      db.insert(caseDocumentVersions).values({
+        caseId: id,
+        kind,
+        revision: 1,
+        contentJson: JSON.stringify(defaultDocumentContent(kind)),
+        sourceRefsJson: "[]",
+        origin: "generated",
+        createdBy: userId,
+        createdAt: timestamp,
+      }),
+    ),
     db.insert(caseActivity).values({
       id: crypto.randomUUID(),
       caseId: id,
@@ -387,6 +436,7 @@ export async function saveCaseDocument(
   kind: StoredDocumentKind,
   expectedRevision: number,
   content: CaseDocument["content"],
+  metadata: { origin?: "generated" | "edited"; sourceRefs?: string[] } = {},
 ): Promise<CaseDocument> {
   const db = getDb();
   await assertOwnedCase(userId, caseId);
@@ -433,6 +483,16 @@ export async function saveCaseDocument(
       });
     }
     await Promise.all([
+      db.insert(caseDocumentVersions).values({
+        caseId,
+        kind,
+        revision: created.revision,
+        contentJson,
+        sourceRefsJson: JSON.stringify(metadata.sourceRefs ?? []),
+        origin: metadata.origin ?? "edited",
+        createdBy: userId,
+        createdAt: timestamp,
+      }).onConflictDoNothing(),
       db
         .update(candidateCases)
         .set({ updatedAt: timestamp })
@@ -478,6 +538,16 @@ export async function saveCaseDocument(
     });
   }
   await Promise.all([
+    db.insert(caseDocumentVersions).values({
+      caseId,
+      kind,
+      revision: updated.revision,
+      contentJson,
+      sourceRefsJson: JSON.stringify(metadata.sourceRefs ?? []),
+      origin: metadata.origin ?? "edited",
+      createdBy: userId,
+      createdAt: timestamp,
+    }).onConflictDoNothing(),
     db
       .update(candidateCases)
       .set({ updatedAt: timestamp })
@@ -494,6 +564,27 @@ export async function saveCaseDocument(
     }),
   ]);
   return documentRecord(updated);
+}
+
+export async function listDocumentVersions(
+  userId: string,
+  caseId: string,
+  kind: StoredDocumentKind,
+): Promise<DocumentVersion[]> {
+  await assertOwnedCase(userId, caseId);
+  const rows = await getDb()
+    .select()
+    .from(caseDocumentVersions)
+    .where(and(eq(caseDocumentVersions.caseId, caseId), eq(caseDocumentVersions.kind, kind)))
+    .orderBy(desc(caseDocumentVersions.revision));
+  return rows.map((row) => ({
+    kind,
+    revision: row.revision,
+    content: parseJson(row.contentJson, defaultDocumentContent(kind)),
+    sourceRefs: parseJson<string[]>(row.sourceRefsJson, []),
+    origin: row.origin === "generated" ? "generated" : "edited",
+    createdAt: row.createdAt,
+  }));
 }
 
 export type NewSource = {
@@ -516,7 +607,7 @@ export async function insertSource(userId: string, source: NewSource) {
   const timestamp = now();
   await db.insert(caseSources).values({
     ...source,
-    reviewStatus: "unreviewed",
+    reviewStatus: source.lifecycleStatus === "classified" ? "reviewed" : "unreviewed",
     createdBy: userId,
     createdAt: timestamp,
   });
@@ -542,6 +633,49 @@ export async function insertSource(userId: string, source: NewSource) {
       },
     }),
   ]);
+}
+
+export type NewRoleSource = Omit<NewSource, "caseId"> & { roleId: string };
+
+export async function insertRoleSource(userId: string, source: NewRoleSource) {
+  await assertOwnedRole(userId, source.roleId);
+  await getDb().insert(roleSources).values({
+    ...source,
+    reviewStatus: source.lifecycleStatus === "classified" ? "reviewed" : "unreviewed",
+    contextStatus: "active",
+    createdBy: userId,
+    createdAt: now(),
+  });
+}
+
+export async function getOwnedRoleSource(userId: string, roleId: string, sourceId: string) {
+  await assertOwnedRole(userId, roleId);
+  const [source] = await getDb().select().from(roleSources).where(and(
+    eq(roleSources.id, sourceId),
+    eq(roleSources.roleId, roleId),
+  )).limit(1);
+  if (!source) throw new ApiError(404, "Job source was not found.");
+  return source;
+}
+
+export async function reviewRoleSource(
+  userId: string,
+  roleId: string,
+  sourceId: string,
+  kind?: SourceKind,
+): Promise<JobSource[]> {
+  const source = await getOwnedRoleSource(userId, roleId, sourceId);
+  const lifecycle = normalizeSourceLifecycleStatus(source.lifecycleStatus);
+  if (!canReviewSource(lifecycle, kind)) {
+    throw new ApiError(409, "The source must be parsed and classified before review.");
+  }
+  await getDb().update(roleSources).set({
+    kind: kind ?? source.kind,
+    lifecycleStatus: "reviewed",
+    reviewStatus: "reviewed",
+    classificationMethod: kind ? "manual" : source.classificationMethod,
+  }).where(and(eq(roleSources.id, sourceId), eq(roleSources.roleId, roleId)));
+  return getRoleSources(userId, roleId);
 }
 
 export async function reviewSource(
@@ -644,10 +778,21 @@ export async function getOwnedSource(userId: string, caseId: string, sourceId: s
 export async function getCapabilityCaseContext(userId: string, caseId: string) {
   const db = getDb();
   const candidateCase = await getCandidateCase(userId, caseId);
-  const [[role], [candidate]] = await Promise.all([
+  const [[role], [candidate], sharedSources] = await Promise.all([
     db.select().from(roles).where(and(eq(roles.id, candidateCase.roleId), eq(roles.ownerId, userId))).limit(1),
     db.select().from(candidates).where(and(eq(candidates.id, candidateCase.candidateId), eq(candidates.ownerId, userId))).limit(1),
+    getRoleSources(userId, candidateCase.roleId),
   ]);
   if (!role || !candidate) throw new ApiError(404, "The selected role or candidate was not found.");
-  return { candidateCase, role: roleRecord(role), candidate: candidateRecord(candidate) };
+  return {
+    candidateCase: {
+      ...candidateCase,
+      sources: [
+        ...candidateCase.sources,
+        ...sharedSources.filter((source) => source.contextStatus === "active"),
+      ],
+    },
+    role: roleRecord(role),
+    candidate: candidateRecord(candidate),
+  };
 }
