@@ -79,3 +79,21 @@ export function requirementStates(input: {
 export function missingRequired(states: readonly RequirementState[]): RequirementState[] {
   return states.filter((requirement) => requirement.required && !requirement.met);
 }
+
+export function featureStatus(feature: FeatureDefinition, requirements: readonly RequirementState[]) {
+  if (["server_pending", "loxo_read_adapter", "tracker_read_adapter"].includes(feature.runtime)) {
+    return { label: "Not available yet", tone: "blocked" } as const;
+  }
+  const missing = missingRequired(requirements);
+  if (missing.length === 0) return { label: "Ready to draft", tone: "ready" } as const;
+  if (missing.every((requirement) => requirement.kind === "source" || requirement.kind === "source_or_input")) {
+    return { label: "Needs sources", tone: "needs" } as const;
+  }
+  if (missing.every((requirement) => requirement.kind === "user_input")) {
+    return { label: "Needs details", tone: "needs" } as const;
+  }
+  if (missing.every((requirement) => requirement.kind === "role")) {
+    return { label: "Needs role", tone: "needs" } as const;
+  }
+  return { label: "Needs inputs", tone: "needs" } as const;
+}
