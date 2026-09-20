@@ -22,6 +22,13 @@
       "when": 1789694587773,
       "tag": "0002_perfect_violations",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1789941253873,
+      "tag": "0003_lush_mojo",
+      "breakpoints": true
     }
   ]
 }

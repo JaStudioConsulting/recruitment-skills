@@ -5,6 +5,7 @@ import { apiRoute, ApiError, readJson } from "@/lib/server/api";
 import { getCapabilityCaseContext } from "@/lib/server/case-repository";
 import { callLocalAi } from "@/lib/server/local-ai";
 import { callArtifactBuilder } from "@/lib/server/artifact-builder";
+import { sourceIsUsable } from "@/lib/server/source-intake";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export async function POST(request: Request, context: Context) {
 
     const extraInput = input.extraInput ?? "";
     const { candidateCase, role, candidate } = await getCapabilityCaseContext(userId, caseId);
-    const reviewedSources = candidateCase.sources.filter((source) => source.lifecycleStatus === "reviewed" && source.parsedText?.trim());
+    const reviewedSources = candidateCase.sources.filter(sourceIsUsable);
     const allowedSourceKinds = new Set(feature.requirements.flatMap((requirement) => requirement.source_kinds ?? []));
     const featureSources = reviewedSources.filter((source) => allowedSourceKinds.has(source.kind));
     const missing = feature.requirements.filter((requirement) => {

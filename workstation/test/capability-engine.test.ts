@@ -7,8 +7,8 @@ import type { CandidateCase } from "../lib/workstation-types";
 
 const candidateCase = {
   sources: [
-    { kind: "resume", lifecycleStatus: "reviewed" },
-    { kind: "job_description", lifecycleStatus: "reviewed" },
+    { kind: "resume", lifecycleStatus: "reviewed", parsedText: "Professional Experience", classificationMethod: "manual" },
+    { kind: "job_description", lifecycleStatus: "reviewed", parsedText: "Responsibilities", classificationMethod: "manual" },
   ],
 } as CandidateCase;
 

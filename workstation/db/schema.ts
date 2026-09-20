@@ -120,6 +120,57 @@ export const caseSources = sqliteTable(
   ],
 );
 
+// Roles are presented as Job folders in the workstation. Sources attached here
+// are reusable context for every candidate case opened inside the Job.
+export const roleSources = sqliteTable(
+  "role_sources",
+  {
+    id: text("id").primaryKey(),
+    roleId: text("role_id")
+      .notNull()
+      .references(() => roles.id, { onDelete: "restrict" }),
+    kind: text("kind").notNull(),
+    filename: text("filename").notNull(),
+    contentType: text("content_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    sha256: text("sha256").notNull(),
+    storageKey: text("storage_key").notNull(),
+    reviewStatus: text("review_status").notNull().default("unreviewed"),
+    lifecycleStatus: text("lifecycle_status").notNull().default("uploaded"),
+    parsedText: text("parsed_text"),
+    classificationMethod: text("classification_method"),
+    contextStatus: text("context_status").notNull().default("active"),
+    createdBy: text("created_by").notNull(),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex("role_sources_storage_key_uidx").on(table.storageKey),
+    index("role_sources_role_created_idx").on(table.roleId, table.createdAt),
+  ],
+);
+
+// case_documents remains the fast current snapshot. This table makes every
+// saved edit or regeneration recoverable without changing legacy reads.
+export const caseDocumentVersions = sqliteTable(
+  "case_document_versions",
+  {
+    caseId: text("case_id")
+      .notNull()
+      .references(() => candidateCases.id, { onDelete: "restrict" }),
+    kind: text("kind").notNull(),
+    revision: integer("revision").notNull(),
+    contentJson: text("content_json").notNull(),
+    sourceRefsJson: text("source_refs_json").notNull().default("[]"),
+    origin: text("origin").notNull().default("edited"),
+    createdBy: text("created_by").notNull(),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    primaryKey({ columns: [table.caseId, table.kind, table.revision] }),
+    index("case_document_versions_case_kind_idx").on(table.caseId, table.kind),
+  ],
+);
+
 export const caseActivity = sqliteTable(
   "case_activity",
   {

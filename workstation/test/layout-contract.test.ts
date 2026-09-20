@@ -49,22 +49,19 @@ describe("bounded recruiter workstation layout", () => {
     expect(css).toMatch(/@media \(min-width: 820px\) and \(max-width: 1050px\) and \(orientation: landscape\)[\s\S]*?\.notes-pane, \.document-pane\s*\{[^}]*min-height:\s*0/);
   });
 
-  it("keeps only actionable call controls on the primary surface", () => {
-    expect(workstation).toContain("Brand resume");
-    expect(workstation).toContain("Create after-call drafts");
-    expect(workstation).toContain("Named submission");
-    expect(workstation).toContain("Internal-team MPC");
-    expect(workstation).toContain("External-client blind MPC");
-    expect(workstation).toContain("Candidate submission draft");
-    expect(workstation).toContain("Full after-call package");
-    expect(workstation).not.toContain("Quick write-up");
-    expect(workstation).not.toContain("Role-focused submission");
-    expect(workstation).not.toContain("Run After-Call Package");
-    expect(workstation).not.toContain("<TabsTrigger");
-    expect(workstation).not.toContain("assistant-strip");
-    expect(workstation).not.toContain('className="context-control status-control"');
-    expect(workstation).not.toContain('label="Fit/concern"');
-    expect(workstation).not.toContain('label="Ask next"');
+  it("uses Job folders, automatic intake, and one package action", () => {
+    expect(workstation).toContain('label="Job folder"');
+    expect(workstation).toContain("Job knowledge");
+    expect(workstation).toContain("Files are parsed and classified automatically");
+    expect(workstation).toContain("Create after-call package");
+    expect(workstation).toContain("Read-only preview");
+    expect(workstation).toContain("Save changes");
+    expect(workstation).toContain("Needs confirmation");
+    expect(workstation).not.toContain("Create after-call drafts");
+    expect(workstation).not.toContain("Vet candidate");
+    expect(workstation).not.toContain("All features");
+    expect(workstation).not.toContain("tttg-ai-provider");
+    expect(workstation).not.toContain("AI drafting needs");
   });
 
   it("lets narrow mobile pages scroll without losing bounded editors", () => {

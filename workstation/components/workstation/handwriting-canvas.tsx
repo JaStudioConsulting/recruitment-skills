@@ -43,11 +43,16 @@ export function HandwritingCanvas({ caseId, disabled, value, onChange }: Handwri
         editor = new JsDrawEditor(host, {
           wheelEventsEnabled: "only-if-focused",
           appInfo: { name: "TTTG Recruiter Workstation" },
+          pens: { filterPenTypes: (pen) => pen.id === "pressure-sensitive-pen" },
         });
         editorRef.current = editor;
         editor.getRootElement().style.height = "100%";
         editor.getRootElement().style.width = "100%";
-        editor.addToolbar();
+        const toolbar = editor.addToolbar(false);
+        toolbar.addUndoRedoButtons();
+        toolbar.addWidgetsForPrimaryTools((tool) =>
+          ["PenTool", "EraserTool", "TextTool"].includes(tool.constructor.name),
+        );
         editor.setReadOnly(disabledRef.current);
 
         if (initialValueRef.current.trim()) await editor.loadFromSVG(initialValueRef.current, true);

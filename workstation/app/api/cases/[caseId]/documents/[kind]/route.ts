@@ -23,6 +23,7 @@ export async function PUT(request: Request, context: Context) {
       kind,
       input.expectedRevision,
       input.content as CaseDocument["content"],
+      { origin: input.origin, sourceRefs: input.sourceRefs },
     );
     return Response.json(document);
   });

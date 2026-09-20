@@ -59,6 +59,8 @@ export const saveDocumentSchema = z.object({
   content: z.unknown().refine((value) => value !== undefined, {
     message: "Document content is required.",
   }),
+  origin: z.enum(["generated", "edited"]).default("edited"),
+  sourceRefs: z.array(z.string().trim().min(1).max(200)).max(100).default([]),
 });
 
 export const sourceKindSchema = z.enum([
