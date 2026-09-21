@@ -1,5 +1,6 @@
 import { getSourceBucket } from "@/db";
 import { ApiError } from "@/lib/server/api";
+import { parseByteRange } from "@/lib/server/range-request";
 import {
   assertOwnedCase,
   assertOwnedRole,
@@ -413,9 +414,26 @@ export async function downloadImmutableSource(input: {
   caseId: string;
   sourceId: string;
   inline?: boolean;
+  rangeHeader?: string | null;
 }) {
   const source = await getOwnedSource(input.userId, input.caseId, input.sourceId);
-  const object = await getSourceBucket().get(source.storageKey);
+  const parsedRange = parseByteRange(input.rangeHeader, source.sizeBytes);
+
+  if (parsedRange.type === "unsatisfiable") {
+    return new Response(null, {
+      status: 416,
+      headers: {
+        "accept-ranges": "bytes",
+        "content-range": `bytes */${source.sizeBytes}`,
+      },
+    });
+  }
+
+  const rangeOption = parsedRange.type === "range"
+    ? { range: { offset: parsedRange.range.offset, length: parsedRange.range.length } }
+    : undefined;
+
+  const object = await getSourceBucket().get(source.storageKey, rangeOption);
   if (!object) throw new ApiError(404, "Source file was not found in storage.");
   const asciiName = source.filename.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
   const encodedName = encodeURIComponent(source.filename);
@@ -424,15 +442,31 @@ export async function downloadImmutableSource(input: {
     source.contentType.startsWith("image/") ||
     source.contentType.startsWith("text/")
   ) ? "inline" : "attachment";
+
+  const headers: Record<string, string> = {
+    "accept-ranges": "bytes",
+    "cache-control": "private, no-store",
+    "content-disposition": `${disposition}; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
+    "content-type": source.contentType,
+    "x-content-type-options": "nosniff",
+  };
+  if (object.httpEtag) {
+    headers["etag"] = object.httpEtag;
+  }
+
+  if (parsedRange.type === "range") {
+    headers["content-range"] = `bytes ${parsedRange.range.start}-${parsedRange.range.end}/${source.sizeBytes}`;
+    headers["content-length"] = String(parsedRange.range.length);
+    return new Response(object.body, {
+      status: 206,
+      headers,
+    });
+  }
+
+  headers["content-length"] = String(source.sizeBytes);
   return new Response(object.body, {
-    headers: {
-      "cache-control": "private, no-store",
-      "content-disposition": `${disposition}; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
-      "content-length": String(source.sizeBytes),
-      "content-type": source.contentType,
-      etag: object.httpEtag,
-      "x-content-type-options": "nosniff",
-    },
+    status: 200,
+    headers,
   });
 }
 
@@ -531,9 +565,26 @@ export async function downloadImmutableRoleSource(input: {
   roleId: string;
   sourceId: string;
   inline?: boolean;
+  rangeHeader?: string | null;
 }) {
   const source = await getOwnedRoleSource(input.userId, input.roleId, input.sourceId);
-  const object = await getSourceBucket().get(source.storageKey);
+  const parsedRange = parseByteRange(input.rangeHeader, source.sizeBytes);
+
+  if (parsedRange.type === "unsatisfiable") {
+    return new Response(null, {
+      status: 416,
+      headers: {
+        "accept-ranges": "bytes",
+        "content-range": `bytes */${source.sizeBytes}`,
+      },
+    });
+  }
+
+  const rangeOption = parsedRange.type === "range"
+    ? { range: { offset: parsedRange.range.offset, length: parsedRange.range.length } }
+    : undefined;
+
+  const object = await getSourceBucket().get(source.storageKey, rangeOption);
   if (!object) throw new ApiError(404, "Job source file was not found in storage.");
   const asciiName = source.filename.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
   const encodedName = encodeURIComponent(source.filename);
@@ -542,14 +593,30 @@ export async function downloadImmutableRoleSource(input: {
     source.contentType.startsWith("image/") ||
     source.contentType.startsWith("text/")
   ) ? "inline" : "attachment";
+
+  const headers: Record<string, string> = {
+    "accept-ranges": "bytes",
+    "cache-control": "private, no-store",
+    "content-disposition": `${disposition}; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
+    "content-type": source.contentType,
+    "x-content-type-options": "nosniff",
+  };
+  if (object.httpEtag) {
+    headers["etag"] = object.httpEtag;
+  }
+
+  if (parsedRange.type === "range") {
+    headers["content-range"] = `bytes ${parsedRange.range.start}-${parsedRange.range.end}/${source.sizeBytes}`;
+    headers["content-length"] = String(parsedRange.range.length);
+    return new Response(object.body, {
+      status: 206,
+      headers,
+    });
+  }
+
+  headers["content-length"] = String(source.sizeBytes);
   return new Response(object.body, {
-    headers: {
-      "cache-control": "private, no-store",
-      "content-disposition": `${disposition}; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
-      "content-length": String(source.sizeBytes),
-      "content-type": source.contentType,
-      etag: object.httpEtag,
-      "x-content-type-options": "nosniff",
-    },
+    status: 200,
+    headers,
   });
 }

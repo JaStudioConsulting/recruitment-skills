@@ -11,7 +11,8 @@ export async function GET(request: Request, context: Context) {
   return apiRoute(async (userId) => {
     const { caseId, sourceId } = await context.params;
     const inline = new URL(request.url).searchParams.get("inline") === "1";
-    return downloadImmutableSource({ userId, caseId, sourceId, inline });
+    const rangeHeader = request.headers.get("range");
+    return downloadImmutableSource({ userId, caseId, sourceId, inline, rangeHeader });
   });
 }
 
