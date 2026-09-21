@@ -137,6 +137,33 @@ test("keeps the project and source composer usable on mobile", async ({ page }) 
   await expect(dialog.getByText(/library|Google Drive|Slack/i)).toHaveCount(0);
 });
 
+test("deletes a Job only after explicit confirmation and keeps it gone after reload", async ({ page }) => {
+  await page.goto("/");
+  await openJobOptions(page);
+  await page.getByRole("menuitem", { name: "Add Job manually" }).click();
+  const createDialog = page.getByRole("dialog", { name: "New Job folder" });
+  await createDialog.getByLabel("Job title").fill("Delete Test Job");
+  await createDialog.getByLabel("Client or company").fill("Delete Test Co");
+  await createDialog.getByRole("button", { name: "Add" }).click();
+
+  const jobSelect = page.getByLabel("Job folder");
+  await expect(jobSelect.locator("option").filter({ hasText: "Delete Test Job · Delete Test Co" })).toHaveCount(1);
+
+  await openJobOptions(page);
+  await page.getByRole("menuitem", { name: "Delete Job" }).click();
+  const deleteDialog = page.getByRole("alertdialog", { name: "Delete this Job?" });
+  await expect(deleteDialog).toContainText("candidate cases, attached sources, notes, drafts and generated artifacts");
+  await deleteDialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(jobSelect.locator("option").filter({ hasText: "Delete Test Job · Delete Test Co" })).toHaveCount(1);
+
+  await openJobOptions(page);
+  await page.getByRole("menuitem", { name: "Delete Job" }).click();
+  await page.getByRole("alertdialog", { name: "Delete this Job?" }).getByRole("button", { name: "Delete Job" }).click();
+  await expect(jobSelect.locator("option").filter({ hasText: "Delete Test Job · Delete Test Co" })).toHaveCount(0);
+  await page.reload();
+  await expect(jobSelect.locator("option").filter({ hasText: "Delete Test Job · Delete Test Co" })).toHaveCount(0);
+});
+
 test("shows all canonical workflows and keeps the conflicted branded resume blocked", async ({ page }) => {
   const offOriginRequests = recordOffOriginRequests(page);
   await page.goto("/");
