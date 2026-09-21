@@ -8,6 +8,7 @@ import {
   persistedArtifactVisualQaEvidenceSchema,
 } from "@/lib/artifact-browser";
 import { ApiError } from "@/lib/server/api";
+import { parseByteRange } from "@/lib/server/range-request";
 import {
   createCaseArtifact,
   finalizeCaseArtifactVisualQa,
@@ -36,7 +37,10 @@ export type ArtifactBucket = {
     value: ArrayBuffer,
     options: ArtifactPutOptions,
   ): Promise<{ httpEtag?: string } | null>;
-  get(key: string): Promise<{ body: BodyInit; httpEtag?: string } | null>;
+  get(
+    key: string,
+    options?: { range?: { offset: number; length?: number } },
+  ): Promise<{ body: BodyInit; httpEtag?: string } | null>;
   delete(key: string): Promise<void>;
 };
 
@@ -97,8 +101,8 @@ function defaultBucket(): ArtifactBucket {
   const bucket = getSourceBucket();
   return {
     put: (key, value, options) => bucket.put(key, value, options),
-    get: async (key) => {
-      const object = await bucket.get(key);
+    get: async (key, options) => {
+      const object = await bucket.get(key, options);
       return object ? { body: object.body, httpEtag: object.httpEtag } : null;
     },
     delete: (key) => bucket.delete(key),
@@ -452,6 +456,7 @@ export async function downloadPersistedCaseArtifactWithDependencies(
     caseId: string;
     artifactId: string;
     inline?: boolean;
+    rangeHeader?: string | null;
   },
   dependencies: CaseArtifactStoreDependencies,
 ): Promise<Response> {
@@ -460,21 +465,45 @@ export async function downloadPersistedCaseArtifactWithDependencies(
     input.caseId,
     input.artifactId,
   );
-  const object = await dependencies.getBucket().get(artifact.storageKey);
+  const parsedRange = parseByteRange(input.rangeHeader, artifact.sizeBytes);
+
+  if (parsedRange.type === "unsatisfiable") {
+    return new Response(null, {
+      status: 416,
+      headers: {
+        "accept-ranges": "bytes",
+        "content-range": `bytes */${artifact.sizeBytes}`,
+      },
+    });
+  }
+
+  const rangeOption = parsedRange.type === "range"
+    ? { range: { offset: parsedRange.range.offset, length: parsedRange.range.length } }
+    : undefined;
+
+  const object = await dependencies.getBucket().get(artifact.storageKey, rangeOption);
   if (!object) throw new ApiError(404, "Case artifact bytes were not found in storage.");
 
   const asciiName = artifact.filename
     .replace(/[^\x20-\x7e]/g, "_")
     .replace(/["\\]/g, "_");
   const headers = new Headers({
+    "accept-ranges": "bytes",
     "cache-control": "private, no-store",
     "content-disposition": `${input.inline ? "inline" : "attachment"}; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(artifact.filename)}`,
-    "content-length": String(artifact.sizeBytes),
     "content-type": artifact.contentType,
     "x-content-type-options": "nosniff",
   });
   if (object.httpEtag) headers.set("etag", object.httpEtag);
-  return new Response(object.body, { headers });
+
+  if (parsedRange.type === "range") {
+    headers.set("content-range", `bytes ${parsedRange.range.start}-${parsedRange.range.end}/${artifact.sizeBytes}`);
+    headers.set("content-length", String(parsedRange.range.length));
+    return new Response(object.body, { status: 206, headers });
+  }
+
+  headers.set("content-length", String(artifact.sizeBytes));
+  return new Response(object.body, { status: 200, headers });
 }
 
 export function downloadPersistedCaseArtifact(input: {
@@ -482,6 +511,7 @@ export function downloadPersistedCaseArtifact(input: {
   caseId: string;
   artifactId: string;
   inline?: boolean;
+  rangeHeader?: string | null;
 }): Promise<Response> {
   return downloadPersistedCaseArtifactWithDependencies(input, defaultDependencies);
 }
