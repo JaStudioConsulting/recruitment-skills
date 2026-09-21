@@ -160,7 +160,7 @@ describe("source store intake provenance", () => {
     expect(mocks.insertRoleSource).not.toHaveBeenCalled();
   });
 
-  it("reuses one immutable Job attachment when the exact JD is saved twice", async () => {
+  it("reuses one immutable Job attachment and refreshes its object when the exact JD is saved twice", async () => {
     const first = new File([JD], "Plant Manager JD.txt", { type: "text/plain" });
     const repeated = new File([JD], "Renamed duplicate JD.txt", { type: "text/plain" });
 
@@ -178,11 +178,11 @@ describe("source store intake provenance", () => {
     expect(sources).toHaveLength(1);
     expect(sources[0]).toMatchObject({ filename: "Plant Manager JD.txt", roleId: "role-1" });
     expect(mocks.inspect).toHaveBeenCalledTimes(1);
-    expect(mocks.put).toHaveBeenCalledTimes(1);
+    expect(mocks.put).toHaveBeenCalledTimes(2);
     expect(mocks.insertRoleSource).toHaveBeenCalledTimes(1);
   });
 
-  it("reuses one immutable candidate-case attachment when the exact source is saved twice", async () => {
+  it("reuses one immutable candidate-case attachment and refreshes its object on an exact replay", async () => {
     const first = new File([JD], "Candidate notes.txt", { type: "text/plain" });
     const repeated = new File([JD], "Candidate notes copy.txt", { type: "text/plain" });
 
@@ -200,7 +200,7 @@ describe("source store intake provenance", () => {
     expect(candidateCase.sources).toHaveLength(1);
     expect(candidateCase.sources[0]).toMatchObject({ filename: "Candidate notes.txt", caseId: "case-1" });
     expect(mocks.inspect).toHaveBeenCalledTimes(1);
-    expect(mocks.put).toHaveBeenCalledTimes(1);
+    expect(mocks.put).toHaveBeenCalledTimes(2);
     expect(mocks.insertSource).toHaveBeenCalledTimes(1);
   });
 
@@ -322,6 +322,6 @@ describe("source store intake provenance", () => {
 
     expect(sources).toHaveLength(2);
     expect(mocks.insertRoleSource).toHaveBeenCalledTimes(2);
-    expect(mocks.put).toHaveBeenCalledTimes(3);
+    expect(mocks.put).toHaveBeenCalledTimes(4);
   });
 });

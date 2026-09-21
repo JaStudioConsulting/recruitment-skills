@@ -569,6 +569,21 @@ Skills: CMMS and preventive maintenance`)).toBe("resume");
     expect(result.parsedText).toContain("Professional Experience");
   });
 
+  it("does not detach uploaded PDF bytes while extracting text", async () => {
+    const pdfBytes = simplePdf(
+      "Professional Experience Plant Manager Education Certifications Skills",
+    );
+    const originalLength = pdfBytes.byteLength;
+
+    await inspectUploadedSourceContent({
+      bytes: pdfBytes,
+      contentType: "application/pdf",
+      filename: "Alex Morgan Resume.pdf",
+    });
+
+    expect(pdfBytes.byteLength).toBe(originalLength);
+  });
+
   it("fails closed when a DOCX cannot be parsed", async () => {
     const result = await inspectUploadedSourceContent({
       bytes: bytes("not a real docx"),

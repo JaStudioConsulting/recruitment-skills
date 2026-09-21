@@ -132,7 +132,11 @@ export async function inspectUploadedSourceContent(input: {
   try {
     if (input.contentType === "application/pdf") {
       const { extractText } = await import("unpdf");
-      const result = await extractText(new Uint8Array(input.bytes), { mergePages: true });
+      // pdf.js transfers the supplied ArrayBuffer to its worker and detaches it.
+      // Source intake still needs the original bytes for the subsequent R2 put,
+      // so parsing must receive an owned copy rather than the upload buffer.
+      const parseBytes = Uint8Array.from(new Uint8Array(input.bytes));
+      const result = await extractText(parseBytes, { mergePages: true });
       parsedText = result.text;
     } else if (input.contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
       const mammoth = await import("mammoth");
