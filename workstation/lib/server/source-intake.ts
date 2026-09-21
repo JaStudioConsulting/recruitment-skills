@@ -58,6 +58,16 @@ export function classifyParsedSourceContent(input: {
     };
   }
 
+  const inferredFromContent = inferSourceKindFromText(parsedText);
+  if (inferredFromContent && inferredFromContent !== inferredFromFilename) {
+    return {
+      kind: inferredFromContent,
+      lifecycleStatus: "classified",
+      parsedText,
+      classificationMethod: "content",
+    };
+  }
+
   if (inferredFromFilename) {
     return {
       kind: inferredFromFilename,
@@ -67,7 +77,6 @@ export function classifyParsedSourceContent(input: {
     };
   }
 
-  const inferredFromContent = inferSourceKindFromText(parsedText);
   return inferredFromContent
     ? {
         kind: inferredFromContent,

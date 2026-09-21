@@ -74,6 +74,15 @@ type WorkflowBrowserProps = {
   artifacts: readonly CaseArtifactSummary[];
   artifactsLoading: boolean;
   artifactsError: string;
+  executionFeedback: WorkflowExecutionFeedback | null;
+  onClearExecutionFeedback: () => void;
+};
+
+export type WorkflowExecutionFeedback = {
+  caseId: string | null;
+  capabilityId: string;
+  message: string;
+  error: boolean;
 };
 
 export type CapabilityInputField = {
@@ -173,6 +182,8 @@ export function WorkflowBrowser({
   artifacts,
   artifactsLoading,
   artifactsError,
+  executionFeedback,
+  onClearExecutionFeedback,
 }: WorkflowBrowserProps) {
   const [selectedId, setSelectedId] = useState("write-up");
   const [query, setQuery] = useState("");
@@ -209,7 +220,7 @@ export function WorkflowBrowser({
           {WORKFLOW_GROUPS.map((group) => {
             const items = capabilitiesForGroup(group).filter((item) => visibleIds.has(item.id));
             if (!items.length) return null;
-            return <section key={group}><h3>{GROUP_LABELS[group]}</h3>{items.map((item) => <button type="button" key={item.id} aria-current={item.id === selected.id ? "page" : undefined} onClick={() => setSelectedId(item.id)}><span>{item.label}</span><StatusBadge status={item.implementation.status} /></button>)}</section>;
+            return <section key={group}><h3>{GROUP_LABELS[group]}</h3>{items.map((item) => <button type="button" key={item.id} aria-current={item.id === selected.id ? "page" : undefined} onClick={() => { setSelectedId(item.id); onClearExecutionFeedback(); }}><span>{item.label}</span><StatusBadge status={item.implementation.status} /></button>)}</section>;
           })}
           {visibleIds.size === 0 ? <p className="workflow-search-empty">No repository workflow matches that search.</p> : null}
         </nav>
@@ -222,6 +233,7 @@ export function WorkflowBrowser({
           artifacts={artifacts}
           artifactsLoading={artifactsLoading}
           artifactsError={artifactsError}
+          executionFeedback={executionFeedback?.capabilityId === selected.id ? executionFeedback : null}
           activeCaseId={activeCaseId}
           onReviewArtifact={onReviewArtifact}
           executing={executingId === selected.id}
@@ -231,6 +243,7 @@ export function WorkflowBrowser({
             [selected.id]: { ...(current[selected.id] ?? {}), [key]: value },
           }))}
           onExecute={async () => {
+            onClearExecutionFeedback();
             setExecutingId(selected.id);
             try {
               await onExecute(
@@ -256,7 +269,7 @@ function StatusBadge({ status }: { status: ImplementationStatus }) {
   return <small className={`implementation-status ${status}`}><Icon size={12} />{STATUS_LABELS[status]}</small>;
 }
 
-function CapabilityDetail({
+export function CapabilityDetail({
   item,
   activeCaseAvailable,
   runs,
@@ -265,6 +278,7 @@ function CapabilityDetail({
   artifacts,
   artifactsLoading,
   artifactsError,
+  executionFeedback,
   activeCaseId,
   onReviewArtifact,
   executing,
@@ -280,6 +294,7 @@ function CapabilityDetail({
   artifacts: readonly CaseArtifactSummary[];
   artifactsLoading: boolean;
   artifactsError: string;
+  executionFeedback: WorkflowExecutionFeedback | null;
   activeCaseId: string | null;
   onReviewArtifact: (
     artifactId: string,
@@ -348,6 +363,7 @@ function CapabilityDetail({
         {executing ? <LoaderCircle className="spin" size={16} /> : <Play size={16} aria-hidden="true" />}
         {executing ? "Preparing draft..." : executionLabel}
       </Button>
+      {executionFeedback ? <p className={executionFeedback.error ? "workflow-execution-feedback error" : "workflow-execution-feedback"} role={executionFeedback.error ? "alert" : "status"}>{executionFeedback.message}</p> : null}
     </section> : null}
   </article>;
 }

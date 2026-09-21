@@ -18,12 +18,17 @@ export const documentKindSchema = z.enum([
 
 export const createRoleSchema = z.object({
   title: z.string().trim().min(1).max(200),
-  client: z.string().trim().max(200).default(""),
+  client: z.string().trim().min(1).max(200),
 });
 
 export const createCandidateSchema = z.object({
   name: z.string().trim().min(1).max(200),
   currentTitle: z.string().trim().max(200).default(""),
+});
+
+export const candidateSourceIntakeSchema = createCandidateSchema.extend({
+  roleId: z.string().uuid(),
+  kind: z.literal("resume"),
 });
 
 export const openCaseSchema = z.object({

@@ -3,7 +3,11 @@ import { ApiError } from "@/lib/server/api";
 import {
   assertOwnedCase,
   assertOwnedRole,
+  createCandidateCaseFromSourceAtomic,
+  getActiveCaseSourceBySha256,
+  getActiveRoleSourceBySha256,
   getCandidateCase,
+  getCandidateSourceIntakeResult,
   getOwnedSource,
   getOwnedRoleSource,
   getPersistedSourceIntake,
@@ -19,7 +23,11 @@ import {
   inspectUploadedSourceContent,
   type SourceIntakeResult,
 } from "@/lib/server/source-intake";
-import type { SourceKind } from "@/lib/workstation-types";
+import {
+  isJobSourceKind,
+  type CandidateSourceIntakeResult,
+  type SourceKind,
+} from "@/lib/workstation-types";
 
 const MAX_SOURCE_BYTES = 20 * 1024 * 1024;
 const ALLOWED_CONTENT_TYPES = new Set([
@@ -154,6 +162,15 @@ export function validateSourceFile(file: File) {
 
 type SourceUpload = { file: File; kind?: SourceKind };
 
+function assertJobSourceKind(kind: SourceKind) {
+  if (!isJobSourceKind(kind)) {
+    throw new ApiError(
+      409,
+      "Candidate resumes and transcripts cannot be Job sources. Add this source to a candidate.",
+    );
+  }
+}
+
 async function storeSource(input: {
   userId: string;
   caseId: string;
@@ -175,13 +192,16 @@ async function storeSource(input: {
   });
   const { intake, sha256 } = resolved;
 
+  const existing = await getActiveCaseSourceBySha256(input.userId, input.caseId, sha256);
+  if (existing) return;
+
   await bucket.put(storageKey, bytes, {
     onlyIf: { etagDoesNotMatch: "*" },
     httpMetadata: { contentType: input.contentType },
     customMetadata: { sha256 },
   });
   try {
-    await insertSource(input.userId, {
+    const inserted = await insertSource(input.userId, {
       id,
       caseId: input.caseId,
       kind: intake.kind,
@@ -195,8 +215,27 @@ async function storeSource(input: {
       classificationMethod: intake.classificationMethod,
       intakeRecordId: resolved.intakeRecordId,
     });
+    if (!inserted) {
+      const concurrent = await getActiveCaseSourceBySha256(input.userId, input.caseId, sha256);
+      if (!concurrent) {
+        throw new ApiError(409, "Source attachment changed during persistence. Retry the upload.");
+      }
+      await bucket.delete(storageKey).catch(() => undefined);
+    }
   } catch (error) {
+    // A D1 response can fail after the transactional batch committed. Prove
+    // whether this exact row exists before removing the object it may reference.
+    // If readback is unavailable, retain the deterministic staging object so a
+    // retry cannot turn a committed source row into a broken attachment.
+    let persisted;
+    try {
+      persisted = await getActiveCaseSourceBySha256(input.userId, input.caseId, sha256);
+    } catch {
+      throw error;
+    }
+    if (persisted?.id === id) return;
     await bucket.delete(storageKey).catch(() => undefined);
+    if (persisted) return;
     throw error;
   }
 }
@@ -232,6 +271,141 @@ export async function uploadImmutableSources(input: {
     });
   }
   return getCandidateCase(input.userId, input.caseId);
+}
+
+async function deterministicIntakeUuid(
+  namespace: "candidate" | "case" | "source",
+  userId: string,
+  roleId: string,
+  identityFingerprint: string,
+) {
+  const digest = new Uint8Array(await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`${namespace}\u0000${userId}\u0000${roleId}\u0000${identityFingerprint}`),
+  ));
+  // UUID-shaped stable IDs keep existing route contracts valid.
+  digest[6] = (digest[6] & 0x0f) | 0x50;
+  digest[8] = (digest[8] & 0x3f) | 0x80;
+  const value = Array.from(digest.slice(0, 16), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
+}
+
+export type CandidateResumeIntakeDependencies = {
+  assertRole: typeof assertOwnedRole;
+  resolveIntake: typeof resolveSourceIntake;
+  getExisting: typeof getCandidateSourceIntakeResult;
+  persistAtomic: typeof createCandidateCaseFromSourceAtomic;
+  putObject: (
+    storageKey: string,
+    bytes: ArrayBuffer,
+    contentType: string,
+    sha256: string,
+  ) => Promise<unknown>;
+};
+
+const candidateResumeIntakeDependencies: CandidateResumeIntakeDependencies = {
+  assertRole: assertOwnedRole,
+  resolveIntake: resolveSourceIntake,
+  getExisting: getCandidateSourceIntakeResult,
+  persistAtomic: createCandidateCaseFromSourceAtomic,
+  putObject: (storageKey, bytes, contentType, sha256) => getSourceBucket().put(storageKey, bytes, {
+    httpMetadata: { contentType },
+    customMetadata: { sha256 },
+  }),
+};
+
+export async function intakeNewCandidateResumeWithDependencies(
+  input: {
+    userId: string;
+    roleId: string;
+    name: string;
+    currentTitle: string;
+    file: File;
+  },
+  dependencies: CandidateResumeIntakeDependencies,
+): Promise<CandidateSourceIntakeResult> {
+  const contentType = validateSourceFile(input.file);
+  await dependencies.assertRole(input.userId, input.roleId);
+  const bytes = await input.file.arrayBuffer();
+  const filename = cleanFilename(input.file.name);
+  const resolved = await dependencies.resolveIntake({
+    userId: input.userId,
+    bytes,
+    contentType,
+    filename,
+    requestedKind: "resume",
+  });
+  const reviewedName = input.name.trim();
+  const normalizedReviewedName = reviewedName
+    .normalize("NFKC")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+  if (!normalizedReviewedName) {
+    throw new ApiError(400, "A reviewed candidate name is required.");
+  }
+  // Bytes alone are not person identity: generic or blank resumes can be
+  // attached under different reviewed names. Binding the canonical reviewed
+  // name prevents that silent merge while keeping retries and cross-Job reuse
+  // stable for the same reviewed identity.
+  const identityFingerprint = `${resolved.sha256}\u0000${normalizedReviewedName}`;
+  const [candidateId, caseId, sourceId] = await Promise.all([
+    // Exact immutable bytes plus reviewed identity identify the same candidate
+    // across Jobs. Job scope remains part of case/source identity.
+    deterministicIntakeUuid("candidate", input.userId, "", identityFingerprint),
+    deterministicIntakeUuid("case", input.userId, input.roleId, identityFingerprint),
+    deterministicIntakeUuid("source", input.userId, input.roleId, identityFingerprint),
+  ]);
+
+  const existing = await dependencies.getExisting(input.userId, caseId);
+  if (existing) return existing;
+
+  // The object key is content-derived. Concurrent/retry puts therefore write
+  // the same immutable bytes to the same key instead of creating orphan
+  // staging objects that cannot safely be reconciled with a D1 commit.
+  const storageKey = `cases/${caseId}/sources/${sourceId}`;
+  await dependencies.putObject(storageKey, bytes, contentType, resolved.sha256);
+  try {
+    const result = await dependencies.persistAtomic(input.userId, {
+      roleId: input.roleId,
+      candidate: {
+        id: candidateId,
+        name: reviewedName,
+        currentTitle: input.currentTitle.trim(),
+      },
+      caseId,
+      source: {
+        id: sourceId,
+        kind: "resume",
+        filename,
+        contentType,
+        sizeBytes: input.file.size,
+        sha256: resolved.sha256,
+        storageKey,
+        lifecycleStatus: resolved.intake.lifecycleStatus,
+        parsedText: resolved.intake.parsedText,
+        classificationMethod: resolved.intake.classificationMethod,
+        intakeRecordId: resolved.intakeRecordId,
+      },
+    });
+    return result;
+  } catch (error) {
+    // Never delete this deterministic object after an ambiguous persistence
+    // result: a concurrent request or a committed row may already reference it.
+    // A retry reuses the same candidate/case/source IDs and the same object key.
+    const committed = await dependencies.getExisting(input.userId, caseId).catch(() => null);
+    if (committed) return committed;
+    throw error;
+  }
+}
+
+export function intakeNewCandidateResume(input: {
+  userId: string;
+  roleId: string;
+  name: string;
+  currentTitle: string;
+  file: File;
+}) {
+  return intakeNewCandidateResumeWithDependencies(input, candidateResumeIntakeDependencies);
 }
 
 export async function downloadImmutableSource(input: {
@@ -282,13 +456,17 @@ async function storeRoleSource(input: {
     requestedKind: input.upload.kind,
   });
   const { intake, sha256 } = resolved;
+  assertJobSourceKind(intake.kind);
+  const existing = await getActiveRoleSourceBySha256(input.userId, input.roleId, sha256);
+  if (existing) return;
+
   await bucket.put(storageKey, bytes, {
     onlyIf: { etagDoesNotMatch: "*" },
     httpMetadata: { contentType: input.contentType },
     customMetadata: { sha256 },
   });
   try {
-    await insertRoleSource(input.userId, {
+    const inserted = await insertRoleSource(input.userId, {
       id,
       roleId: input.roleId,
       kind: intake.kind,
@@ -302,8 +480,25 @@ async function storeRoleSource(input: {
       classificationMethod: intake.classificationMethod,
       intakeRecordId: resolved.intakeRecordId,
     });
+    if (!inserted) {
+      const concurrent = await getActiveRoleSourceBySha256(input.userId, input.roleId, sha256);
+      if (!concurrent) {
+        throw new ApiError(409, "Job source attachment changed during persistence. Retry the upload.");
+      }
+      await bucket.delete(storageKey).catch(() => undefined);
+    }
   } catch (error) {
+    // Preserve the object on an ambiguous/lost D1 response. Only remove it
+    // after a successful readback proves this exact row did not commit.
+    let persisted;
+    try {
+      persisted = await getActiveRoleSourceBySha256(input.userId, input.roleId, sha256);
+    } catch {
+      throw error;
+    }
+    if (persisted?.id === id) return;
     await bucket.delete(storageKey).catch(() => undefined);
+    if (persisted) return;
     throw error;
   }
 }
@@ -315,6 +510,9 @@ export async function uploadImmutableRoleSources(input: {
 }) {
   if (input.uploads.length === 0) throw new ApiError(400, "At least one source file is required.");
   if (input.uploads.length > 20) throw new ApiError(413, "A maximum of 20 source files can be uploaded at once.");
+  for (const { kind } of input.uploads) {
+    if (kind) assertJobSourceKind(kind);
+  }
   const contentTypes = input.uploads.map(({ file }) => validateSourceFile(file));
   await assertOwnedRole(input.userId, input.roleId);
   for (let index = 0; index < input.uploads.length; index += 1) {

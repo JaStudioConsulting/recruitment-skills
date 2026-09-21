@@ -146,11 +146,15 @@ export const caseSources = sqliteTable(
     classificationMethod: text("classification_method"),
     intakeRecordId: text("intake_record_id")
       .references(() => sourceIntakes.id, { onDelete: "restrict" }),
+    contextStatus: text("context_status").notNull().default("active"),
     createdBy: text("created_by").notNull(),
     createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     uniqueIndex("case_sources_storage_key_uidx").on(table.storageKey),
+    uniqueIndex("case_sources_case_sha256_active_uidx")
+      .on(table.caseId, table.sha256)
+      .where(sql`${table.contextStatus} = 'active'`),
     index("case_sources_case_created_idx").on(table.caseId, table.createdAt),
   ],
 );
@@ -182,6 +186,9 @@ export const roleSources = sqliteTable(
   },
   (table) => [
     uniqueIndex("role_sources_storage_key_uidx").on(table.storageKey),
+    uniqueIndex("role_sources_role_sha256_active_uidx")
+      .on(table.roleId, table.sha256)
+      .where(sql`${table.contextStatus} = 'active'`),
     index("role_sources_role_created_idx").on(table.roleId, table.createdAt),
   ],
 );

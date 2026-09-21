@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  candidateIntakeContextIsCurrent,
   capabilityExecutionMessage,
   editSessionForCurrentDocument,
   loadCaseArtifactsForCase,
@@ -61,6 +62,47 @@ function candidateCase(): CandidateCase {
 }
 
 describe("canonical workflow UI execution contract", () => {
+  it("refuses to replace the visible case when candidate intake finishes in a changed context", () => {
+    const originating = { roleId: "role-1", caseId: "case-1" };
+
+    expect(candidateIntakeContextIsCurrent(originating, { roleId: "role-1", caseId: "case-1" })).toBe(true);
+    expect(candidateIntakeContextIsCurrent(originating, { roleId: "role-2", caseId: "case-1" })).toBe(false);
+    expect(candidateIntakeContextIsCurrent(originating, { roleId: "role-1", caseId: "case-2" })).toBe(false);
+    expect(workstationSource).toContain("Save or cancel the current output edit before creating another candidate case.");
+    expect(workstationSource).toContain('caseSaveState !== "saved" && !(await persistCase())');
+    expect(workstationSource.match(/candidateIntakeContextIsCurrent\(originatingContext, currentContext\)/g)).toHaveLength(2);
+    expect(workstationSource).toMatch(/const originatingContext:[\s\S]*?const contextChange = await prepareCandidateContextChange[\s\S]*?if \(creatingFromResume\)[\s\S]*?workstationApi\.uploadSources[\s\S]*?candidateIntakeContextIsCurrent\(originatingContext, currentContext\)/);
+  });
+
+  it("centrally clears stale action feedback around dialogs and successful dialog completion", () => {
+    expect(workstationSource).toContain("const clearActionFeedback = useCallback");
+    expect(workstationSource).toMatch(/const openPasteDialog[\s\S]*?clearActionFeedback\(\);[\s\S]*?setPasteOpen\(true\)/);
+    expect(workstationSource).toMatch(/const openAddSources[\s\S]*?clearActionFeedback\(\);[\s\S]*?setAddSourcesOpen\(true\)/);
+    expect(workstationSource).toContain("closePasteDialog");
+    expect(workstationSource).toContain("closeCreationDialog");
+  });
+
+  it("keeps new-candidate type correction reachable and source mutations exclusive with output edits", () => {
+    expect(workstationSource).toContain('aria-label="Candidate source type"');
+    expect(workstationSource).toMatch(/sourceTarget === "new_candidate"[\s\S]*?Candidate source type[\s\S]*?effectivePastedKind === "resume"/);
+    expect(workstationSource).toContain("CANDIDATE_SOURCE_KIND_OPTIONS.map");
+    expect(workstationSource).toContain("if (!current || outputEditIsBusy(outputEditBusy, sourceBusy)) return;");
+    expect(workstationSource).toContain("if (!session || draft === null || outputEditIsBusy(outputEditBusy, sourceBusy)) return;");
+    expect(workstationSource).toContain("editBusy={outputEditIsBusy(outputEditBusy, sourceBusy)}");
+  });
+
+  it("guards candidate selection and post-capability UI commits by the active request and case", () => {
+    const openCase = workstationSource.slice(
+      workstationSource.indexOf("const openSelectedCase"),
+      workstationSource.indexOf("const startResize"),
+    );
+    expect(openCase).toContain("const requestToken = beginLatestRequest(caseSelectionRequestRef)");
+    expect(openCase).toMatch(/catch \(error\)[\s\S]*?latestRequestIsCurrent\(caseSelectionRequestRef, requestToken\)[\s\S]*?showActionError/);
+    expect(openCase).toMatch(/finally[\s\S]*?latestRequestIsCurrent\(caseSelectionRequestRef, requestToken\)[\s\S]*?setLoading\(false\)/);
+    expect(workstationSource).toMatch(/const reportFeedback[\s\S]*?if \(current && activeCaseRef\.current\?\.id !== current\.id\) return/);
+    expect(workstationSource).toMatch(/if \(activeCaseRef\.current\?\.id === executionCase\.id\)[\s\S]*?selectOutputKind\(nextOutputKind\)[\s\S]*?if \(activeCaseRef\.current\?\.id === executionCase\.id\)[\s\S]*?reportFeedback\(capabilityExecutionMessage/);
+  });
+
   it("prepares once, refuses without a persisted run, and only then executes that run", () => {
     const prepareAt = workstationSource.indexOf("workstationApi.prepareCapability");
     const refusalAt = workstationSource.indexOf("if (!prepared.run)", prepareAt);
@@ -144,12 +186,14 @@ describe("canonical workflow UI execution contract", () => {
   });
 
   it("keeps output read-only until Edit, exposes Cancel, and clears the local draft on cancel", () => {
-    expect(workstationSource).toContain('editing ? "Editing current version" : "Read-only preview"');
+    expect(workstationSource).not.toContain('className="output-version-row"');
     expect(workstationSource).toContain("effectiveRevision === document.revision");
+    expect(workstationSource).toContain('aria-label="Output history"');
     expect(workstationSource).toContain("<Edit3");
     expect(workstationSource).toContain("Save changes");
     expect(workstationSource).toContain(">Cancel</Button>");
     expect(workstationSource).toMatch(/const cancelOutputEdit = \(\) => \{[\s\S]*?setOutputDraft\(null\);[\s\S]*?setOutputEditSession\(null\);/);
+    expect(workstationSource).toContain('key={`${activeCase.id}-${outputKind}-${activeCase.documents[outputKind].revision}`}');
   });
 
   it("saves an optimistic edited revision with inherited source and run provenance", async () => {
@@ -293,7 +337,7 @@ describe("canonical workflow UI execution contract", () => {
       .toBe("Draft outputs were saved as read-only previews. PDF build remains incomplete.");
     expect(capabilityExecutionMessage(pdfResult, "ignored for PDF state"))
       .toBe("Branded PDF saved. Open the exact PDF and complete human visual QA before this run can complete.");
-    expect(workstationSource).toContain('resume: "Resume draft"');
+    expect(workstationSource).toContain('resume: "Resume"');
     expect(workstationSource).not.toContain('resume: "Branded resume"');
   });
 

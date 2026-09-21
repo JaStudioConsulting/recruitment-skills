@@ -39,6 +39,20 @@ export const SOURCE_KINDS = [
 ] as const;
 export type SourceKind = (typeof SOURCE_KINDS)[number];
 
+// Job folders are shared by every candidate case in the Job. Candidate-private
+// evidence must never be accepted here or it can leak into another candidate's
+// capability context.
+export const JOB_SOURCE_KINDS = [
+  "job_description",
+  "call_notes",
+  "pasted_text",
+  "other",
+] as const satisfies readonly SourceKind[];
+
+export function isJobSourceKind(kind: SourceKind): kind is (typeof JOB_SOURCE_KINDS)[number] {
+  return (JOB_SOURCE_KINDS as readonly SourceKind[]).includes(kind);
+}
+
 export const SOURCE_LIFECYCLE_STATUSES = [
   "uploaded",
   "parsed",
@@ -51,7 +65,23 @@ export type RoleRecord = { id: string; title: string; client: string | null; sta
 export type CandidateRecord = { id: string; name: string; currentTitle: string | null };
 export type FactStatus = "proposed" | "confirmed" | "conflicted" | "unavailable";
 export type CandidateFact = { key: string; value: string | null; status: FactStatus; sourceId: string | null; confirmedAt: string | null };
-export type AssistantState = { missing: string[]; askNext: string[]; fitConcern: string; nextAction: string };
+export type SourceReviewRequirement = {
+  id: string;
+  sourceId: string;
+  sourceRef: string;
+  documentKind: "submission";
+  previousKind: SourceKind;
+  currentKind: SourceKind;
+  reason: string;
+  createdAt: string;
+};
+export type AssistantState = {
+  missing: string[];
+  askNext: string[];
+  fitConcern: string;
+  nextAction: string;
+  reviewRequired?: SourceReviewRequirement[];
+};
 export type SubmissionDocument = {
   name: string; title: string; compensationTarget: string; currentCompensation: string;
   vacation: string; location: string; workStatus: string; interviewAvailability: string;
@@ -86,6 +116,11 @@ export type CandidateCase = {
   notesDrawingSvg: string; notesFont: string; notesSize: number; revision: number; facts: CandidateFact[];
   assistant: AssistantState; externalRefs: Record<string, string>;
   documents: Record<StoredDocumentKind, CaseDocument>; sources: CaseSource[]; updatedAt: string;
+};
+export type CandidateSourceIntakeResult = {
+  candidate: CandidateRecord;
+  candidateCase: CandidateCase;
+  reused: boolean;
 };
 export type ConnectorCapability = { id: string; label: string; status: "available" | "not_connected" | "unsupported"; detail: string };
 export type WorkspacePayload = {

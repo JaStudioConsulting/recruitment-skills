@@ -26,6 +26,7 @@ export async function POST(request: Request) {
       kind: intake.kind === "other" && fromText ? fromText.kind : intake.kind,
       filename: fromText?.filename ?? file.name,
       job: fromText?.job ?? null,
+      candidate: fromText?.candidate ?? null,
       originalFilename: file.name,
       parsedText: intake.parsedText,
       lifecycleStatus: intake.lifecycleStatus,

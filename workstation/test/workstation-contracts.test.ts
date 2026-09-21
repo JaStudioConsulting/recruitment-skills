@@ -200,6 +200,48 @@ describe("overlapping case responses", () => {
     expect(merged.documents.write_up.revision).toBe(3);
     expect(merged.documents.loxo_update.revision).toBe(4);
   });
+
+  it("keeps newer saved notes and status when a stale source response arrives later", () => {
+    const current = caseFixture({ resume: 2, write_up: 3 });
+    current.revision = 3;
+    current.status = "reviewing";
+    current.notes = "Saved after the source request started";
+    current.notesDrawingSvg = "<svg>saved drawing</svg>";
+    current.notesFont = "Georgia";
+    current.notesSize = 24;
+    current.updatedAt = "2026-09-17T12:02:00.000Z";
+
+    const staleSourceResponse = caseFixture({ resume: 3, write_up: 3 });
+    staleSourceResponse.revision = 2;
+    staleSourceResponse.notes = "stale notes";
+    staleSourceResponse.assistant = {
+      ...staleSourceResponse.assistant,
+      reviewRequired: [{
+        id: "review-1",
+        sourceId: "source-1",
+        sourceRef: "auto-prefill:source-1:sha:resume",
+        documentKind: "submission",
+        previousKind: "resume",
+        currentKind: "call_notes",
+        reason: "Retained submission fields need review.",
+        createdAt: "2026-09-17T12:01:00.000Z",
+      }],
+    };
+
+    const merged = mergeCandidateCaseSnapshots(current, staleSourceResponse);
+
+    expect(merged).toMatchObject({
+      revision: 3,
+      status: "reviewing",
+      notes: "Saved after the source request started",
+      notesDrawingSvg: "<svg>saved drawing</svg>",
+      notesFont: "Georgia",
+      notesSize: 24,
+      updatedAt: "2026-09-17T12:02:00.000Z",
+    });
+    expect(merged.assistant.reviewRequired).toHaveLength(1);
+    expect(merged.documents.resume.revision).toBe(3);
+  });
 });
 
 describe("candidate history labels", () => {
@@ -829,11 +871,12 @@ describe("workstation request schemas", () => {
   });
 
   it("validates role, candidate, and exact UUID case identity", () => {
-    expect(createRoleSchema.parse({ title: "Maintenance Manager" })).toEqual({
+    expect(createRoleSchema.parse({ title: "Maintenance Manager", client: "Example Manufacturing" })).toEqual({
       title: "Maintenance Manager",
-      client: "",
+      client: "Example Manufacturing",
     });
     expect(createRoleSchema.safeParse({ title: "   " }).success).toBe(false);
+    expect(createRoleSchema.safeParse({ title: "Maintenance Manager", client: "   " }).success).toBe(false);
     expect(createCandidateSchema.parse({ name: "Candidate A" })).toEqual({
       name: "Candidate A",
       currentTitle: "",

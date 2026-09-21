@@ -30,11 +30,13 @@ import {
 import {
   SOURCE_KINDS,
   STORED_DOCUMENT_KINDS,
+  isJobSourceKind,
   isStoredDocumentKind,
   type AssistantState,
   type CandidateCase,
   type CandidateFact,
   type CandidateRecord,
+  type CandidateSourceIntakeResult,
   type CaseDocument,
   type CaseSource,
   type DocumentVersion,
@@ -60,6 +62,19 @@ const EMPTY_ASSISTANT: AssistantState = {
 
 function now() {
   return new Date().toISOString();
+}
+
+function autoPrefillSourceRef(source: Pick<SourceRecordRow, "id" | "sha256">) {
+  return `auto-prefill:${source.id}:${source.sha256}:resume`;
+}
+
+function assertJobSourceKind(kind: SourceKind) {
+  if (!isJobSourceKind(kind)) {
+    throw new ApiError(
+      409,
+      "Candidate resumes and transcripts cannot be Job sources. Add this source to a candidate.",
+    );
+  }
 }
 
 function parseJson<T>(raw: string, fallback: T): T {
@@ -174,9 +189,48 @@ export async function getRoleSources(userId: string, roleId: string): Promise<Jo
   const rows = await getDb()
     .select()
     .from(roleSources)
-    .where(eq(roleSources.roleId, roleId))
+    .where(and(
+      eq(roleSources.roleId, roleId),
+      eq(roleSources.contextStatus, "active"),
+    ))
     .orderBy(desc(roleSources.createdAt));
   return rows.map(jobSourceRecord);
+}
+
+export async function getActiveRoleSourceBySha256(
+  userId: string,
+  roleId: string,
+  sha256: string,
+): Promise<JobSource | null> {
+  await assertOwnedRole(userId, roleId);
+  const [source] = await getDb()
+    .select()
+    .from(roleSources)
+    .where(and(
+      eq(roleSources.roleId, roleId),
+      eq(roleSources.sha256, sha256),
+      eq(roleSources.contextStatus, "active"),
+    ))
+    .limit(1);
+  return source ? jobSourceRecord(source) : null;
+}
+
+export async function getActiveCaseSourceBySha256(
+  userId: string,
+  caseId: string,
+  sha256: string,
+): Promise<CaseSource | null> {
+  await assertOwnedCase(userId, caseId);
+  const [source] = await getDb()
+    .select()
+    .from(caseSources)
+    .where(and(
+      eq(caseSources.caseId, caseId),
+      eq(caseSources.sha256, sha256),
+      eq(caseSources.contextStatus, "active"),
+    ))
+    .limit(1);
+  return source ? sourceRecord(source) : null;
 }
 
 export async function getCandidateCase(
@@ -190,7 +244,10 @@ export async function getCandidateCase(
     db
       .select()
       .from(caseSources)
-      .where(eq(caseSources.caseId, caseId))
+      .where(and(
+        eq(caseSources.caseId, caseId),
+        eq(caseSources.contextStatus, "active"),
+      ))
       .orderBy(desc(caseSources.createdAt)),
   ]);
 
@@ -256,7 +313,7 @@ export type RoleIdentityRow = {
 
 export type RoleIdentityDependencies = {
   findByIdentityKey: (ownerId: string, identityKey: string) => Promise<RoleIdentityRow | null>;
-  listLegacyRoles: (ownerId: string) => Promise<RoleIdentityRow[]>;
+  listOwnedRoles: (ownerId: string) => Promise<RoleIdentityRow[]>;
   claimLegacyRole: (
     ownerId: string,
     roleId: string,
@@ -270,21 +327,24 @@ export type RoleIdentityDependencies = {
 
 export async function findOrCreateRoleWithDependencies(
   userId: string,
-  input: { title: string; client?: string },
+  input: { title: string; client: string },
   dependencies: RoleIdentityDependencies,
 ): Promise<RoleRecord> {
+  if (!input.title.trim()) throw new ApiError(400, "A Job title is required.");
+  if (!input.client.trim()) throw new ApiError(400, "A Job client or company is required.");
   const identityKey = normalizedJobIdentityKey(input);
-  if (!identityKey) throw new ApiError(400, "A Job title is required.");
+  if (!identityKey) throw new ApiError(400, "A complete Job identity is required.");
 
   const current = await dependencies.findByIdentityKey(userId, identityKey);
   if (current) return roleRecord(current as typeof roles.$inferSelect);
 
-  const legacyMatch = (await dependencies.listLegacyRoles(userId))
+  const aliasMatch = (await dependencies.listOwnedRoles(userId))
     .find((role) => jobIdentitiesMatch(role, input));
-  if (legacyMatch) {
+  if (aliasMatch?.identityKey) return roleRecord(aliasMatch as typeof roles.$inferSelect);
+  if (aliasMatch) {
     const claimed = await dependencies.claimLegacyRole(
       userId,
-      legacyMatch.id,
+      aliasMatch.id,
       identityKey,
       dependencies.now(),
     );
@@ -320,11 +380,11 @@ const roleIdentityDependencies: RoleIdentityDependencies = {
       .limit(1);
     return row ?? null;
   },
-  async listLegacyRoles(ownerId) {
+  async listOwnedRoles(ownerId) {
     return getDb()
       .select()
       .from(roles)
-      .where(and(eq(roles.ownerId, ownerId), isNull(roles.identityKey)));
+      .where(eq(roles.ownerId, ownerId));
   },
   async claimLegacyRole(ownerId, roleId, identityKey, updatedAt) {
     try {
@@ -357,7 +417,7 @@ const roleIdentityDependencies: RoleIdentityDependencies = {
 
 export function createRole(
   userId: string,
-  input: { title: string; client?: string },
+  input: { title: string; client: string },
 ): Promise<RoleRecord> {
   return findOrCreateRoleWithDependencies(userId, input, roleIdentityDependencies);
 }
@@ -572,6 +632,19 @@ export async function saveCaseDocument(
 ): Promise<CaseDocument> {
   const db = getDb();
   await assertOwnedCase(userId, caseId);
+  const [currentDocumentState] = await db
+    .select({ revision: caseDocuments.revision })
+    .from(caseDocuments)
+    .where(and(eq(caseDocuments.caseId, caseId), eq(caseDocuments.kind, kind)))
+    .limit(1);
+  if (
+    (expectedRevision === 0 && currentDocumentState) ||
+    (expectedRevision > 0 && currentDocumentState?.revision !== expectedRevision)
+  ) {
+    throw new ApiError(409, "Document changed before this save completed.", {
+      currentRevision: currentDocumentState?.revision ?? null,
+    });
+  }
   let contentJson: string;
   try {
     contentJson = JSON.stringify(content);
@@ -612,6 +685,8 @@ export async function saveCaseDocument(
   const capabilityRunId = metadata.capabilityRunId === undefined
     ? existingCapabilityRunId
     : metadata.capabilityRunId;
+  const origin = metadata.origin ?? "edited";
+  const clearSubmissionReviewRequirements = kind === "submission" && origin === "edited";
   if (capabilityRunId) {
     const [ownedRun] = await db
       .select({ id: capabilityRuns.id })
@@ -634,75 +709,131 @@ export async function saveCaseDocument(
         currentRevision: null,
       });
     }
-    const [created] = await db
-      .insert(caseDocuments)
-      .values({
-        caseId,
-        kind,
-        contentJson,
-        revision: 1,
-        updatedBy: userId,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      })
-      .onConflictDoNothing()
-      .returning();
-    if (!created) {
+    let created: typeof caseDocuments.$inferSelect | undefined;
+    try {
+      const [createdRows] = await db.batch([
+        db.insert(caseDocuments).values({
+          caseId,
+          kind,
+          contentJson,
+          revision: 1,
+          updatedBy: userId,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }).returning(),
+        db.insert(caseDocumentVersions).values({
+          caseId,
+          kind,
+          revision: 1,
+          contentJson,
+          sourceRefsJson: JSON.stringify(sourceRefs),
+          capabilityRunId,
+          origin,
+          createdBy: userId,
+          createdAt: timestamp,
+        }),
+        db.update(candidateCases).set({
+          updatedAt: timestamp,
+          ...(clearSubmissionReviewRequirements
+            ? { assistantJson: sql`json_remove(${candidateCases.assistantJson}, '$.reviewRequired')` }
+            : {}),
+        }).where(and(eq(candidateCases.id, caseId), eq(candidateCases.ownerId, userId))),
+        db.insert(caseActivity).values({
+          id: crypto.randomUUID(),
+          caseId,
+          actorId: userId,
+          eventType: "document_saved",
+          entityType: "document",
+          entityId: `${caseId}:${kind}`,
+          fromRevision: 0,
+          toRevision: 1,
+          detailsJson: JSON.stringify({ kind, materialized: true, origin }),
+          createdAt: timestamp,
+        }),
+      ] as const);
+      created = createdRows[0];
+    } catch (error) {
       const [current] = await db
         .select({ revision: caseDocuments.revision })
         .from(caseDocuments)
         .where(and(eq(caseDocuments.caseId, caseId), eq(caseDocuments.kind, kind)))
         .limit(1);
+      if (current) {
+        throw new ApiError(409, "Document changed before this save completed.", {
+          currentRevision: current.revision,
+        });
+      }
+      throw error;
+    }
+    if (!created) {
       throw new ApiError(409, "Document changed before this save completed.", {
-        currentRevision: current?.revision ?? null,
+        currentRevision: null,
       });
     }
-    await Promise.all([
+    return documentRecord(created, kind);
+  }
+
+  const nextRevision = expectedRevision + 1;
+  let updated: typeof caseDocuments.$inferSelect | undefined;
+  try {
+    const [updatedRows] = await db.batch([
+      db.update(caseDocuments).set({
+        contentJson,
+        revision: nextRevision,
+        updatedBy: userId,
+        updatedAt: timestamp,
+      }).where(and(
+        eq(caseDocuments.caseId, caseId),
+        eq(caseDocuments.kind, kind),
+        eq(caseDocuments.revision, expectedRevision),
+      )).returning(),
+      // Every current snapshot has a matching immutable version. A stale or
+      // concurrent writer therefore collides here and rolls the whole batch
+      // back, including the conditional snapshot update above.
       db.insert(caseDocumentVersions).values({
         caseId,
         kind,
-        revision: created.revision,
+        revision: nextRevision,
         contentJson,
         sourceRefsJson: JSON.stringify(sourceRefs),
         capabilityRunId,
-        origin: metadata.origin ?? "edited",
+        origin,
         createdBy: userId,
         createdAt: timestamp,
-      }).onConflictDoNothing(),
-      db
-        .update(candidateCases)
-        .set({ updatedAt: timestamp })
-        .where(and(eq(candidateCases.id, caseId), eq(candidateCases.ownerId, userId))),
-      activity({
+      }),
+      db.update(candidateCases).set({
+        updatedAt: timestamp,
+        ...(clearSubmissionReviewRequirements
+          ? { assistantJson: sql`json_remove(${candidateCases.assistantJson}, '$.reviewRequired')` }
+          : {}),
+      }).where(and(eq(candidateCases.id, caseId), eq(candidateCases.ownerId, userId))),
+      db.insert(caseActivity).values({
+        id: crypto.randomUUID(),
         caseId,
         actorId: userId,
         eventType: "document_saved",
         entityType: "document",
         entityId: `${caseId}:${kind}`,
-        fromRevision: 0,
-        toRevision: created.revision,
-        details: { kind, materialized: true },
+        fromRevision: expectedRevision,
+        toRevision: nextRevision,
+        detailsJson: JSON.stringify({ kind, origin }),
+        createdAt: timestamp,
       }),
-    ]);
-    return documentRecord(created, kind);
+    ] as const);
+    updated = updatedRows[0];
+  } catch (error) {
+    const [current] = await db
+      .select({ revision: caseDocuments.revision })
+      .from(caseDocuments)
+      .where(and(eq(caseDocuments.caseId, caseId), eq(caseDocuments.kind, kind)))
+      .limit(1);
+    if (current?.revision !== expectedRevision) {
+      throw new ApiError(409, "Document changed before this save completed.", {
+        currentRevision: current?.revision ?? null,
+      });
+    }
+    throw error;
   }
-
-  const [updated] = await db
-    .update(caseDocuments)
-    .set({
-      contentJson,
-      revision: sql`${caseDocuments.revision} + 1`,
-      updatedBy: userId,
-      updatedAt: timestamp,
-    })
-    .where(
-      and(
-        eq(caseDocuments.caseId, caseId),
-        eq(caseDocuments.kind, kind),
-        eq(caseDocuments.revision, expectedRevision),
-      ),
-    )
-    .returning();
   if (!updated) {
     const [current] = await db
       .select({ revision: caseDocuments.revision })
@@ -713,33 +844,6 @@ export async function saveCaseDocument(
       currentRevision: current?.revision ?? null,
     });
   }
-  await Promise.all([
-    db.insert(caseDocumentVersions).values({
-      caseId,
-      kind,
-      revision: updated.revision,
-      contentJson,
-      sourceRefsJson: JSON.stringify(sourceRefs),
-      capabilityRunId,
-      origin: metadata.origin ?? "edited",
-      createdBy: userId,
-      createdAt: timestamp,
-    }).onConflictDoNothing(),
-    db
-      .update(candidateCases)
-      .set({ updatedAt: timestamp })
-      .where(and(eq(candidateCases.id, caseId), eq(candidateCases.ownerId, userId))),
-    activity({
-      caseId,
-      actorId: userId,
-      eventType: "document_saved",
-      entityType: "document",
-      entityId: `${caseId}:${kind}`,
-      fromRevision: expectedRevision,
-      toRevision: updated.revision,
-      details: { kind },
-    }),
-  ]);
   return documentRecord(updated, kind);
 }
 
@@ -851,52 +955,255 @@ export type NewSource = {
   intakeRecordId?: string | null;
 };
 
+export function sourcePersistenceMetadata(_source: Pick<NewSource, "lifecycleStatus" | "classificationMethod">) {
+  return {
+    reviewStatus: _source.lifecycleStatus === "reviewed" ? "reviewed" as const : "unreviewed" as const,
+    contextStatus: "active" as const,
+  };
+}
+
+export type AtomicCandidateSourceInput = {
+  roleId: string;
+  candidate: {
+    id: string;
+    name: string;
+    currentTitle: string;
+  };
+  caseId: string;
+  source: Omit<NewSource, "caseId">;
+};
+
+export class AtomicCandidateSourcePersistenceError extends Error {
+  constructor(
+    public readonly commitState: "not_committed" | "unknown",
+    cause: unknown,
+  ) {
+    super(commitState === "not_committed"
+      ? "Candidate source intake did not commit."
+      : "Candidate source intake may have committed; retry the exact source safely.", { cause });
+    this.name = "AtomicCandidateSourcePersistenceError";
+  }
+}
+
+export async function getCandidateSourceIntakeResult(
+  userId: string,
+  caseId: string,
+): Promise<CandidateSourceIntakeResult | null> {
+  const [row] = await getDb()
+    .select({
+      candidateId: candidates.id,
+      candidateName: candidates.name,
+      candidateCurrentTitle: candidates.currentTitle,
+    })
+    .from(candidateCases)
+    .innerJoin(candidates, eq(candidates.id, candidateCases.candidateId))
+    .where(and(
+      eq(candidateCases.id, caseId),
+      eq(candidateCases.ownerId, userId),
+      eq(candidates.ownerId, userId),
+    ))
+    .limit(1);
+  if (!row) return null;
+  return {
+    candidate: {
+      id: row.candidateId,
+      name: row.candidateName,
+      currentTitle: row.candidateCurrentTitle,
+    },
+    candidateCase: await getCandidateCase(userId, caseId),
+    reused: true,
+  };
+}
+
+/**
+ * Creates the candidate, its Job-scoped case, default documents, and original
+ * resume attachment in one D1 batch. The caller supplies source-derived stable
+ * IDs, so a lost response or concurrent retry converges on the same record
+ * without matching unrelated people by name.
+ */
+export async function createCandidateCaseFromSourceAtomic(
+  userId: string,
+  input: AtomicCandidateSourceInput,
+): Promise<CandidateSourceIntakeResult> {
+  await assertOwnedRole(userId, input.roleId);
+  const current = await getCandidateSourceIntakeResult(userId, input.caseId);
+  if (current) return current;
+
+  const db = getDb();
+  const timestamp = now();
+  const statements = [
+    db.insert(candidates).values({
+      id: input.candidate.id,
+      ownerId: userId,
+      name: input.candidate.name,
+      currentTitle: input.candidate.currentTitle || null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }).onConflictDoNothing(),
+    db.insert(candidateCases).values({
+      id: input.caseId,
+      ownerId: userId,
+      roleId: input.roleId,
+      candidateId: input.candidate.id,
+      assistantJson: JSON.stringify(EMPTY_ASSISTANT),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }),
+    ...STORED_DOCUMENT_KINDS.map((kind) => db.insert(caseDocuments).values({
+      caseId: input.caseId,
+      kind,
+      contentJson: JSON.stringify(defaultDocumentContent(kind)),
+      revision: 1,
+      updatedBy: userId,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })),
+    ...STORED_DOCUMENT_KINDS.map((kind) => db.insert(caseDocumentVersions).values({
+      caseId: input.caseId,
+      kind,
+      revision: 1,
+      contentJson: JSON.stringify(defaultDocumentContent(kind)),
+      sourceRefsJson: "[]",
+      origin: "generated",
+      createdBy: userId,
+      createdAt: timestamp,
+    })),
+    db.insert(caseSources).values({
+      ...input.source,
+      caseId: input.caseId,
+      ...sourcePersistenceMetadata(input.source),
+      createdBy: userId,
+      createdAt: timestamp,
+    }),
+    db.insert(caseActivity).values({
+      id: crypto.randomUUID(),
+      caseId: input.caseId,
+      actorId: userId,
+      eventType: "case_created",
+      entityType: "case",
+      entityId: input.caseId,
+      fromRevision: null,
+      toRevision: 1,
+      detailsJson: JSON.stringify({ roleId: input.roleId, candidateId: input.candidate.id }),
+      createdAt: timestamp,
+    }),
+    db.insert(caseActivity).values({
+      id: crypto.randomUUID(),
+      caseId: input.caseId,
+      actorId: userId,
+      eventType: "source_attached",
+      entityType: "source",
+      entityId: input.source.id,
+      fromRevision: null,
+      toRevision: null,
+      detailsJson: JSON.stringify({
+        kind: input.source.kind,
+        filename: input.source.filename,
+        contentType: input.source.contentType,
+        sizeBytes: input.source.sizeBytes,
+        sha256: input.source.sha256,
+        intakeRecordId: input.source.intakeRecordId ?? null,
+        lifecycleStatus: input.source.lifecycleStatus,
+        classificationMethod: input.source.classificationMethod,
+      }),
+      createdAt: timestamp,
+    }),
+  ] as const;
+
+  try {
+    await db.batch(statements);
+  } catch (error) {
+    let concurrent: CandidateSourceIntakeResult | null;
+    try {
+      concurrent = await getCandidateSourceIntakeResult(userId, input.caseId);
+    } catch (verificationError) {
+      throw new AtomicCandidateSourcePersistenceError("unknown", verificationError);
+    }
+    if (concurrent) return concurrent;
+    throw new AtomicCandidateSourcePersistenceError("not_committed", error);
+  }
+
+  let created: CandidateSourceIntakeResult | null;
+  try {
+    created = await getCandidateSourceIntakeResult(userId, input.caseId);
+  } catch (error) {
+    throw new AtomicCandidateSourcePersistenceError("unknown", error);
+  }
+  if (!created) {
+    throw new AtomicCandidateSourcePersistenceError(
+      "unknown",
+      new Error("Atomic candidate intake completed without a readable case."),
+    );
+  }
+  return { ...created, reused: false };
+}
+
 export async function insertSource(userId: string, source: NewSource) {
   const db = getDb();
   await assertOwnedCase(userId, source.caseId);
   const timestamp = now();
-  await db.insert(caseSources).values({
-    ...source,
-    reviewStatus: source.lifecycleStatus === "classified" ? "reviewed" : "unreviewed",
-    createdBy: userId,
-    createdAt: timestamp,
-  });
-  await Promise.all([
-    db
-      .update(candidateCases)
-      .set({ updatedAt: timestamp })
-      .where(and(eq(candidateCases.id, source.caseId), eq(candidateCases.ownerId, userId))),
-    activity({
-      caseId: source.caseId,
-      actorId: userId,
-      eventType: "source_attached",
-      entityType: "source",
-      entityId: source.id,
-      details: {
-        kind: source.kind,
-        filename: source.filename,
-        contentType: source.contentType,
-        sizeBytes: source.sizeBytes,
-        sha256: source.sha256,
-        intakeRecordId: source.intakeRecordId ?? null,
-        lifecycleStatus: source.lifecycleStatus,
-        classificationMethod: source.classificationMethod,
-      },
-    }),
-  ]);
+  try {
+    await db.batch([
+      db.insert(caseSources).values({
+        ...source,
+        ...sourcePersistenceMetadata(source),
+        createdBy: userId,
+        createdAt: timestamp,
+      }),
+      db.update(candidateCases)
+        .set({ updatedAt: timestamp })
+        .where(and(eq(candidateCases.id, source.caseId), eq(candidateCases.ownerId, userId))),
+      db.insert(caseActivity).values({
+        id: crypto.randomUUID(),
+        caseId: source.caseId,
+        actorId: userId,
+        eventType: "source_attached",
+        entityType: "source",
+        entityId: source.id,
+        fromRevision: null,
+        toRevision: null,
+        detailsJson: JSON.stringify({
+          kind: source.kind,
+          filename: source.filename,
+          contentType: source.contentType,
+          sizeBytes: source.sizeBytes,
+          sha256: source.sha256,
+          intakeRecordId: source.intakeRecordId ?? null,
+          lifecycleStatus: source.lifecycleStatus,
+          classificationMethod: source.classificationMethod,
+        }),
+        createdAt: timestamp,
+      }),
+    ] as const);
+  } catch (error) {
+    const concurrent = await getActiveCaseSourceBySha256(userId, source.caseId, source.sha256);
+    if (concurrent) {
+      // The exact id means the batch committed and only its response was lost;
+      // the caller must retain the R2 object referenced by that row. A different
+      // id is a harmless concurrent duplicate and its staging object can go.
+      return concurrent.id === source.id;
+    }
+    throw error;
+  }
+  return true;
 }
 
 export type NewRoleSource = Omit<NewSource, "caseId"> & { roleId: string };
 
 export async function insertRoleSource(userId: string, source: NewRoleSource) {
+  assertJobSourceKind(source.kind);
   await assertOwnedRole(userId, source.roleId);
-  await getDb().insert(roleSources).values({
-    ...source,
-    reviewStatus: source.lifecycleStatus === "classified" ? "reviewed" : "unreviewed",
-    contextStatus: "active",
-    createdBy: userId,
-    createdAt: now(),
-  });
+  const [created] = await getDb()
+    .insert(roleSources)
+    .values({
+      ...source,
+      ...sourcePersistenceMetadata(source),
+      createdBy: userId,
+      createdAt: now(),
+    })
+    .onConflictDoNothing()
+    .returning({ id: roleSources.id });
+  return Boolean(created);
 }
 
 export async function getOwnedRoleSource(userId: string, roleId: string, sourceId: string) {
@@ -916,12 +1223,17 @@ export async function reviewRoleSource(
   kind?: SourceKind,
 ): Promise<JobSource[]> {
   const source = await getOwnedRoleSource(userId, roleId, sourceId);
+  const currentKind = SOURCE_KINDS.includes(source.kind as SourceKind)
+    ? source.kind as SourceKind
+    : "other";
+  const reviewedKind = kind ?? currentKind;
+  assertJobSourceKind(reviewedKind);
   const lifecycle = normalizeSourceLifecycleStatus(source.lifecycleStatus);
   if (!canReviewSource(lifecycle, kind)) {
     throw new ApiError(409, "The source must be parsed and classified before review.");
   }
   await getDb().update(roleSources).set({
-    kind: kind ?? source.kind,
+    kind: reviewedKind,
     lifecycleStatus: "reviewed",
     reviewStatus: "reviewed",
     classificationMethod: kind ? "manual" : source.classificationMethod,
@@ -948,48 +1260,123 @@ export async function reviewSource(
     });
   }
 
-  const reviewedKind = kind ?? source.kind;
+  const previousKind = SOURCE_KINDS.includes(source.kind as SourceKind)
+    ? source.kind as SourceKind
+    : "other";
+  const reviewedKind = kind ?? previousKind;
   const timestamp = now();
-  await Promise.all([
-    db
-      .update(caseSources)
-      .set({
-        kind: reviewedKind,
-        lifecycleStatus: "reviewed",
-        reviewStatus: "reviewed",
-        classificationMethod: kind ? "manual" : source.classificationMethod,
-      })
-      .where(and(eq(caseSources.id, sourceId), eq(caseSources.caseId, caseId))),
-    db
-      .update(candidateCases)
-      .set({ updatedAt: timestamp })
-      .where(and(eq(candidateCases.id, caseId), eq(candidateCases.ownerId, userId))),
-    activity({
+  const [submissionRow] = await db.select().from(caseDocuments).where(and(
+    eq(caseDocuments.caseId, caseId),
+    eq(caseDocuments.kind, "submission"),
+  )).limit(1);
+  const [submissionVersion] = submissionRow
+    ? await db.select({ sourceRefsJson: caseDocumentVersions.sourceRefsJson })
+      .from(caseDocumentVersions)
+      .where(and(
+        eq(caseDocumentVersions.caseId, caseId),
+        eq(caseDocumentVersions.kind, "submission"),
+        eq(caseDocumentVersions.revision, submissionRow.revision),
+      ))
+      .limit(1)
+    : [];
+  const sourceRef = autoPrefillSourceRef(source);
+  const currentSubmissionSourceRefs = submissionVersion
+    ? parseJson<string[]>(submissionVersion.sourceRefsJson, [])
+    : [];
+  const requiresSubmissionReview = previousKind === "resume" &&
+    reviewedKind !== "resume" &&
+    currentSubmissionSourceRefs.includes(sourceRef);
+  const reviewRequirement = requiresSubmissionReview ? {
+    id: `source-reclassification:${source.id}:${source.sha256}:submission`,
+    sourceId: source.id,
+    sourceRef,
+    documentKind: "submission" as const,
+    previousKind,
+    currentKind: reviewedKind,
+    reason: `${source.filename} was used to auto-fill the submission, but its type is now ${reviewedKind}. Open Generated > Submission, choose Edit, verify the retained fields, and Save before running another workflow.`,
+    createdAt: timestamp,
+  } : null;
+  const reviewRequirementJson = reviewRequirement
+    ? JSON.stringify(reviewRequirement)
+    : null;
+  const caseUpdateWhere = reviewRequirement ? and(
+    eq(candidateCases.id, caseId),
+    eq(candidateCases.ownerId, userId),
+    // Re-check the current immutable version inside the write transaction. If
+    // another save removed this provenance before the batch runs, no stale
+    // review marker is introduced.
+    sql`EXISTS (
+      SELECT 1
+      FROM case_documents AS current_document
+      JOIN case_document_versions AS current_version
+        ON current_version.case_id = current_document.case_id
+       AND current_version.kind = current_document.kind
+       AND current_version.revision = current_document.revision
+      JOIN json_each(current_version.source_refs_json) AS source_ref
+      WHERE current_document.case_id = ${caseId}
+        AND current_document.kind = 'submission'
+        AND source_ref.value = ${sourceRef}
+    )`,
+  ) : and(eq(candidateCases.id, caseId), eq(candidateCases.ownerId, userId));
+  const nextAssistantJson = reviewRequirementJson
+    ? sql<string>`CASE
+        WHEN json_type(${candidateCases.assistantJson}, '$.reviewRequired') = 'array' THEN
+          CASE
+            WHEN EXISTS (
+              SELECT 1
+              FROM json_each(${candidateCases.assistantJson}, '$.reviewRequired') AS requirement
+              WHERE json_extract(requirement.value, '$.sourceRef') = ${sourceRef}
+            ) THEN ${candidateCases.assistantJson}
+            ELSE json_insert(
+              ${candidateCases.assistantJson},
+              '$.reviewRequired[#]',
+              json(${reviewRequirementJson})
+            )
+          END
+        ELSE json_set(
+          ${candidateCases.assistantJson},
+          '$.reviewRequired',
+          json_array(json(${reviewRequirementJson}))
+        )
+      END`
+    : null;
+
+  await db.batch([
+    db.update(caseSources).set({
+      kind: reviewedKind,
+      lifecycleStatus: "reviewed",
+      reviewStatus: "reviewed",
+      classificationMethod: kind ? "manual" : source.classificationMethod,
+    }).where(and(eq(caseSources.id, sourceId), eq(caseSources.caseId, caseId))),
+    db.update(candidateCases).set({
+      updatedAt: timestamp,
+      ...(nextAssistantJson ? { assistantJson: nextAssistantJson } : {}),
+    }).where(caseUpdateWhere),
+    db.insert(caseActivity).values({
+      id: crypto.randomUUID(),
       caseId,
       actorId: userId,
       eventType: "source_reviewed",
       entityType: "source",
       entityId: sourceId,
-      details: {
-        previousKind: source.kind,
+      fromRevision: null,
+      toRevision: null,
+      detailsJson: JSON.stringify({
+        previousKind,
         kind: reviewedKind,
         previousLifecycleStatus: currentLifecycleStatus,
         lifecycleStatus: "reviewed",
-      },
+        reviewRequirementId: reviewRequirement?.id ?? null,
+      }),
+      createdAt: timestamp,
     }),
-  ]);
+  ] as const);
 
   if (reviewedKind === "resume" && source.parsedText?.trim()) {
-    const [[candidate], [submissionRow]] = await Promise.all([
-      db.select().from(candidates).where(and(
-        eq(candidates.id, ownedCase.candidateId),
-        eq(candidates.ownerId, userId),
-      )).limit(1),
-      db.select().from(caseDocuments).where(and(
-        eq(caseDocuments.caseId, caseId),
-        eq(caseDocuments.kind, "submission"),
-      )).limit(1),
-    ]);
+    const [candidate] = await db.select().from(candidates).where(and(
+      eq(candidates.id, ownedCase.candidateId),
+      eq(candidates.ownerId, userId),
+    )).limit(1);
     if (candidate && submissionRow) {
       const prefill = prefillSubmissionFromResume({
         current: coerceSubmissionDocument(parseJson(submissionRow.contentJson, {})),
@@ -1004,6 +1391,13 @@ export async function reviewSource(
             "submission",
             submissionRow.revision,
             prefill.document,
+            {
+              origin: "generated",
+              sourceRefs: Array.from(new Set([
+                ...currentSubmissionSourceRefs,
+                sourceRef,
+              ])),
+            },
           );
         } catch (error) {
           if (!(error instanceof ApiError) || error.status !== 409) throw error;
@@ -1040,7 +1434,9 @@ export async function getCapabilityCaseContext(userId: string, caseId: string) {
       ...candidateCase,
       sources: [
         ...candidateCase.sources,
-        ...sharedSources.filter((source) => source.contextStatus === "active"),
+        ...sharedSources.filter((source) => (
+          source.contextStatus === "active" && isJobSourceKind(source.kind)
+        )),
       ],
     },
     role: roleRecord(role),
