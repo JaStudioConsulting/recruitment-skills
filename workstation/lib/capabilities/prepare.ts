@@ -121,6 +121,7 @@ function hardBlocker(
   executor: FeatureDefinition | undefined,
   missingRequirements: PreparedRequirement[],
   availableExecutorIds: readonly string[],
+  sourceReviewReason: string,
 ) {
   if (capability.implementation.status === "blocked" || capability.implementation.status === "interface_only") {
     return capability.implementation.blocker;
@@ -129,6 +130,9 @@ function hardBlocker(
   if (!executor) return capability.implementation.blocker || "No canonical executor is connected for this capability.";
   if (!availableExecutorIds.includes(executor.id)) {
     return capability.implementation.blocker || `No mounted server executor is connected for ${capability.id}.`;
+  }
+  if (sourceReviewReason) {
+    return `Human review required before this workflow can run: ${sourceReviewReason} Open Generated > Submission, choose Edit, verify the retained fields, and Save.`;
   }
   if (missingRequirements.some((requirement) => requirement.kind === "adapter")) {
     return capability.implementation.blocker || `Missing required adapter: ${missingRequirements.map((item) => item.label).join(", ")}.`;
@@ -158,7 +162,14 @@ export async function prepareCapabilityFromContext(
   const allowedKinds = new Set(requirements.flatMap((requirement) => requirement.source_kinds ?? []));
   const sourceRefs = context.candidateCase.sources
     .filter((source) => sourceIsUsable(source) && allowedKinds.has(source.kind))
-    .map((source) => `${source.id}:${source.sha256}`)
+    .map((source) => [
+      source.id,
+      source.sha256,
+      source.kind,
+      source.lifecycleStatus,
+      source.reviewStatus,
+      source.classificationMethod ?? "unknown",
+    ].join(":"));
   const hasUsableCallSource = context.candidateCase.sources.some(
     (source) => sourceIsUsable(source) &&
       (source.kind === "call_notes" || source.kind === "transcript"),
@@ -172,6 +183,7 @@ export async function prepareCapabilityFromContext(
     executor,
     missingRequirements,
     context.availableExecutorIds,
+    context.candidateCase.assistant.reviewRequired?.[0]?.reason ?? "",
   );
   const preparedAt = options.now ?? new Date().toISOString();
   const inputSnapshotHash = await sha256({
@@ -184,6 +196,7 @@ export async function prepareCapabilityFromContext(
       caseId: context.candidateCase.id,
       caseRevision: context.candidateCase.revision,
       notes: context.candidateCase.notes,
+      assistant: context.candidateCase.assistant,
       documents: Object.fromEntries(
         Object.entries(context.candidateCase.documents)
           .sort(([left], [right]) => left.localeCompare(right))

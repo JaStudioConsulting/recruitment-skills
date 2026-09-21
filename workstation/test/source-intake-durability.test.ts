@@ -5,6 +5,7 @@ vi.mock("cloudflare:workers", () => ({ env: {} }));
 
 import {
   findOrCreateRoleWithDependencies,
+  sourcePersistenceMetadata,
   type RoleIdentityDependencies,
   type RoleIdentityRow,
 } from "../lib/server/case-repository";
@@ -52,6 +53,21 @@ function intakeDependencies() {
 }
 
 describe("durable source-intake reuse", () => {
+  it("does not persist automatic classification as a human review", () => {
+    expect(sourcePersistenceMetadata({
+      lifecycleStatus: "classified",
+      classificationMethod: "filename",
+    })).toEqual({ reviewStatus: "unreviewed", contextStatus: "active" });
+    expect(sourcePersistenceMetadata({
+      lifecycleStatus: "classified",
+      classificationMethod: "content",
+    })).toEqual({ reviewStatus: "unreviewed", contextStatus: "active" });
+    expect(sourcePersistenceMetadata({
+      lifecycleStatus: "reviewed",
+      classificationMethod: "manual",
+    })).toEqual({ reviewStatus: "reviewed", contextStatus: "active" });
+  });
+
   it("parses unassigned JD bytes once and reuses the persisted result during storage", async () => {
     const fixture = intakeDependencies();
     const bytes = buffer("synthetic PDF bytes");
@@ -125,7 +141,7 @@ function roleDependencies(): RoleIdentityDependencies & { rows: RoleIdentityRow[
     inserts,
     findByIdentityKey: vi.fn(async (ownerId, identityKey) =>
       rows.find((row) => row.ownerId === ownerId && row.identityKey === identityKey) ?? null),
-    listLegacyRoles: vi.fn(async (ownerId) => rows.filter((row) => row.ownerId === ownerId && row.identityKey === null)),
+    listOwnedRoles: vi.fn(async (ownerId) => rows.filter((row) => row.ownerId === ownerId)),
     claimLegacyRole: vi.fn(async (ownerId, roleId, identityKey) => {
       const claimed = rows.find((row) => row.ownerId === ownerId && row.id === roleId);
       if (!claimed) return null;
@@ -144,6 +160,20 @@ function roleDependencies(): RoleIdentityDependencies & { rows: RoleIdentityRow[
 }
 
 describe("server-side Job identity", () => {
+  it("rejects creation until both reviewed title and client are present", async () => {
+    const dependencies = roleDependencies();
+
+    await expect(findOrCreateRoleWithDependencies("owner-1", {
+      title: "Maintenance Manager",
+      client: "",
+    }, dependencies)).rejects.toThrow("client");
+    await expect(findOrCreateRoleWithDependencies("owner-1", {
+      title: "",
+      client: "Example Manufacturing",
+    }, dependencies)).rejects.toThrow("title");
+    expect(dependencies.inserts).not.toHaveBeenCalled();
+  });
+
   it("returns one Job for repeated normalized title/client variants", async () => {
     const dependencies = roleDependencies();
     const first = await findOrCreateRoleWithDependencies("owner-1", {
@@ -158,6 +188,48 @@ describe("server-side Job identity", () => {
     expect(repeated.id).toBe(first.id);
     expect(dependencies.rows).toHaveLength(1);
     expect(dependencies.inserts).toHaveBeenCalledTimes(1);
+  });
+
+  it("reuses a Job across terminal legal suffix aliases only", async () => {
+    const dependencies = roleDependencies();
+    const first = await findOrCreateRoleWithDependencies("owner-1", {
+      title: "Maintenance Manager",
+      client: "Atlantic Packaging",
+    }, dependencies);
+    const legalSuffixAlias = await findOrCreateRoleWithDependencies("owner-1", {
+      title: "Maintenance Manager",
+      client: "Atlantic Packaging Inc.",
+    }, dependencies);
+    const broadDescriptor = await findOrCreateRoleWithDependencies("owner-1", {
+      title: "Maintenance Manager",
+      client: "Atlantic Packaging Group",
+    }, dependencies);
+
+    expect(legalSuffixAlias.id).toBe(first.id);
+    expect(broadDescriptor.id).not.toBe(first.id);
+    expect(dependencies.rows).toHaveLength(2);
+  });
+
+  it("reuses a legal-suffix alias stored with the pre-change identity key", async () => {
+    const dependencies = roleDependencies();
+    dependencies.rows.push({
+      id: "pre-change-role",
+      ownerId: "owner-1",
+      title: "Maintenance Manager",
+      client: "Atlantic Packaging Inc.",
+      identityKey: JSON.stringify(["maintenance manager", "atlantic packaging inc"]),
+      status: "active",
+      createdAt: "2026-09-20T01:00:00.000Z",
+      updatedAt: "2026-09-20T01:00:00.000Z",
+    });
+
+    const role = await findOrCreateRoleWithDependencies("owner-1", {
+      title: "Maintenance Manager",
+      client: "Atlantic Packaging",
+    }, dependencies);
+
+    expect(role.id).toBe("pre-change-role");
+    expect(dependencies.inserts).not.toHaveBeenCalled();
   });
 
   it("converges concurrent find-or-create calls on the unique owner/identity key", async () => {

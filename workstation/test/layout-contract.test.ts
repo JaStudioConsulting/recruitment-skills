@@ -33,6 +33,10 @@ describe("bounded recruiter workstation layout", () => {
   });
 
   it("supports persistent drawing notes and a resume-collapse focus view", () => {
+    const colorisStyles = '@import "@melloware/coloris/dist/coloris.css";';
+    const editorStyles = '@import "js-draw/Editor.css";';
+    expect(css).toContain(colorisStyles);
+    expect(css.indexOf(colorisStyles)).toBeLessThan(css.indexOf(editorStyles));
     expect(handwriting).toContain('import("js-draw")');
     expect(handwriting).toContain("loadFromSVG");
     expect(handwriting).toContain("toSVG");
@@ -40,35 +44,64 @@ describe("bounded recruiter workstation layout", () => {
     expect(handwriting).toContain("autoresize: true");
     expect(workstation).toContain('aria-label="Notes input mode"');
     expect(workstation).toContain('aria-label={notesFocused ? "Show resume panel" : "Hide resume panel"}');
-    expect(rule(".desk-grid.notes-focus")).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    expect(rule(".desk-grid.notes-focus")).toMatch(/grid-template-columns:\s*238px\s+minmax\(0,\s*1fr\)/);
     expect(rule(".desk-grid.notes-focus .document-pane")).toMatch(/display:\s*none/);
   });
 
+  it("labels the source editor and keeps keyboard resizing from scrolling the page", () => {
+    expect(workstation).toContain('aria-label={pasteScope === "job" ? "Job source text" : "Candidate source text"}');
+    expect(workstation).toMatch(/event\.key === "ArrowLeft"\) \{ event\.preventDefault\(\); setSplitRatio/);
+    expect(workstation).toMatch(/event\.key === "ArrowRight"\) \{ event\.preventDefault\(\); setSplitRatio/);
+  });
+
+  it("uses the Email tab as the only presentation-email heading", () => {
+    expect(workstation).toContain('{kind === "email" ? <pre>');
+    expect(workstation).not.toContain("Presentation email");
+    expect(workstation).toContain("Loxo update bullets");
+    expect(workstation).toContain('aria-label={`Edit ${kind}`}');
+  });
+
   it("supports stacked portrait and split landscape tablet layouts", () => {
-    expect(css).toMatch(/@media \(max-width: 1050px\)[\s\S]*?\.desk-grid\s*\{[^}]*grid-template-columns:\s*1fr[^}]*overflow-y:\s*auto/);
-    expect(css).toMatch(/@media \(min-width: 820px\) and \(max-width: 1050px\) and \(orientation: landscape\)[\s\S]*?\.desk-grid\s*\{[^}]*grid-template-columns:[^}]*minmax\(390px,[^}]*minmax\(300px,[^}]*overflow:\s*hidden/);
+    expect(css).toMatch(/@media \(max-width: 1050px\)[\s\S]*?\.desk-grid\s*\{[^}]*grid-template-columns:\s*210px\s+minmax\(0,\s*1fr\)[^}]*overflow-y:\s*auto/);
+    expect(css).toMatch(/@media \(min-width: 820px\) and \(max-width: 1050px\) and \(orientation: landscape\)[\s\S]*?\.desk-grid\s*\{[^}]*grid-template-columns:[^}]*200px[^}]*minmax\(300px,[^}]*overflow:\s*hidden/);
     expect(css).toMatch(/@media \(min-width: 820px\) and \(max-width: 1050px\) and \(orientation: landscape\)[\s\S]*?\.notes-pane, \.document-pane\s*\{[^}]*min-height:\s*0/);
   });
 
-  it("uses Job folders, automatic intake, and one package action", () => {
-    expect(workstation).toContain('label="Job folder"');
-    expect(workstation).toContain("Job knowledge");
-    expect(workstation).toContain("Paste JD");
-    expect(workstation).toContain("Drop a Job description");
-    expect(workstation).toContain("Paste the whole JD");
+  it("uses a project-like Job shell, one source composer, and one package action", () => {
+    expect(workstation).toContain('id="job-project-select"');
+    expect(workstation).toContain('aria-label="Job options"');
+    expect(workstation).toContain("Add files or paste text");
+    expect(workstation).toContain("Add sources");
+    expect(workstation).toContain("Drag sources here");
+    expect(workstation).toContain("Text input");
+    expect(workstation).toContain('role="tab" aria-selected={workspaceView === "work"}');
+    expect(workstation).toContain('role="tab" aria-selected={workspaceView === "sources"}');
+    expect(workstation).toContain("New Job from source");
+    expect(workstation).not.toContain("Paste JD");
+    expect(workstation).not.toContain(">Paste text</Button>");
+    expect(workstation).not.toContain("One workspace. From conversation to submission.");
+    expect(workstation).not.toContain('className="job-breadcrumb"');
+    expect(workstation).not.toContain('className="job-source-chip"');
+    expect(workstation).not.toContain('className="brand-actions"');
+    expect(workstation).not.toContain('className="after-call-progress"');
+    expect(workstation).not.toContain('className="output-version-row"');
     expect(workstation).toContain("proposePastedSource");
     expect(workstation).toContain("Complete Job identity detected");
+    expect(workstation).toContain("Candidate identity found — review before saving");
+    expect(workstation).toContain("workstationApi.intakeCandidateResume");
+    expect(workstation).not.toContain("resolveCandidateCase");
+    expect(workstation).toContain("Candidate for source");
+    expect(workstation).toContain("current.some((role) => role.id === created.id) ? current : [created, ...current]");
     expect(workstation).not.toContain("pastedSourceTitle");
     expect(workstation).not.toContain("This creates an internal workstation record only");
     expect(workstation).toContain("Save the role and company for reusable Job context.");
     expect(workstation).toContain("Save the candidate for use across recruiter workflows.");
-    expect(workstation).toContain("Files are parsed and classified automatically");
     expect(workstation).toContain("Create after-call package");
     expect(workstation).toContain("WorkflowBrowser");
     expect(workstation).not.toContain("CapabilityEngine");
     expect(workstation).toContain('onClick={() => void executeCapability("write-up")}');
     expect(workstation).toContain("activeCaseAvailable={Boolean(activeCase)}");
-    expect(workstation).toContain("onExecute={executeCapability}");
+    expect(workstation).toContain('onExecute={(capabilityId, extraInput) => executeCapability(capabilityId, extraInput, "workflow")}');
     expect(workstation).toContain("workstationApi.prepareCapability");
     expect(workstation).toContain("workstationApi.executeCapabilityRun");
     expect(workstation).toContain("workstationApi.listCapabilityRuns");
@@ -81,9 +114,16 @@ describe("bounded recruiter workstation layout", () => {
     expect(workstation).not.toContain("createAfterCallPackage");
     expect(workstation).not.toContain("createAutofilledDraft");
     expect(workstation).toContain("Workflows");
-    expect(workstation).toContain("Read-only preview");
+    expect(workstation).toContain('aria-label="Output history"');
     expect(workstation).toContain("Save changes");
     expect(workstation).toContain("Cancel");
+    expect(workstation).toContain("SourceTypeCorrectionControls");
+    expect(workstation).toContain("Edit type");
+    expect(workstation).toContain("Save type for");
+    expect(workstation).toContain("Cancel type edit for");
+    expect(workstation).toContain("CANDIDATE_SOURCE_KIND_OPTIONS.map");
+    expect(workstation).toContain("JOB_SOURCE_KIND_OPTIONS.map");
+    expect(workstation).toContain("sourceReviewKinds[source.id] || source.kind");
     expect(workstation).toContain('origin: "edited"');
     expect(workflowBrowser).toContain("Saved runs");
     expect(workflowBrowser).toContain("summarizeRunEvidence");
@@ -96,8 +136,8 @@ describe("bounded recruiter workstation layout", () => {
     expect(workstation).not.toContain("All features");
     expect(workstation).not.toContain("tttg-ai-provider");
     expect(workstation).not.toContain("AI drafting needs");
-    expect(rule(".source-first-job-intake")).toMatch(/display:\s*flex/);
-    expect(rule(".source-first-job-drop")).toMatch(/border:\s*1px dashed/);
+    expect(rule(".source-composer")).toMatch(/display:\s*flex/);
+    expect(rule(".add-sources-dropzone")).toMatch(/border:\s*1px dashed/);
     expect(rule(".paste-kind-review")).toMatch(/display:\s*grid/);
   });
 

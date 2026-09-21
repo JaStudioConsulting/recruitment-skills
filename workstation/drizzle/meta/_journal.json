@@ -43,6 +43,13 @@
       "when": 1789967188534,
       "tag": "0005_young_landau",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789972104961,
+      "tag": "0006_foamy_winter_soldier",
+      "breakpoints": true
     }
   ]
 }

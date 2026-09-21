@@ -203,7 +203,9 @@ function dependencies(run: CapabilityRunRecord, currentContext = context()) {
   });
   const executeCapability = vi.fn(() => {
     events.push("execute:write-up-candidate");
-    return draftResult();
+    const result = draftResult();
+    result.bundle.sourceRefs = [...run.sourceRefs];
+    return result;
   });
   const value: CapabilityExecutionDependencies = {
     getCapabilityRun: vi.fn(async () => run),
@@ -285,7 +287,7 @@ describe("prepared capability execution", () => {
     const deps = dependencies(run);
     const result = draftResult();
     result.bundle.sourceRefs = [
-      ...result.bundle.sourceRefs,
+      ...run.sourceRefs,
       "candidate-record:candidate-1",
       "role-record:role-1",
     ];

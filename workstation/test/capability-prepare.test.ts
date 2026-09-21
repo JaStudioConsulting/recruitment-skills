@@ -52,13 +52,74 @@ describe("canonical capability preparation", () => {
       missing: [],
       preparedAt: "2026-09-20T01:00:00.000Z",
     });
-    expect(prepared.sourceRefs).toEqual(["jd:sha-jd", "resume:sha-resume", "transcript:sha-transcript"]);
+    expect(prepared.sourceRefs).toEqual([
+      "jd:sha-jd:job_description:classified:unreviewed:content",
+      "resume:sha-resume:resume:classified:unreviewed:content",
+      "transcript:sha-transcript:transcript:classified:unreviewed:content",
+    ]);
     expect(prepared.inputSnapshotHash).toMatch(/^[0-9a-f]{64}$/);
 
     const changed = await prepareCapabilityFromContext("write-up", context(), {
       extraInput: "Different destination", provider: "manual", model: "none", now: "2026-09-20T01:00:00.000Z",
     });
     expect(changed.inputSnapshotHash).not.toBe(prepared.inputSnapshotHash);
+  });
+
+  it("invalidates a prepared identity when the same source is reclassified", async () => {
+    const beforeContext = context();
+    const options = {
+      extraInput: "",
+      provider: "workstation",
+      model: "write-up-candidate-v1",
+      now: "2026-09-20T01:00:00.000Z",
+    };
+    const before = await prepareCapabilityFromContext("write-up", beforeContext, options);
+
+    const afterContext = context();
+    afterContext.candidateCase.sources = afterContext.candidateCase.sources.map((item) => item.id === "resume"
+      ? {
+          ...item,
+          kind: "call_notes" as const,
+          lifecycleStatus: "reviewed" as const,
+          reviewStatus: "reviewed" as const,
+          classificationMethod: "manual" as const,
+        }
+      : item);
+    const after = await prepareCapabilityFromContext("write-up", afterContext, options);
+
+    expect(after.inputSnapshotHash).not.toBe(before.inputSnapshotHash);
+    expect(after.sourceRefs).toContain("resume:sha-resume:call_notes:reviewed:reviewed:manual");
+    expect(after.sourceRefs).not.toContain("resume:sha-resume:resume:classified:unreviewed:content");
+  });
+
+  it("blocks preparation while a reclassified autofill awaits human submission review", async () => {
+    const input = context();
+    input.candidateCase.assistant.reviewRequired = [{
+      id: "submission-source-review:resume",
+      sourceId: "resume",
+      sourceRef: "auto-prefill:resume:sha-resume:resume",
+      documentKind: "submission",
+      previousKind: "resume",
+      currentKind: "call_notes",
+      reason: "Avery North - Resume.txt changed from Resume to Call notes after filling submission fields.",
+      createdAt: "2026-09-20T01:00:00.000Z",
+    }];
+    const options = {
+      extraInput: "",
+      provider: "workstation",
+      model: "write-up-candidate-v1",
+      now: "2026-09-20T01:05:00.000Z",
+    };
+
+    const blocked = await prepareCapabilityFromContext("write-up", input, options);
+    expect(blocked.canExecute).toBe(false);
+    expect(blocked.blocker).toContain("Human review required");
+    expect(blocked.blocker).toContain("Open Generated > Submission");
+
+    const reviewedInput = context();
+    const reviewed = await prepareCapabilityFromContext("write-up", reviewedInput, options);
+    expect(reviewed.canExecute).toBe(true);
+    expect(reviewed.inputSnapshotHash).not.toBe(blocked.inputSnapshotHash);
   });
 
   it("binds every supporting authority digest into the prepared identity", async () => {

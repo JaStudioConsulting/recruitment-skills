@@ -8,7 +8,7 @@ import type { CapabilityPreparationResponse } from "./server/capability-service"
 import type { CapabilityExecutionResponse } from "./server/capability-execution-service";
 import type { CapabilityRunRecord } from "./server/capability-run-repository";
 import type { UploadedSourceProposal } from "./source-intake";
-import type { CandidateCase, CandidateRecord, CaseDocument, DocumentVersion, JobSource, RoleRecord, SourceKind, StoredDocumentKind, WorkspacePayload } from "./workstation-types";
+import type { CandidateCase, CandidateRecord, CandidateSourceIntakeResult, CaseDocument, DocumentVersion, JobSource, RoleRecord, SourceKind, StoredDocumentKind, WorkspacePayload } from "./workstation-types";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, headers: { "content-type": "application/json", ...(init?.headers || {}) } });
@@ -53,6 +53,27 @@ export const workstationApi = {
       throw new Error(error && typeof error === "object" && "error" in error && typeof error.error === "string" ? error.error : "The source could not be parsed.");
     }
     return response.json() as Promise<UploadedSourceProposal>;
+  },
+  async intakeCandidateResume(input: {
+    roleId: string;
+    name: string;
+    currentTitle: string;
+    file: File;
+  }): Promise<CandidateSourceIntakeResult> {
+    const body = new FormData();
+    body.set("roleId", input.roleId);
+    body.set("name", input.name);
+    body.set("currentTitle", input.currentTitle);
+    body.set("kind", "resume");
+    body.set("file", input.file);
+    const response = await fetch("/api/intake/candidate-source", { method: "POST", body });
+    if (!response.ok) {
+      const error: unknown = await response.json().catch(() => null);
+      throw new Error(error && typeof error === "object" && "error" in error && typeof error.error === "string"
+        ? error.error
+        : "The candidate and resume could not be saved.");
+    }
+    return response.json() as Promise<CandidateSourceIntakeResult>;
   },
   async uploadSource(caseId: string, kind: SourceKind, file: File): Promise<CandidateCase> {
     const body = new FormData(); body.set("kind", kind); body.set("file", file);
