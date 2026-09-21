@@ -22,9 +22,10 @@ class LocalAiBoundaryTests(unittest.IsolatedAsyncioTestCase):
             local_ai._safe_authority_path("../../MISSION-SKILLS-AS-FEATURES.md")
 
     def test_every_declared_result_kind_has_a_closed_schema(self):
-        kinds = {feature["result_kind"] for feature in local_ai._load_features().values()}
-        self.assertEqual(kinds, {"document", "form", "pdf", "resume", "submission", "table"})
-        for kind in kinds:
+        declared_kinds = {feature["result_kind"] for feature in local_ai._load_features().values()}
+        supported_kinds = {"document", "form", "pdf", "resume", "submission", "table"}
+        self.assertEqual(declared_kinds, {"document", "form", "pdf", "submission", "table"})
+        for kind in supported_kinds:
             schema = local_ai.output_schema(kind)
             self.assertFalse(schema["additionalProperties"])
             self.assertIn("title", schema["required"])

@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  BookOpen,
   Check,
   ChevronDown,
   Edit3,
@@ -19,6 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { HandwritingCanvas } from "@/components/workstation/handwriting-canvas";
 import { ResumeFormEditor } from "@/components/workstation/resume-form";
+import { WorkflowBrowser } from "@/components/workstation/workflow-browser";
 import {
   Dialog,
   DialogContent,
@@ -30,15 +32,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { workstationApi } from "@/lib/api-client";
-import { createAutofilledDraft } from "@/lib/capabilities/deterministic-autofill";
-import { featureById } from "@/lib/capabilities/catalog";
-import type { CapabilityRunsDocument } from "@/lib/capabilities/types";
+import type {
+  ArtifactVisualQaReview,
+  CaseArtifactSummary,
+} from "@/lib/artifact-browser";
 import { mergeCandidateCaseSnapshots } from "@/lib/case-merge";
 import { toResumeForm } from "@/lib/resume-form";
+import type { CapabilityExecutionResponse } from "@/lib/server/capability-execution-service";
+import type { CapabilityRunRecord } from "@/lib/server/capability-run-repository";
 import {
-  EMPTY_RESUME,
   EMPTY_SUBMISSION,
-  STORED_DOCUMENT_KINDS,
   type CandidateCase,
   type CandidateRecord,
   type CaseDocument,
@@ -48,14 +51,21 @@ import {
   type RoleRecord,
   type SaveState,
   type SourceKind,
-  type StoredDocumentKind,
   type SubmissionDocument,
 } from "@/lib/workstation-types";
-import { sourceIsUsable } from "@/lib/server/source-intake";
+import { jobIdentitiesMatch, proposePastedSource, sourceIsUsable, type UploadedSourceProposal } from "@/lib/source-intake";
 
 type User = { id: string; displayName: string };
 type CreationMode = "role" | "candidate" | null;
 type NotesMode = "type" | "draw";
+type OutputKind = "resume" | "submission" | "email" | "loxo_update";
+type OutputEditSession = {
+  caseId: string;
+  kind: OutputKind;
+  expectedRevision: number;
+  sourceRefs: string[];
+  capabilityRunId: string | null;
+};
 
 const SOURCE_KIND_LABELS: Record<SourceKind, string> = {
   job_description: "Job description",
@@ -78,7 +88,6 @@ const PREFILL_FIELD_LABELS: Partial<Record<keyof SubmissionDocument, string>> = 
   profileSummary: "Profile Summary",
 };
 type SourceReadinessState = "missing" | "attached" | "reviewed";
-type OutputKind = "resume" | "submission" | "email" | "loxo_update";
 
 function sourceReadinessState(sources: CaseSource[], kinds: SourceKind[]): SourceReadinessState {
   const matches = sources.filter((source) => kinds.includes(source.kind));
@@ -90,15 +99,6 @@ function saveLabel(state: SaveState) {
   return { saved: "Saved", saving: "Saving", unsaved: "Unsaved", failed: "Save failed" }[state];
 }
 
-function pastedSourceFilename(title: string) {
-  const cleanTitle = title.trim().replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").slice(0, 100);
-  return cleanTitle.toLowerCase().endsWith(".txt") ? cleanTitle : `${cleanTitle}.txt`;
-}
-
-function contentAsString(document: CaseDocument | undefined) {
-  return typeof document?.content === "string" ? document.content : "";
-}
-
 function contentAsSubmission(document: CaseDocument | undefined) {
   if (document?.content && typeof document.content === "object" && !Array.isArray(document.content) && !("blocks" in document.content)) {
     return { ...EMPTY_SUBMISSION, ...(document.content as SubmissionDocument) };
@@ -106,13 +106,88 @@ function contentAsSubmission(document: CaseDocument | undefined) {
   return { ...EMPTY_SUBMISSION };
 }
 
-function contentAsCapabilityRuns(document: CaseDocument | undefined): CapabilityRunsDocument {
-  if (document?.content && typeof document.content === "object" && !Array.isArray(document.content) && !("blocks" in document.content) && !("format" in document.content)) {
-    return document.content as CapabilityRunsDocument;
-  }
-  return {};
+export function mergePersistedDocuments(candidateCase: CandidateCase, documents: readonly CaseDocument[]) {
+  const nextDocuments = { ...candidateCase.documents };
+  for (const document of documents) nextDocuments[document.kind] = document;
+  return { ...candidateCase, documents: nextDocuments };
 }
 
+export function editSessionForCurrentDocument(
+  candidateCase: CandidateCase,
+  kind: OutputKind,
+  versions: readonly DocumentVersion[],
+): OutputEditSession | null {
+  const current = candidateCase.documents[kind];
+  const lineage = versions.find((version) => version.kind === kind && version.revision === current.revision);
+  if (!lineage) return null;
+  return {
+    caseId: candidateCase.id,
+    kind,
+    expectedRevision: current.revision,
+    sourceRefs: [...lineage.sourceRefs],
+    capabilityRunId: lineage.capabilityRunId,
+  };
+}
+
+export function saveEditedOutput(
+  saveDocument: typeof workstationApi.saveDocument,
+  session: OutputEditSession,
+  content: CaseDocument["content"],
+) {
+  return saveDocument(session.caseId, session.kind, {
+    expectedRevision: session.expectedRevision,
+    content,
+    origin: "edited",
+    sourceRefs: [...session.sourceRefs],
+    capabilityRunId: session.capabilityRunId,
+  });
+}
+
+export function loadCapabilityRunsForCase(
+  listCapabilityRuns: typeof workstationApi.listCapabilityRuns,
+  caseId: string,
+) {
+  return listCapabilityRuns(caseId);
+}
+
+export function loadCaseArtifactsForCase(
+  listCaseArtifacts: typeof workstationApi.listCaseArtifacts,
+  caseId: string,
+) {
+  return listCaseArtifacts(caseId);
+}
+
+export function capabilityExecutionMessage(
+  executed: CapabilityExecutionResponse,
+  canonicalIncomplete: string,
+) {
+  if (executed.run.status === "awaiting_visual_qa") {
+    return `${executed.reused ? "Existing branded PDF loaded." : "Branded PDF saved."} Open the exact PDF and complete human visual QA before this run can complete.`;
+  }
+  if (executed.run.status === "draft_ready") {
+    const draftState = executed.reused
+      ? "Existing draft outputs remain available as read-only previews."
+      : "Draft outputs were saved as read-only previews.";
+    return [draftState, canonicalIncomplete.trim()].filter(Boolean).join(" ");
+  }
+  if (executed.run.status === "completed") {
+    return "Workflow completed with persisted evidence.";
+  }
+  return `Workflow finished with status ${executed.run.status.replaceAll("_", " ")}.`;
+}
+
+export async function reviewCaseArtifactAndRefresh(
+  reviewCaseArtifact: typeof workstationApi.reviewCaseArtifact,
+  refreshRuns: (caseId: string) => Promise<unknown>,
+  refreshArtifacts: (caseId: string) => Promise<unknown>,
+  caseId: string,
+  artifactId: string,
+  review: ArtifactVisualQaReview,
+) {
+  const result = await reviewCaseArtifact(caseId, artifactId, review);
+  await Promise.all([refreshRuns(caseId), refreshArtifacts(caseId)]);
+  return result;
+}
 
 export function RecruiterWorkstation({ user }: { user: User }) {
   const [roles, setRoles] = useState<RoleRecord[]>([]);
@@ -135,14 +210,17 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const [notesSize, setNotesSize] = useState(20);
   const [caseStatus, setCaseStatus] = useState("active");
   const [caseSaveState, setCaseSaveState] = useState<SaveState>("saved");
-  const [documentSaveState, setDocumentSaveState] = useState<SaveState>("saved");
   const [actionMessage, setActionMessage] = useState("");
   const [resumeView, setResumeView] = useState<"source" | "form">("source");
   const [resumeSourceId, setResumeSourceId] = useState("");
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteScope, setPasteScope] = useState<"job" | "candidate">("candidate");
-  const [pastedSourceTitle, setPastedSourceTitle] = useState("");
   const [pastedSource, setPastedSource] = useState("");
+  const [pastedJobTitle, setPastedJobTitle] = useState("");
+  const [pastedJobClient, setPastedJobClient] = useState("");
+  const [pastedKindOverride, setPastedKindOverride] = useState<SourceKind | "">("");
+  const [pendingJobFile, setPendingJobFile] = useState<{ file: File; proposal: UploadedSourceProposal } | null>(null);
+  const [intakeBusy, setIntakeBusy] = useState(false);
   const [sourceBusy, setSourceBusy] = useState(false);
   const [sourcePanelOpen, setSourcePanelOpen] = useState(true);
   const [dropActive, setDropActive] = useState(false);
@@ -150,31 +228,31 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const [sourceReviewKinds, setSourceReviewKinds] = useState<Record<string, SourceKind>>({});
   const [splitRatio, setSplitRatio] = useState(55);
   const [outputKind, setOutputKind] = useState<OutputKind>("submission");
-  const [outputEditing, setOutputEditing] = useState(false);
   const [outputDraft, setOutputDraft] = useState<CaseDocument["content"] | null>(null);
+  const [outputEditSession, setOutputEditSession] = useState<OutputEditSession | null>(null);
+  const [outputEditBusy, setOutputEditBusy] = useState(false);
   const [outputVersions, setOutputVersions] = useState<DocumentVersion[]>([]);
   const [packageBusy, setPackageBusy] = useState(false);
+  const [workflowsOpen, setWorkflowsOpen] = useState(false);
+  const [capabilityRuns, setCapabilityRuns] = useState<CapabilityRunRecord[]>([]);
+  const [capabilityRunsLoading, setCapabilityRunsLoading] = useState(false);
+  const [capabilityRunsError, setCapabilityRunsError] = useState("");
+  const [caseArtifacts, setCaseArtifacts] = useState<CaseArtifactSummary[]>([]);
+  const [caseArtifactsLoading, setCaseArtifactsLoading] = useState(false);
+  const [caseArtifactsError, setCaseArtifactsError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const pastedProposal = useMemo(() => proposePastedSource(pastedSource), [pastedSource]);
+  const effectivePastedProposal = pendingJobFile?.proposal ?? pastedProposal;
+  const effectivePastedKind = pastedKindOverride || effectivePastedProposal.kind;
   const deskGridRef = useRef<HTMLDivElement | null>(null);
   const caseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const documentTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const multiFileInput = useRef<HTMLInputElement | null>(null);
   const jobFileInput = useRef<HTMLInputElement | null>(null);
+  const intakeJobFileInput = useRef<HTMLInputElement | null>(null);
   const activeCaseRef = useRef<CandidateCase | null>(null);
   const caseDraftRef = useRef({ notes: "", notesDrawingSvg: "", notesFont: "System", notesSize: 20, status: "active" });
   const caseEditVersionRef = useRef(0);
   const caseSavePromiseRef = useRef<Promise<boolean> | null>(null);
-  const documentDraftRef = useRef<Record<StoredDocumentKind, CaseDocument["content"]>>({
-    resume: EMPTY_RESUME,
-    write_up: "",
-    submission: { ...EMPTY_SUBMISSION },
-    email: "",
-    loxo_update: "",
-    capability_runs: {},
-  });
-  const documentVersionRef = useRef<Record<StoredDocumentKind, number>>({ resume: 0, write_up: 0, submission: 0, email: 0, loxo_update: 0, capability_runs: 0 });
-  const documentSavedVersionRef = useRef<Record<StoredDocumentKind, number>>({ resume: 0, write_up: 0, submission: 0, email: 0, loxo_update: 0, capability_runs: 0 });
-  const documentSavePromisesRef = useRef<Partial<Record<StoredDocumentKind, Promise<boolean>>>>({});
 
   const storeCaseRecord = useCallback((next: CandidateCase) => {
     const merged = mergeCandidateCaseSnapshots(activeCaseRef.current, next);
@@ -191,6 +269,40 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     });
   }, []);
 
+  const loadCapabilityRuns = useCallback(async (caseId: string) => {
+    setCapabilityRunsLoading(true);
+    setCapabilityRunsError("");
+    try {
+      const runs = await loadCapabilityRunsForCase(workstationApi.listCapabilityRuns, caseId);
+      if (activeCaseRef.current?.id === caseId) setCapabilityRuns(runs);
+      return runs;
+    } catch (error) {
+      if (activeCaseRef.current?.id === caseId) {
+        setCapabilityRunsError(error instanceof Error ? error.message : "Run history could not be loaded.");
+      }
+      return [];
+    } finally {
+      if (activeCaseRef.current?.id === caseId) setCapabilityRunsLoading(false);
+    }
+  }, []);
+
+  const loadCaseArtifacts = useCallback(async (caseId: string) => {
+    setCaseArtifactsLoading(true);
+    setCaseArtifactsError("");
+    try {
+      const artifacts = await loadCaseArtifactsForCase(workstationApi.listCaseArtifacts, caseId);
+      if (activeCaseRef.current?.id === caseId) setCaseArtifacts(artifacts);
+      return artifacts;
+    } catch (error) {
+      if (activeCaseRef.current?.id === caseId) {
+        setCaseArtifactsError(error instanceof Error ? error.message : "Persisted PDFs could not be loaded.");
+      }
+      return [];
+    } finally {
+      if (activeCaseRef.current?.id === caseId) setCaseArtifactsLoading(false);
+    }
+  }, []);
+
   const replaceCase = useCallback((next: CandidateCase) => {
     storeCaseRecord(next);
     setNotes(next.notes);
@@ -199,8 +311,9 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     setNotesFont(next.notesFont);
     setNotesSize(next.notesSize);
     setCaseStatus(next.status);
-    setOutputEditing(false);
     setOutputDraft(null);
+    setOutputEditSession(null);
+    setOutputEditBusy(false);
     setOutputVersions([]);
     const resumeSources = next.sources
       .filter((source) => source.kind === "resume")
@@ -208,19 +321,14 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     setResumeSourceId(resumeSources[0]?.id ?? "");
     caseDraftRef.current = { notes: next.notes, notesDrawingSvg: next.notesDrawingSvg, notesFont: next.notesFont, notesSize: next.notesSize, status: next.status };
     caseEditVersionRef.current = 0;
-    documentDraftRef.current = {
-      resume: toResumeForm(next.documents.resume?.content),
-      write_up: contentAsString(next.documents.write_up),
-      submission: contentAsSubmission(next.documents.submission),
-      email: contentAsString(next.documents.email),
-      loxo_update: contentAsString(next.documents.loxo_update),
-      capability_runs: contentAsCapabilityRuns(next.documents.capability_runs),
-    };
-    documentVersionRef.current = { resume: 0, write_up: 0, submission: 0, email: 0, loxo_update: 0, capability_runs: 0 };
-    documentSavedVersionRef.current = { resume: 0, write_up: 0, submission: 0, email: 0, loxo_update: 0, capability_runs: 0 };
     setCaseSaveState("saved");
-    setDocumentSaveState("saved");
-  }, [storeCaseRecord]);
+    setCapabilityRuns([]);
+    setCapabilityRunsError("");
+    setCaseArtifacts([]);
+    setCaseArtifactsError("");
+    void loadCapabilityRuns(next.id);
+    void loadCaseArtifacts(next.id);
+  }, [loadCapabilityRuns, loadCaseArtifacts, storeCaseRecord]);
 
   const loadWorkspace = useCallback(async () => {
     try {
@@ -297,65 +405,13 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     return () => { if (caseTimer.current) clearTimeout(caseTimer.current); };
   }, [activeCase, notes, notesDrawingSvg, notesFont, notesSize, caseStatus, persistCase]);
 
-  const persistDocument = useCallback(async (kind: StoredDocumentKind) => {
-    if (documentTimers.current[kind]) clearTimeout(documentTimers.current[kind]);
-    const existingPromise = documentSavePromisesRef.current[kind];
-    if (existingPromise) return existingPromise;
-
-    const run = async () => {
-      try {
-        while (activeCaseRef.current) {
-          const current = activeCaseRef.current;
-          const version = documentVersionRef.current[kind];
-          if (version === documentSavedVersionRef.current[kind]) return true;
-          setDocumentSaveState("saving");
-          const document = await workstationApi.saveDocument(current.id, kind, {
-            expectedRevision: current.documents[kind].revision,
-            content: documentDraftRef.current[kind],
-          });
-          if (activeCaseRef.current?.id !== current.id) return true;
-          const next = {
-            ...activeCaseRef.current,
-            documents: { ...activeCaseRef.current.documents, [kind]: document },
-          };
-          storeCaseRecord(next);
-          documentSavedVersionRef.current[kind] = version;
-          if (documentVersionRef.current[kind] === version) {
-            const allSaved = STORED_DOCUMENT_KINDS.every(
-              (item) => documentVersionRef.current[item] === documentSavedVersionRef.current[item],
-            );
-            setDocumentSaveState(allSaved ? "saved" : "unsaved");
-            return true;
-          }
-        }
-        return true;
-      } catch (error) {
-        setDocumentSaveState("failed");
-        setActionMessage(error instanceof Error ? error.message : "The document was not saved.");
-        return false;
-      }
-    };
-
-    const pending = run().finally(() => { delete documentSavePromisesRef.current[kind]; });
-    documentSavePromisesRef.current[kind] = pending;
-    return pending;
-  }, [storeCaseRecord]);
-
-  const flushDocuments = useCallback(async () => {
-    const dirtyKinds = STORED_DOCUMENT_KINDS.filter(
-      (kind) => documentVersionRef.current[kind] !== documentSavedVersionRef.current[kind],
-    );
-    if (!dirtyKinds.length) return true;
-    return (await Promise.all(dirtyKinds.map((kind) => persistDocument(kind)))).every(Boolean);
-  }, [persistDocument]);
-
   const openSelectedCase = useCallback(async (nextRoleId: string, nextCandidateId: string) => {
+    if (outputEditSession || outputEditBusy) {
+      setActionMessage("Save or cancel the current output edit before changing candidate cases.");
+      return;
+    }
     if (caseSaveState !== "saved") {
       const saved = await persistCase();
-      if (!saved) return;
-    }
-    if (documentSaveState !== "saved") {
-      const saved = await flushDocuments();
       if (!saved) return;
     }
     if (!nextRoleId || !nextCandidateId) {
@@ -363,6 +419,12 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       setCandidateId(nextCandidateId);
       activeCaseRef.current = null;
       setActiveCase(null);
+      setCapabilityRuns([]);
+      setCapabilityRunsError("");
+      setCapabilityRunsLoading(false);
+      setCaseArtifacts([]);
+      setCaseArtifactsError("");
+      setCaseArtifactsLoading(false);
       return;
     }
     setLoading(true);
@@ -378,7 +440,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     } finally {
       setLoading(false);
     }
-  }, [caseSaveState, cases, documentSaveState, flushDocuments, persistCase, replaceCase]);
+  }, [caseSaveState, cases, outputEditBusy, outputEditSession, persistCase, replaceCase]);
 
   const startResize = useCallback((event: React.PointerEvent) => {
     event.preventDefault();
@@ -400,6 +462,10 @@ export function RecruiterWorkstation({ user }: { user: User }) {
 
 
   const submitCreation = async () => {
+    if (outputEditSession || outputEditBusy) {
+      setActionMessage("Save or cancel the current output edit before creating another record.");
+      return;
+    }
     if (!creationMode || !creationPrimary.trim()) return;
     try {
       if (creationMode === "role") {
@@ -420,10 +486,13 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   };
 
   const uploadSources = async (files: readonly File[], kinds: readonly SourceKind[] = []) => {
-    if (!activeCase || files.length === 0 || sourceBusy) return;
+    if (outputEditSession || outputEditBusy) {
+      setActionMessage("Save or cancel the current output edit before changing candidate sources.");
+      return false;
+    }
+    if (!activeCase || files.length === 0 || sourceBusy) return false;
     const uploadCaseId = activeCase.id;
-    if (caseSaveState !== "saved" && !(await persistCase())) return;
-    if (documentSaveState !== "saved" && !(await flushDocuments())) return;
+    if (caseSaveState !== "saved" && !(await persistCase())) return false;
     setSourceBusy(true);
     setActionMessage(`Uploading ${files.length} source${files.length === 1 ? "" : "s"}...`);
     try {
@@ -431,21 +500,26 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       if (activeCaseRef.current?.id === uploadCaseId) replaceCase(next);
       else cacheCaseRecord(next);
       setActionMessage(`${files.length} immutable source${files.length === 1 ? "" : "s"} added. Review the status below.`);
+      return true;
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : "The source could not be uploaded.");
+      return false;
     } finally {
       setSourceBusy(false);
     }
   };
 
   const reviewSource = async (sourceId: string, kind?: SourceKind) => {
+    if (outputEditSession || outputEditBusy) {
+      setActionMessage("Save or cancel the current output edit before reviewing candidate sources.");
+      return;
+    }
     if (!activeCase || sourceBusy) return;
     const reviewCaseId = activeCase.id;
     setSourceBusy(true);
     setActionMessage("Saving source review...");
     try {
       if (caseSaveState !== "saved" && !(await persistCase())) return;
-      if (documentSaveState !== "saved" && !(await flushDocuments())) return;
       const before = contentAsSubmission(activeCaseRef.current?.documents.submission);
       const next = await workstationApi.reviewSource(reviewCaseId, sourceId, kind);
       const after = contentAsSubmission(next.documents.submission);
@@ -455,9 +529,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       if (activeCaseRef.current?.id !== reviewCaseId) {
         cacheCaseRecord(next);
       } else {
-        const hasLocalEdits = caseEditVersionRef.current > 0 || STORED_DOCUMENT_KINDS.some(
-          (item) => documentVersionRef.current[item] !== documentSavedVersionRef.current[item],
-        );
+        const hasLocalEdits = caseEditVersionRef.current > 0;
         if (hasLocalEdits) storeCaseRecord(next);
         else replaceCase(next);
       }
@@ -471,21 +543,116 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     }
   };
 
-  const uploadJobSources = async (files: readonly File[], kinds: readonly SourceKind[] = []) => {
-    if (!roleId || files.length === 0 || sourceBusy) return;
+  const uploadJobSources = async (files: readonly File[], kinds: readonly SourceKind[] = [], targetRoleId = roleId) => {
+    if (!targetRoleId || files.length === 0 || sourceBusy) return false;
     setSourceBusy(true);
     setActionMessage(`Adding ${files.length} source${files.length === 1 ? "" : "s"} to this Job...`);
     try {
-      const next = await workstationApi.uploadJobSources(roleId, files, kinds);
-      setJobSourcesByRoleId((current) => ({ ...current, [roleId]: next }));
+      const next = await workstationApi.uploadJobSources(targetRoleId, files, kinds);
+      setJobSourcesByRoleId((current) => ({ ...current, [targetRoleId]: next }));
       const uncertain = next.filter((source) => source.lifecycleStatus === "parsed" && source.classificationMethod === "uncertain").length;
       setActionMessage(uncertain
         ? `${files.length} source${files.length === 1 ? "" : "s"} added. ${uncertain} needs one classification.`
         : `${files.length} Job source${files.length === 1 ? "" : "s"} parsed and ready.`);
+      return true;
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : "The Job source could not be uploaded.");
+      return false;
     } finally {
       setSourceBusy(false);
+    }
+  };
+
+  const resolveJobFolder = async (title: string, client: string) => {
+    const existing = roles.find((role) => jobIdentitiesMatch(role, { title, client }));
+    if (existing) {
+      setRoleId(existing.id);
+      return existing.id;
+    }
+    try {
+      const created = await workstationApi.createRole({ title, client });
+      setRoles((current) => [created, ...current]);
+      setRoleId(created.id);
+      return created.id;
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "The detected Job could not be created.");
+      return null;
+    }
+  };
+
+  const openPasteDialog = (scope: "job" | "candidate") => {
+    setPasteScope(scope);
+    setPastedSource("");
+    setPastedJobTitle("");
+    setPastedJobClient("");
+    setPastedKindOverride("");
+    setPendingJobFile(null);
+    setPasteOpen(true);
+  };
+
+  const intakeUnassignedJobFile = async (file: File) => {
+    if (intakeBusy || sourceBusy) return;
+    setIntakeBusy(true);
+    setActionMessage("Reading the source and identifying its Job...");
+    try {
+      const proposal = await workstationApi.proposeSource(file);
+      if (proposal.kind === "job_description" && proposal.job?.autoCreateEligible) {
+        const targetRoleId = await resolveJobFolder(proposal.job.title, proposal.job.client);
+        if (!targetRoleId) return;
+        const saved = await uploadJobSources([file], ["job_description"], targetRoleId);
+        if (saved && candidateId) await openSelectedCase(targetRoleId, candidateId);
+        return;
+      }
+      setPendingJobFile({ file, proposal });
+      setPasteScope("job");
+      setPastedSource(proposal.parsedText ?? "");
+      setPastedJobTitle(proposal.job?.title ?? "");
+      setPastedJobClient(proposal.job?.client ?? "");
+      setPastedKindOverride("");
+      setPasteOpen(true);
+      setActionMessage("Review the detected Job identity before saving the original file.");
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "The Job source could not be inspected.");
+    } finally {
+      setIntakeBusy(false);
+    }
+  };
+
+  const savePastedSource = async () => {
+    const text = pastedSource.trim();
+    if ((!pendingJobFile && !text) || sourceBusy) return;
+    const file = pendingJobFile?.file ?? new File([text], effectivePastedProposal.filename, { type: "text/plain" });
+
+    if (pasteScope === "candidate") {
+      if (!activeCase) return;
+      const saved = await uploadSources([file], [effectivePastedKind]);
+      if (saved) {
+        setPasteOpen(false);
+        setPastedSource("");
+      }
+      return;
+    }
+
+    let targetRoleId = roleId;
+    if (!targetRoleId) {
+      const title = pastedJobTitle.trim();
+      const client = pastedJobClient.trim();
+      if (effectivePastedKind !== "job_description" || !title) {
+        setActionMessage("A complete Job description or a reviewed Job title is required before creating a Job folder.");
+        return;
+      }
+      const resolvedRoleId = await resolveJobFolder(title, client);
+      if (!resolvedRoleId) return;
+      targetRoleId = resolvedRoleId;
+    }
+
+    const saved = await uploadJobSources([file], [effectivePastedKind], targetRoleId);
+    if (!saved) return;
+    setPasteOpen(false);
+    setPastedSource("");
+    setPendingJobFile(null);
+    if (candidateId && targetRoleId !== activeCaseRef.current?.roleId) {
+      await openSelectedCase(targetRoleId, candidateId);
     }
   };
 
@@ -504,99 +671,164 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   };
 
   const loadVersions = useCallback(async (kind: OutputKind) => {
-    if (!activeCaseRef.current) return;
+    if (!activeCaseRef.current) return [];
     try {
-      setOutputVersions(await workstationApi.listDocumentVersions(activeCaseRef.current.id, kind));
+      const versions = await workstationApi.listDocumentVersions(activeCaseRef.current.id, kind);
+      setOutputVersions(versions);
+      return versions;
     } catch {
       setOutputVersions([]);
+      return [];
     }
   }, []);
 
-  const saveOutputEdit = async () => {
+  const beginOutputEdit = async () => {
     const current = activeCaseRef.current;
-    if (!current || outputDraft === null) return;
-    setDocumentSaveState("saving");
+    if (!current || outputEditBusy) return;
+    setOutputEditBusy(true);
     try {
-      const document = await workstationApi.saveDocument(current.id, outputKind, {
-        expectedRevision: current.documents[outputKind].revision,
-        content: outputDraft,
-      });
-      storeCaseRecord({ ...current, documents: { ...current.documents, [outputKind]: document } });
-      setOutputEditing(false);
-      setOutputDraft(null);
-      setDocumentSaveState("saved");
-      await loadVersions(outputKind);
-      setActionMessage(`Saved version ${document.revision}.`);
-    } catch (error) {
-      setDocumentSaveState("failed");
-      setActionMessage(error instanceof Error ? error.message : "The output could not be saved.");
+      let versions = outputVersions;
+      let session = editSessionForCurrentDocument(current, outputKind, versions);
+      if (!session) {
+        versions = await loadVersions(outputKind);
+        session = editSessionForCurrentDocument(current, outputKind, versions);
+      }
+      if (!session) {
+        setActionMessage("Edit mode was not opened because the current output provenance could not be loaded.");
+        return;
+      }
+      setOutputDraft(current.documents[outputKind].content);
+      setOutputEditSession(session);
+    } finally {
+      setOutputEditBusy(false);
     }
   };
 
-  const createAfterCallPackage = async () => {
-    const current = activeCaseRef.current;
-    if (!current || packageBusy) return;
-    const feature = featureById("write-up-candidate");
-    if (!feature) return;
-    const shared = (jobSourcesByRoleId[current.roleId] ?? []).filter((source) => source.contextStatus === "active");
-    const effectiveCase = { ...current, sources: [...current.sources, ...shared] };
-    const required = {
-      resume: effectiveCase.sources.some((source) => source.kind === "resume" && sourceIsUsable(source)),
-      call: effectiveCase.sources.some((source) => (source.kind === "call_notes" || source.kind === "transcript") && sourceIsUsable(source)) || Boolean(current.notes.trim()),
-      job: effectiveCase.sources.some((source) => source.kind === "job_description" && sourceIsUsable(source)),
-    };
-    const missing = [!required.resume && "candidate resume", !required.call && "call notes or transcript", !required.job && "Job description"].filter(Boolean);
-    if (missing.length) {
-      setActionMessage(`Add ${missing.join(", ")} first. Clear files are parsed automatically.`);
+  const cancelOutputEdit = () => {
+    setOutputDraft(null);
+    setOutputEditSession(null);
+    setActionMessage("Output edit cancelled. The saved document was not changed.");
+  };
+
+  const saveOutputEdit = async () => {
+    const session = outputEditSession;
+    const draft = outputDraft;
+    if (!session || draft === null || outputEditBusy) return;
+    if (activeCaseRef.current?.id !== session.caseId) {
+      setActionMessage("The active candidate case changed. This edit was not saved.");
       return;
     }
-    setPackageBusy(true);
-    setActionMessage("Creating source-grounded package...");
+    setOutputEditBusy(true);
     try {
-      const draft = createAutofilledDraft(feature, effectiveCase);
-      const nextSubmission = draft.submission ?? contentAsSubmission(current.documents.submission);
-      const activeRole = roles.find((role) => role.id === current.roleId);
-      const name = nextSubmission.name.trim();
-      const roleTitle = activeRole?.title.trim() ?? "";
-      const email = [
-        name && roleTitle ? `Presenting ${name} for the ${roleTitle} opportunity.` : "",
-        nextSubmission.profileSummary.trim(),
-        "CV attached.",
-      ].filter(Boolean).join("\n\n");
-      const loxo = [
-        nextSubmission.compensationTarget && `- Salary expectation: ${nextSubmission.compensationTarget}`,
-        nextSubmission.location && `- Location: ${nextSubmission.location}`,
-        nextSubmission.startDateNotice && `- Start date / notice: ${nextSubmission.startDateNotice}`,
-        nextSubmission.interviewAvailability && `- Interview availability: ${nextSubmission.interviewAvailability}`,
-      ].filter(Boolean).join("\n");
-      const packageValues: Array<[OutputKind, CaseDocument["content"]]> = [
-        ["resume", draft.resume ?? current.documents.resume.content],
-        ["submission", nextSubmission],
-        ["email", email],
-        ["loxo_update", loxo],
-      ];
-      const sourceRefs = effectiveCase.sources.filter(sourceIsUsable).map((source) => `${source.id}:${source.sha256}`);
-      let nextCase = activeCaseRef.current!;
-      for (const [kind, content] of packageValues) {
-        const document = await workstationApi.saveDocument(nextCase.id, kind, {
-          expectedRevision: nextCase.documents[kind].revision,
-          content,
-          origin: "generated",
-          sourceRefs,
-        });
-        nextCase = { ...nextCase, documents: { ...nextCase.documents, [kind]: document } };
-        storeCaseRecord(nextCase);
+      const document = await saveEditedOutput(workstationApi.saveDocument, session, draft);
+      if (activeCaseRef.current?.id === session.caseId) {
+        storeCaseRecord(mergePersistedDocuments(activeCaseRef.current, [document]));
       }
-      setOutputKind("submission");
-      setResumeView("form");
-      setOutputEditing(false);
-      await loadVersions("submission");
-      const unknowns = Object.entries(nextSubmission).filter(([, value]) => !value.trim()).length;
-      setActionMessage(`Package created. ${unknowns} item${unknowns === 1 ? "" : "s"} need confirmation; nothing was invented.`);
+      setOutputDraft(null);
+      setOutputEditSession(null);
+      await loadVersions(session.kind);
+      setActionMessage(`Saved edited ${session.kind} revision ${document.revision} with its source and capability-run lineage preserved.`);
     } catch (error) {
-      setActionMessage(error instanceof Error ? error.message : "The package could not be created.");
+      setActionMessage(error instanceof Error ? error.message : "The edited output could not be saved.");
     } finally {
+      setOutputEditBusy(false);
+    }
+  };
+
+  const executeCapability = async (capabilityId: string, extraInput = "") => {
+    const current = activeCaseRef.current;
+    if (!current) {
+      setActionMessage("Select a Job folder and candidate before running a workflow.");
+      return;
+    }
+    if (outputEditSession || outputEditBusy) {
+      setActionMessage("Save or cancel the current output edit before running another workflow.");
+      return;
+    }
+    if (packageBusy) return;
+    setPackageBusy(true);
+    setActionMessage(`Preparing the canonical ${capabilityId} workflow...`);
+    try {
+      if (caseSaveState !== "saved" && !(await persistCase())) return;
+      const executionCase = activeCaseRef.current;
+      if (!executionCase || executionCase.id !== current.id) {
+        setActionMessage("The active candidate case changed before the workflow could run.");
+        return;
+      }
+
+      const prepared = await workstationApi.prepareCapability(executionCase.id, capabilityId, {
+        extraInput,
+        provider: "workstation",
+        model: "canonical-registry",
+      });
+      if (!prepared.run) {
+        setActionMessage(`Workflow not run: ${prepared.preparation.blocker || "This capability has no mounted canonical executor."}`);
+        return;
+      }
+
+      setActionMessage(`Running the canonical ${capabilityId} executor...`);
+      const executed = await workstationApi.executeCapabilityRun(executionCase.id, prepared.run.id);
+      if (activeCaseRef.current?.id === executionCase.id && executed.documents.length) {
+        storeCaseRecord(mergePersistedDocuments(activeCaseRef.current, executed.documents));
+      }
+
+      const nextOutputKind = executed.documents.some((document) => document.kind === "submission")
+        ? "submission"
+        : executed.documents.find((document) => ["resume", "email", "loxo_update"].includes(document.kind))?.kind as OutputKind | undefined;
+      if (nextOutputKind) {
+        setOutputKind(nextOutputKind);
+        setResumeView("form");
+        await loadVersions(nextOutputKind);
+      }
+      setActionMessage(capabilityExecutionMessage(
+        executed,
+        prepared.preparation.canonicalIncomplete,
+      ));
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "The canonical workflow could not run.");
+    } finally {
+      await Promise.all([
+        loadCapabilityRuns(current.id),
+        loadCaseArtifacts(current.id),
+      ]);
       setPackageBusy(false);
+    }
+  };
+
+  const reviewCaseArtifact = async (
+    artifactId: string,
+    review: ArtifactVisualQaReview,
+  ) => {
+    const reviewCaseId = activeCaseRef.current?.id;
+    if (!reviewCaseId) throw new Error("Select a candidate case before reviewing a PDF.");
+    try {
+      const result = await reviewCaseArtifactAndRefresh(
+        workstationApi.reviewCaseArtifact,
+        loadCapabilityRuns,
+        loadCaseArtifacts,
+        reviewCaseId,
+        artifactId,
+        review,
+      );
+      if (activeCaseRef.current?.id === reviewCaseId) {
+        setCapabilityRuns((current) => [
+          result.run,
+          ...current.filter((run) => run.id !== result.run.id),
+        ]);
+        setCaseArtifacts((current) => [
+          result.artifact,
+          ...current.filter((artifact) => artifact.id !== result.artifact.id),
+        ]);
+      }
+      setActionMessage(result.run.status === "completed"
+        ? "Human visual QA passed. The PDF run is completed with persisted evidence."
+        : result.run.status === "failed"
+          ? "Human visual QA failed. The PDF run is marked failed with persisted evidence."
+          : "Human visual QA passed for this PDF. The run still awaits review of another persisted PDF.");
+      return result;
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "Visual QA could not be saved.");
+      throw error;
     }
   };
 
@@ -623,6 +855,17 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     ] as const;
   }, [activeCase, jobSourcesByRoleId]);
   const afterCallReadyCount = afterCallReadiness.filter((step) => step.state === "reviewed").length;
+  const pastedSourceCanSave = Boolean(pendingJobFile || pastedSource.trim()) && !sourceBusy && !intakeBusy && (
+    pasteScope === "candidate"
+      ? Boolean(activeCase)
+      : Boolean(roleId) || (effectivePastedKind === "job_description" && Boolean(pastedJobTitle.trim()))
+  );
+  const pastedSaveLabel = pasteScope === "candidate"
+    ? "Save candidate source"
+    : roleId
+      ? "Save to this Job"
+      : "Create Job and save source";
+  const effectivePastedFilename = pendingJobFile?.file.name ?? effectivePastedProposal.filename;
 
 
   if (loading && !roles.length && !candidates.length) {
@@ -634,7 +877,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       <header className="brand-bar">
         <div className="brand-lockup"><span className="brand-wordmark">TOP TIER TALENT GROUP</span><span className="brand-line" /></div>
         <div className="brand-title"><h1>Recruiter Workstation</h1><span>One workspace. From conversation to submission.</span></div>
-        <div className="operator"><span className={`save-dot ${caseSaveState}`}><Check size={13} /></span><span>{saveLabel(caseSaveState)}</span><span className="operator-name">{user.displayName}</span></div>
+        <div className="brand-actions"><Button variant="outline" onClick={() => { setWorkflowsOpen(true); if (activeCaseRef.current) void Promise.all([loadCapabilityRuns(activeCaseRef.current.id), loadCaseArtifacts(activeCaseRef.current.id)]); }}><BookOpen size={16} />Workflows <span className="workflow-count">24</span></Button><div className="operator"><span className={`save-dot ${caseSaveState}`}><Check size={13} /></span><span>{saveLabel(caseSaveState)}</span><span className="operator-name">{user.displayName}</span></div></div>
       </header>
 
       <section className="context-bar job-context-bar" aria-label="Current Job folder and candidate">
@@ -646,8 +889,16 @@ export function RecruiterWorkstation({ user }: { user: User }) {
           <option value="">Select a candidate...</option>
           {candidates.map((item) => <option key={item.id} value={item.id}>{item.name}{item.currentTitle ? ` · ${item.currentTitle}` : ""}</option>)}
         </ContextSelect>
-        <div className="job-breadcrumb"><FolderOpen size={16} /><span>{roles.find((role) => role.id === roleId)?.title ?? "Choose a Job folder"}</span>{activeCase ? <><span>/</span><strong>{candidates.find((candidate) => candidate.id === candidateId)?.name}</strong></> : null}</div>
+        <div className="job-breadcrumb"><FolderOpen size={16} /><span>{roles.find((role) => role.id === roleId)?.title ?? "Choose a Job folder"}</span>{activeCase ? <><span>/</span><strong>{candidates.find((candidate) => candidate.id === candidateId)?.name}</strong></> : null}<Button size="sm" variant="outline" onClick={() => openPasteDialog("job")}><Link2 size={15} />Paste JD</Button></div>
       </section>
+
+      {!roleId ? <section className="source-first-job-intake" aria-label="Create a Job from its source">
+        <input ref={intakeJobFileInput} type="file" accept=".pdf,.doc,.docx,.txt,.md" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void intakeUnassignedJobFile(file); event.currentTarget.value = ""; }} />
+        <button type="button" className={`source-first-job-drop${jobDropActive ? " is-dragging" : ""}`} disabled={intakeBusy || sourceBusy} onClick={() => intakeJobFileInput.current?.click()} onDragEnter={(event) => { event.preventDefault(); setJobDropActive(true); }} onDragOver={(event) => { event.preventDefault(); setJobDropActive(true); }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setJobDropActive(false); }} onDrop={(event) => { event.preventDefault(); setJobDropActive(false); const file = event.dataTransfer.files[0]; if (file) void intakeUnassignedJobFile(file); }}>
+          {intakeBusy ? <LoaderCircle className="spin" size={20} /> : <UploadCloud size={20} />}<span><strong>Drop a Job description</strong><small>The company and role are extracted from the source. A confident match creates or selects its Job folder.</small></span>
+        </button>
+        <Button size="sm" variant="outline" onClick={() => openPasteDialog("job")}><Link2 size={15} />Paste the whole JD</Button>
+      </section> : null}
 
       {roleId ? <section className="job-source-strip" aria-label="Shared Job sources">
         <input ref={jobFileInput} type="file" accept={SOURCE_ACCEPT} multiple hidden onChange={(event) => { const files = Array.from(event.target.files || []); void uploadJobSources(files); event.currentTarget.value = ""; }} />
@@ -674,7 +925,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
             {uncertain ? <><select aria-label={`Classify ${source.filename}`} value={reviewKind} onChange={(event) => setSourceReviewKinds((current) => ({ ...current, [source.id]: event.target.value as SourceKind }))}><option value="job_description">Job description</option><option value="call_notes">Client notes</option><option value="pasted_text">Instructions</option></select><Button size="sm" variant="outline" onClick={() => void reviewJobSource(source.id, reviewKind)}>Use</Button></> : null}
           </div>;
         })}</div>
-        <Button size="sm" variant="outline" onClick={() => { setPasteScope("job"); setPasteOpen(true); }}><Link2 size={15} />Paste text</Button>
+        <Button size="sm" variant="outline" onClick={() => openPasteDialog("job")}><Link2 size={15} />Paste text</Button>
       </section> : null}
 
       {pageError ? <div className="error-banner"><AlertTriangle size={17} />{pageError}<Button size="sm" variant="outline" onClick={() => { setLoading(true); setPageError(""); void loadWorkspace(); }}>Retry</Button></div> : null}
@@ -725,7 +976,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
                 <span><strong>Drop the resume, transcript, or call notes</strong><small>Files are parsed and classified automatically</small></span>
               </button>
               <div className="source-controls">
-                <Button size="sm" variant="outline" disabled={!activeCase || sourceBusy} onClick={() => { setPasteScope("candidate"); setPasteOpen(true); }}><Link2 size={15} aria-hidden="true" />Paste text</Button>
+                <Button size="sm" variant="outline" disabled={!activeCase || sourceBusy} onClick={() => openPasteDialog("candidate")}><Link2 size={15} aria-hidden="true" />Paste text</Button>
               </div>
               <div className="source-summary" aria-label="Attached source status">{activeCase?.sources.length ? activeCase.sources.map((source) => {
               const needsClassification = source.lifecycleStatus === "parsed" && source.classificationMethod === "uncertain";
@@ -755,19 +1006,20 @@ export function RecruiterWorkstation({ user }: { user: User }) {
                 </div>
                 {resumeView === "source" && resumeSources.length > 1 ? <label>Resume<select aria-label="Resume to view" value={selectedResume?.id ?? ""} onChange={(event) => setResumeSourceId(event.target.value)}>{resumeSources.map((source) => <option key={source.id} value={source.id}>{source.filename}</option>)}</select></label> : null}
                 {resumeView === "source" && resumeSourceUrl ? <Button asChild size="sm" variant="outline"><a href={resumeSourceUrl} target="_blank" rel="noreferrer">Open</a></Button> : null}
-                {resumeView === "form" && !outputEditing ? <Button size="sm" variant="outline" onClick={() => { setOutputDraft(activeCase.documents[outputKind].content); setOutputEditing(true); }}><Edit3 size={15} />Edit</Button> : null}
               </div>
             </div>
             {resumeView === "form"
               ? <GeneratedOutputPanel key={`${outputKind}-${activeCase.documents[outputKind].revision}`}
                   activeCase={activeCase}
                   kind={outputKind}
-                  onKindChange={(kind) => { setOutputKind(kind); setOutputEditing(false); setOutputDraft(null); void loadVersions(kind); }}
-                  editing={outputEditing}
+                  onKindChange={(kind) => { if (outputEditSession || outputEditBusy) return; setOutputKind(kind); void loadVersions(kind); }}
+                  editing={Boolean(outputEditSession)}
+                  editBusy={outputEditBusy}
                   draft={outputDraft}
+                  onEdit={() => void beginOutputEdit()}
                   onDraftChange={setOutputDraft}
                   onSave={() => void saveOutputEdit()}
-                  onCancel={() => { setOutputEditing(false); setOutputDraft(null); }}
+                  onCancel={cancelOutputEdit}
                   versions={outputVersions}
                 />
               : <ResumeSourcePreview source={selectedResume} sourceUrl={resumeSourceUrl} onAdd={() => multiFileInput.current?.click()} />}
@@ -777,14 +1029,45 @@ export function RecruiterWorkstation({ user }: { user: User }) {
 
       <section className="action-bar" aria-label="Candidate case actions">
         <div className="after-call-progress"><span>{afterCallReadyCount === 3 ? "Sources ready" : "Add the remaining source files"}</span><small>Resume · call evidence · Job description</small></div>
-        <Button disabled={!activeCase || packageBusy} onClick={() => void createAfterCallPackage()}>{packageBusy ? <LoaderCircle className="spin" size={18} /> : <Play size={18} aria-hidden="true" />}Create after-call package</Button>
+        <Button disabled={!activeCase || packageBusy || Boolean(outputEditSession) || outputEditBusy} onClick={() => void executeCapability("write-up")}>{packageBusy ? <LoaderCircle className="spin" size={18} /> : <Play size={18} aria-hidden="true" />}Create after-call package</Button>
         <Button variant="outline" disabled={!activeCase} onClick={() => { setResumeView("form"); void loadVersions(outputKind); }}>Open outputs</Button>
         <output className="action-message" aria-live="polite">{actionMessage}</output>
       </section>
 
-      <Dialog open={Boolean(creationMode)} onOpenChange={(open) => { if (!open) setCreationMode(null); }}><DialogContent><DialogHeader><DialogTitle>{creationMode === "role" ? "New Job folder" : "Add candidate"}</DialogTitle><DialogDescription>This creates an internal workstation record only. It does not create a Loxo or Tracker record.</DialogDescription></DialogHeader><div className="dialog-fields"><label>{creationMode === "role" ? "Job title" : "Candidate name"}<Input value={creationPrimary} onChange={(event) => setCreationPrimary(event.target.value)} /></label><label>{creationMode === "role" ? "Client or company" : "Current title"}<Input value={creationSecondary} onChange={(event) => setCreationSecondary(event.target.value)} /></label></div><DialogFooter><Button variant="outline" onClick={() => setCreationMode(null)}>Cancel</Button><Button onClick={() => void submitCreation()} disabled={!creationPrimary.trim()}>Add</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={Boolean(creationMode)} onOpenChange={(open) => { if (!open) setCreationMode(null); }}><DialogContent><DialogHeader><DialogTitle>{creationMode === "role" ? "New Job folder" : "Add candidate"}</DialogTitle><DialogDescription>{creationMode === "role" ? "Save the role and company for reusable Job context." : "Save the candidate for use across recruiter workflows."}</DialogDescription></DialogHeader><div className="dialog-fields"><label>{creationMode === "role" ? "Job title" : "Candidate name"}<Input value={creationPrimary} onChange={(event) => setCreationPrimary(event.target.value)} /></label><label>{creationMode === "role" ? "Client or company" : "Current title"}<Input value={creationSecondary} onChange={(event) => setCreationSecondary(event.target.value)} /></label></div><DialogFooter><Button variant="outline" onClick={() => setCreationMode(null)}>Cancel</Button><Button onClick={() => void submitCreation()} disabled={!creationPrimary.trim()}>Add</Button></DialogFooter></DialogContent></Dialog>
 
-      <Dialog open={pasteOpen} onOpenChange={setPasteOpen}><DialogContent><DialogHeader><DialogTitle>Paste {pasteScope === "job" ? "Job knowledge" : "candidate source"}</DialogTitle><DialogDescription>The original text is stored unchanged, then parsed and classified automatically.</DialogDescription></DialogHeader><label className="paste-kind">Title<Input value={pastedSourceTitle} onChange={(event) => setPastedSourceTitle(event.target.value)} placeholder={pasteScope === "job" ? "Example: Maintenance Manager JD" : "Example: September 18 screening call"} /></label><Textarea value={pastedSource} onChange={(event) => setPastedSource(event.target.value)} placeholder="Paste the source text exactly as received." className="paste-source-textarea" /><DialogFooter><Button variant="outline" onClick={() => setPasteOpen(false)}>Cancel</Button><Button disabled={(pasteScope === "job" ? !roleId : !activeCase) || !pastedSourceTitle.trim() || !pastedSource.trim() || sourceBusy} onClick={() => { if (!pastedSourceTitle.trim() || !pastedSource.trim()) return; const file = new File([pastedSource], pastedSourceFilename(pastedSourceTitle), { type: "text/plain" }); setPasteOpen(false); setPastedSourceTitle(""); setPastedSource(""); if (pasteScope === "job") void uploadJobSources([file]); else void uploadSources([file]); }}>Save source</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={pasteOpen} onOpenChange={setPasteOpen}><DialogContent><DialogHeader><DialogTitle>{pendingJobFile ? "Review Job source" : `Paste ${pasteScope === "job" ? "Job source" : "candidate source"}`}</DialogTitle><DialogDescription>{pendingJobFile ? "The original file stays unchanged. Review only the detected classification and Job identity." : "Paste the whole source. The workstation classifies it, names it, and extracts Job identity when the text supports it."}</DialogDescription></DialogHeader><Textarea value={pastedSource} readOnly={Boolean(pendingJobFile)} onChange={(event) => {
+        const value = event.target.value;
+        setPastedSource(value);
+        setPastedKindOverride("");
+        if (pasteScope === "job" && !roleId) {
+          const proposal = proposePastedSource(value);
+          setPastedJobTitle(proposal.job?.title ?? "");
+          setPastedJobClient(proposal.job?.client ?? "");
+        }
+      }} placeholder={pendingJobFile ? "No extractable text was found in this file." : "Paste the source text exactly as received."} className="paste-source-textarea" />
+        <section className="paste-detection" aria-live="polite"><div><strong>Detected source</strong><span>{SOURCE_KIND_LABELS[effectivePastedKind]} · {effectivePastedFilename}</span></div>{pasteScope === "job" && !roleId ? <><label className="paste-kind-review">Source type<select value={effectivePastedKind} onChange={(event) => setPastedKindOverride(event.target.value as SourceKind)}><option value="job_description">Job description</option><option value="pasted_text">Instructions</option><option value="call_notes">Client notes</option><option value="other">Other</option></select></label><div className={`paste-confidence ${effectivePastedProposal.job?.confidence ?? "low"}`}>{effectivePastedProposal.job?.autoCreateEligible ? "Complete Job identity detected" : "Review the Job identity before saving"}</div><div className="paste-job-fields"><label>Job title<Input value={pastedJobTitle} onChange={(event) => setPastedJobTitle(event.target.value)} placeholder="Not found in the source" /></label><label>Company or client<Input value={pastedJobClient} onChange={(event) => setPastedJobClient(event.target.value)} placeholder="Not found in the source" /></label></div>{effectivePastedProposal.job?.evidence.length ? <small>Found in source: {effectivePastedProposal.job.evidence.join(" | ")}</small> : <small>No Job identity was inferred. Unknown values stay blank.</small>}</> : pasteScope === "job" ? <small>This source will be attached to the selected Job folder.</small> : <small>This source will be attached to the selected candidate case.</small>}</section>
+        <DialogFooter><Button variant="outline" onClick={() => setPasteOpen(false)}>Cancel</Button><Button disabled={!pastedSourceCanSave} onClick={() => void savePastedSource()}>{pastedSaveLabel}</Button></DialogFooter></DialogContent></Dialog>
+
+      <WorkflowBrowser
+        open={workflowsOpen}
+        onOpenChange={setWorkflowsOpen}
+        activeCaseId={activeCase?.id ?? null}
+        activeCaseAvailable={Boolean(activeCase)}
+        contextInputValues={{
+          candidate_full_name: candidates.find((candidate) => candidate.id === candidateId)?.name ?? "",
+          job_title: roles.find((role) => role.id === roleId)?.title ?? "",
+          company_name: roles.find((role) => role.id === roleId)?.client ?? "",
+        }}
+        onExecute={executeCapability}
+        onReviewArtifact={reviewCaseArtifact}
+        runs={capabilityRuns}
+        runsLoading={capabilityRunsLoading}
+        runsError={capabilityRunsError}
+        artifacts={caseArtifacts}
+        artifactsLoading={caseArtifactsLoading}
+        artifactsError={caseArtifactsError}
+      />
 
     </main>
   );
@@ -799,7 +1082,9 @@ function GeneratedOutputPanel({
   kind,
   onKindChange,
   editing,
+  editBusy,
   draft,
+  onEdit,
   onDraftChange,
   onSave,
   onCancel,
@@ -809,7 +1094,9 @@ function GeneratedOutputPanel({
   kind: OutputKind;
   onKindChange: (kind: OutputKind) => void;
   editing: boolean;
+  editBusy: boolean;
   draft: CaseDocument["content"] | null;
+  onEdit: () => void;
   onDraftChange: (content: CaseDocument["content"]) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -834,16 +1121,16 @@ function GeneratedOutputPanel({
     : [];
   return <div className="generated-output-shell">
     <div className="output-tabs" role="tablist">
-      {(["resume", "submission", "email", "loxo_update"] as OutputKind[]).map((item) => <button key={item} type="button" role="tab" aria-selected={kind === item} onClick={() => onKindChange(item)}>{({ resume: "Branded resume", submission: "Submission", email: "Email", loxo_update: "Loxo notes" })[item]}</button>)}
+      {(["resume", "submission", "email", "loxo_update"] as OutputKind[]).map((item) => <button key={item} type="button" role="tab" aria-selected={kind === item} disabled={editing || editBusy} onClick={() => onKindChange(item)}>{({ resume: "Resume draft", submission: "Submission", email: "Email", loxo_update: "Loxo notes" })[item]}</button>)}
     </div>
-    <div className="output-version-row"><span>Read-only preview</span><label>Version<select value={effectiveRevision} onChange={(event) => setViewRevision(Number(event.target.value))}><option value={document.revision}>Current · v{document.revision}</option>{versions.filter((version) => version.revision !== document.revision).map((version) => <option key={version.revision} value={version.revision}>v{version.revision} · {version.origin}</option>)}</select></label></div>
-    {editing ? <div className="output-editor">
+    <div className="output-version-row"><span>{editing ? "Editing current version" : "Read-only preview"}</span><div className="output-version-actions"><label>Version<select disabled={editing || editBusy} value={effectiveRevision} onChange={(event) => setViewRevision(Number(event.target.value))}><option value={document.revision}>Current · v{document.revision}</option>{versions.filter((version) => version.revision !== document.revision).map((version) => <option key={version.revision} value={version.revision}>v{version.revision} · {version.origin}</option>)}</select></label>{!editing && effectiveRevision === document.revision ? <Button size="sm" variant="outline" disabled={editBusy} onClick={onEdit}>{editBusy ? <LoaderCircle className="spin" size={15} /> : <Edit3 size={15} />}Edit</Button> : null}</div></div>
+    {editing ? <div className="output-editor" aria-label={`Edit current ${kind}`}>
       {kind === "resume" ? <ResumeFormEditor value={toResumeForm(draft)} onChange={onDraftChange} /> : null}
       {kind === "submission" ? <SubmissionForm value={contentAsSubmission({ ...document, content: draft ?? {} })} onChange={onDraftChange} /> : null}
       {kind === "email" || kind === "loxo_update" ? <Textarea value={typeof draft === "string" ? draft : ""} onChange={(event) => onDraftChange(event.target.value)} aria-label={`Edit ${kind}`} /> : null}
-      <div className="output-edit-actions"><Button variant="outline" onClick={onCancel}>Cancel</Button><Button onClick={onSave}>Save changes</Button></div>
+      <div className="output-edit-actions"><Button variant="outline" disabled={editBusy} onClick={onCancel}>Cancel</Button><Button disabled={editBusy} onClick={onSave}>{editBusy ? <LoaderCircle className="spin" size={16} /> : null}Save changes</Button></div>
     </div> : <article className="output-preview">
-      {kind === "resume" ? <><h2>{resume.name || "Branded resume"}</h2>{resume.headline ? <h3>{resume.headline}</h3> : null}{resume.summary ? <section><h4>Professional Summary</h4><p>{resume.summary}</p></section> : null}{resume.skills ? <section><h4>Core Competencies &amp; Skills</h4><p className="preserve-lines">{resume.skills}</p></section> : null}{resume.jobs.length ? <section><h4>Professional Experience</h4>{resume.jobs.map((job, index) => <div key={index} className="preview-job"><strong>{job.title}</strong><span>{[job.company, job.location, job.dates].filter(Boolean).join(" · ")}</span><p className="preserve-lines">{job.bullets}</p></div>)}</section> : null}</> : null}
+      {kind === "resume" ? <><h2>{resume.name || "Resume draft"}</h2>{resume.headline ? <h3>{resume.headline}</h3> : null}{resume.summary ? <section><h4>Professional Summary</h4><p>{resume.summary}</p></section> : null}{resume.skills ? <section><h4>Core Competencies &amp; Skills</h4><p className="preserve-lines">{resume.skills}</p></section> : null}{resume.jobs.length ? <section><h4>Professional Experience</h4>{resume.jobs.map((job, index) => <div key={index} className="preview-job"><strong>{job.title}</strong><span>{[job.company, job.location, job.dates].filter(Boolean).join(" · ")}</span><p className="preserve-lines">{job.bullets}</p></div>)}</section> : null}</> : null}
       {kind === "submission" ? <><h2>Candidate submission</h2><dl>{Object.entries(submission).filter(([, value]) => value.trim()).map(([key, value]) => <div key={key}><dt>{key.replace(/([A-Z])/g, " $1")}</dt><dd>{value}</dd></div>)}</dl>{missing.length ? <aside className="needs-confirmation"><strong>Needs confirmation</strong><ul>{missing.map((item) => <li key={item}>{item}</li>)}</ul></aside> : null}</> : null}
       {kind === "email" || kind === "loxo_update" ? <><h2>{kind === "email" ? "Presentation email" : "Loxo update bullets"}</h2><pre>{typeof content === "string" && content.trim() ? content : "No source-backed content yet."}</pre></> : null}
     </article>}

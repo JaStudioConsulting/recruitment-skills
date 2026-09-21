@@ -204,9 +204,9 @@ prepared candidate package as a Tracker source event.
 
 ## Modules (absorbed 2026-07-29, formerly standalone skills)
 
-23 specialist capabilities now live under `modules/`. Each keeps its own scripts, assets, and references. Their `SKILL.md` was renamed `GUIDE.md` so they no longer register as separate skills.
+24 specialist capabilities now live under `modules/`. Each keeps its own scripts, assets, and references. Their `SKILL.md` was renamed `GUIDE.md` so they no longer register as separate skills.
 
-`applicant-screening, brandedresume, candidate-defense, complete-reference-check, cover-letter, interview-prep-material, ja-candidate-vetting, ja-writer, job-loxo, legislator, linkedin-posts, loxo, loxo-automation, loxo-readonly-candidate-dashboard, offer-letter, recruiting-hr, sourcing, tttg-candidate-submission, tttg-resume-engine-workspace, vet, web-sourcing, write-up`
+`applicant-screening, brandedresume, candidate-defense, complete-reference-check, cover-letter, interview-prep-material, ja-candidate-vetting, ja-writer, job-loxo, legislator, linkedin-posts, loxo, loxo-automation, loxo-pipeline, loxo-readonly-candidate-dashboard, offer-letter, recruiting-hr, sourcing, tracker, tttg-candidate-submission, tttg-resume-engine-workspace, vet, web-sourcing, write-up`
 
 The Airtable candidate-match-engine was retired. Airtable is obsolete. Candidate matching, call-list, and intake now route to `modules/vet/GUIDE.md` and `modules/sourcing/GUIDE.md`, and the Submissions record lives in the Google Sheets Tracker via `modules/tracker/GUIDE.md`.
 

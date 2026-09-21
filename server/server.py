@@ -8,8 +8,14 @@ path. The skills themselves do not need this server; it exists only when you wan
 tools callable on a schedule or from the ChatGPT app.
 
 What is real here:
-  - build_pdf: builds the branded TTTG resume PDF with the bundled builder. No
-    external account needed. This is the flagship tool.
+  - build_pdf: low-level branded-resume draft renderer. Current repository
+    authorities conflict, so its result is never release-ready by itself and the
+    Workstation deliberately does not mount it.
+  - build_reference_check_pdf: uses the canonical sanitized DOCX template and a
+    verified LibreOffice renderer when that runtime is installed.
+  - build_interview_prep_pdf: builds only from the complete repository payload
+    and closed source/asset ledger records. It validates structure, not the
+    truth of caller-provided evidence, and never returns a release-ready result.
 
 What is a stub for you to wire (they need YOUR connector plus OAuth, so they are
 intentionally not implemented in the repo, and the write actions stay gated):
@@ -132,8 +138,10 @@ def candidate_dashboard_component() -> str:
 @mcp.tool(
     title="Build branded resume PDF",
     description=(
-        "Build the finished Top Tier Talent Group branded resume PDF from structured "
-        "candidate data. Use when the user asks to brand or format a resume. "
+        "Render a Top Tier Talent Group branded resume draft from structured candidate "
+        "data. The active branded-resume and legislator authorities conflict, so this "
+        "low-level result is not release-ready and still requires authority resolution "
+        "plus page-by-page visual review. "
         + SCHEMA_HINT
         + " If the result has ok=false, fix every listed problem and call again."
     ),
@@ -182,7 +190,9 @@ def build_pdf(candidate: dict, filename: str | None = None) -> dict:
         "filename": out_name,
         "download_url": f"{PUBLIC_BASE}/files/{token}.pdf" if PUBLIC_BASE else f"/files/{token}.pdf",
         "bytes": size,
-        "message": f"Branded resume ready: {out_name}. Click the download link to save it.",
+        "release_ready": False,
+        "authority_status": "blocked",
+        "message": f"Branded resume draft built: {out_name}. It is not release-ready while the active layout authorities conflict.",
         "builder_output": (result.stdout or "").strip()[-400:],
         "contact_removed": report["stripped"],
         "notes": report["notes"],
@@ -205,7 +215,7 @@ def _artifact_result(builder, payload: dict, filename: str | None = None) -> dic
 
 @mcp.tool(
     title="Build interview prep PDF",
-    description="Build and automatically validate a role-specific interview-prep PDF from the exact repository contract. The result still requires page-by-page visual review.",
+    description="Build and automatically validate a role-specific interview-prep PDF from the exact repository contract. Caller-provided provenance is structurally validated but not independently verified; the result is never release-ready and still requires source verification plus page-by-page visual review.",
     annotations={"readOnlyHint": False, "destructiveHint": False, "openWorldHint": False},
 )
 def build_interview_prep_pdf(payload: dict, filename: str | None = None) -> dict:

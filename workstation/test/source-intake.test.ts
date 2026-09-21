@@ -8,6 +8,7 @@ import {
   normalizeSourceLifecycleStatus,
   sourceIsUsable,
 } from "../lib/server/source-intake";
+import { jobIdentitiesMatch, proposePastedSource } from "../lib/source-intake";
 
 function bytes(value: string) {
   return new TextEncoder().encode(value).buffer as ArrayBuffer;
@@ -58,6 +59,89 @@ async function simpleDocx(paragraphs: string[]) {
 }
 
 describe("source intake", () => {
+  it("reuses a Job folder only when both title and client match", () => {
+    expect(jobIdentitiesMatch(
+      { title: "Maintenance Manager", client: "Atlantic Packaging" },
+      { title: "maintenance manager", client: "Atlantic Packaging Inc." },
+    )).toBe(false);
+    expect(jobIdentitiesMatch(
+      { title: "Maintenance Manager", client: "Atlantic Packaging" },
+      { title: "maintenance manager", client: "ATLANTIC PACKAGING" },
+    )).toBe(true);
+    expect(jobIdentitiesMatch(
+      { title: "Maintenance Manager", client: "" },
+      { title: "Maintenance Manager", client: "Hanon Systems" },
+    )).toBe(false);
+  });
+
+  it("recognizes a complete pasted JD and extracts exact Job identity", () => {
+    const text = `Job Title: Maintenance Manager
+Company: Example Manufacturing Inc.
+Location: Toronto, Ontario
+
+Job Description
+About the role
+Responsibilities
+Qualifications
+Requirements`;
+    expect(proposePastedSource(text)).toEqual({
+      kind: "job_description",
+      filename: "Example Manufacturing Inc. - Maintenance Manager - Job description.txt",
+      job: {
+        title: "Maintenance Manager",
+        client: "Example Manufacturing Inc.",
+        confidence: "high",
+        autoCreateEligible: true,
+        evidence: ["Job Title: Maintenance Manager", "Company: Example Manufacturing Inc."],
+      },
+    });
+  });
+
+  it("recognizes a common Job-board heading without inventing values", () => {
+    const text = `Maintenance Manager
+Example Manufacturing Inc.
+Toronto, Ontario
+
+About the role
+Responsibilities
+Qualifications
+Requirements`;
+    const proposal = proposePastedSource(text);
+    expect(proposal.kind).toBe("job_description");
+    expect(proposal.job).toMatchObject({
+      title: "Maintenance Manager",
+      client: "Example Manufacturing Inc.",
+      confidence: "high",
+      autoCreateEligible: true,
+    });
+    expect(proposal.job?.evidence).toEqual(["Maintenance Manager", "Example Manufacturing Inc."]);
+  });
+
+  it("holds Job creation when the company is not present", () => {
+    const text = `Job Title: Maintenance Manager
+Job Description
+Responsibilities
+Qualifications
+Requirements`;
+    const proposal = proposePastedSource(text);
+    expect(proposal.kind).toBe("job_description");
+    expect(proposal.job).toEqual({
+      title: "Maintenance Manager",
+      client: "",
+      confidence: "medium",
+      autoCreateEligible: false,
+      evidence: ["Job Title: Maintenance Manager"],
+    });
+    expect(proposal.filename).toBe("Maintenance Manager - Job description.txt");
+  });
+
+  it("names a pasted candidate source without requiring a title field", () => {
+    const proposal = proposePastedSource("Jane Sample\nProfessional Summary\nProfessional Experience\nEducation\nSkills");
+    expect(proposal.kind).toBe("resume");
+    expect(proposal.filename).toBe("Jane Sample - Resume.txt");
+    expect(proposal.job).toBeNull();
+  });
+
   it("uses confident classifications immediately and holds only uncertain text", () => {
     expect(sourceIsUsable({ parsedText: "Professional Experience", lifecycleStatus: "classified", classificationMethod: "content" })).toBe(true);
     expect(sourceIsUsable({ parsedText: "Ambiguous note", lifecycleStatus: "parsed", classificationMethod: "uncertain" })).toBe(false);

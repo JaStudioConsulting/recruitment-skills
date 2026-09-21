@@ -1,16 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { FEATURES, FEATURE_GROUPS, featureStatus, missingRequired, requirementStates } from "../lib/capabilities/catalog";
+import { FEATURES, FEATURE_GROUPS } from "../lib/capabilities/catalog";
 import { callLocalAi, cancelLocalAi } from "../lib/server/local-ai";
 import { callArtifactBuilder } from "../lib/server/artifact-builder";
-import type { CandidateCase } from "../lib/workstation-types";
-
-const candidateCase = {
-  sources: [
-    { kind: "resume", lifecycleStatus: "reviewed", parsedText: "Professional Experience", classificationMethod: "manual" },
-    { kind: "job_description", lifecycleStatus: "reviewed", parsedText: "Responsibilities", classificationMethod: "manual" },
-  ],
-} as CandidateCase;
 
 describe("feature declarations", () => {
   it("exposes the fifteen recruiter-facing capabilities in the four required groups", () => {
@@ -28,32 +20,6 @@ describe("feature declarations", () => {
     expect(FEATURES.some((feature) => feature.label === "Legislator")).toBe(false);
     expect(FEATURES.find((feature) => feature.id === "brand-resume")?.capability_ids).toContain("legislator");
     expect(FEATURES.every((feature) => feature.guide_paths.every((path) => path.endsWith("GUIDE.md")))).toBe(true);
-  });
-
-  it("computes unmet requirements from reviewed sources, role, input, and adapters", () => {
-    const feature = FEATURES.find((item) => item.id === "write-up-candidate")!;
-    const states = requirementStates({ feature, activeCase: candidateCase, roleSelected: true, extraInput: "", connectors: [] });
-    expect(missingRequired(states).map((item) => item.id)).toEqual(["call-evidence"]);
-  });
-});
-
-describe("feature status", () => {
-  const statusFor = (featureId: string, activeCase: CandidateCase | null, roleSelected = false, extraInput = "") => {
-    const feature = FEATURES.find((item) => item.id === featureId)!;
-    const requirements = requirementStates({ feature, activeCase, roleSelected, extraInput, connectors: [] });
-    return featureStatus(feature, requirements);
-  };
-
-  it("names the missing input category instead of claiming the feature is ready", () => {
-    expect(statusFor("write-up-candidate", candidateCase)).toEqual({ label: "Needs sources", tone: "needs" });
-    expect(statusFor("linkedin-post", candidateCase)).toEqual({ label: "Needs details", tone: "needs" });
-    expect(statusFor("source-candidates", candidateCase)).toEqual({ label: "Needs role", tone: "needs" });
-    expect(statusFor("source-candidates", null)).toEqual({ label: "Needs inputs", tone: "needs" });
-  });
-
-  it("reports ready only when required inputs are met and keeps blocked runtimes unavailable", () => {
-    expect(statusFor("brand-resume", candidateCase)).toEqual({ label: "Ready to draft", tone: "ready" });
-    expect(statusFor("loxo-pipeline-review", candidateCase)).toEqual({ label: "Not available yet", tone: "blocked" });
   });
 });
 

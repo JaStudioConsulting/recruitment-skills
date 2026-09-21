@@ -1,6 +1,6 @@
-import type { ResumeFormDocument, ResumeFormJob, ResumeFormSection } from "../resume-form";
+import { emptyResumeForm, type ResumeFormDocument, type ResumeFormJob, type ResumeFormSection } from "../resume-form";
 import type { CandidateCase, CaseSource } from "../workstation-types";
-import { sourceIsUsable } from "../server/source-intake";
+import { sourceIsUsable } from "../source-intake";
 import type { FeatureDefinition } from "./catalog";
 import { stringAtPath, setValueAtPath } from "./manual-artifacts";
 import { createEmptyDraft } from "./manual-drafts";
@@ -41,7 +41,11 @@ function cleanLines(text: string): string[] {
 
 function looksLikeName(line: string): boolean {
   const words = line.split(/\s+/);
-  return words.length >= 2 && words.length <= 4 && !/\d/.test(line) && words.every((word) => /^[A-Z][A-Za-z'’-]*$/.test(word));
+  return !knownHeadingKind(line) &&
+    words.length >= 2 &&
+    words.length <= 4 &&
+    !/\d/.test(line) &&
+    words.every((word) => /^[A-Z][A-Za-z'’-]*$/.test(word));
 }
 
 type HeadingKind = "summary" | "skills" | "experience" | "education" | "other";
@@ -278,6 +282,18 @@ function reviewedSource(candidateCase: CandidateCase | null, kinds: string[]): C
   return candidateCase?.sources.find((source) => sourceIsUsable(source) && kinds.includes(source.kind));
 }
 
+/**
+ * Resolve the editable resume form from reviewed source evidence independently
+ * of any executor output kind. The branded-resume executor produces a PDF,
+ * while write-up still needs this source-grounded form as an intermediate.
+ */
+export function resumeFormFromCase(candidateCase: CandidateCase | null): ParsedResume {
+  const resumeSource = reviewedSource(candidateCase, ["resume"]);
+  return resumeSource
+    ? parseResumeText(resumeSource.parsedText ?? "", resumeSource.filename)
+    : { form: emptyResumeForm(), sources: {} };
+}
+
 function labelled(text: string, labels: string[]): string {
   for (const line of text.split(/\r?\n/)) {
     for (const label of labels) {
@@ -301,7 +317,9 @@ export function parseJdText(text: string, filename: string): JdFacts {
   return { title, client, location, source: filename };
 }
 
-function explicitFacts(source: CaseSource | undefined): Record<string, string> {
+type TextEvidence = Pick<CaseSource, "kind" | "filename" | "parsedText">;
+
+function explicitFacts(source: TextEvidence | undefined): Record<string, string> {
   const text = source?.parsedText ?? "";
   return {
     compensationTarget: labelled(text, ["Compensation Target", "Compensation", "Salary Expectation"]),
@@ -315,8 +333,8 @@ function explicitFacts(source: CaseSource | undefined): Record<string, string> {
   };
 }
 
-function sourceTextDraft(sources: Array<CaseSource | undefined>): { document: string; source: string } {
-  const present = sources.filter((source): source is CaseSource => Boolean(source?.parsedText?.trim()));
+function sourceTextDraft(sources: Array<TextEvidence | undefined>): { document: string; source: string } {
+  const present = sources.filter((source): source is TextEvidence => Boolean(source?.parsedText?.trim()));
   const blocks = present.flatMap((source) => {
     if (source.kind !== "call_notes" && source.kind !== "transcript") {
       return [`${source.filename}\n${stripContactDetails(source.parsedText ?? "")}`];
@@ -338,9 +356,12 @@ export function createAutofilledDraft(feature: FeatureDefinition, candidateCase:
   const resumeSource = reviewedSource(candidateCase, ["resume"]);
   const jdSource = reviewedSource(candidateCase, ["job_description"]);
   const callSource = reviewedSource(candidateCase, ["transcript", "call_notes"]);
+  const callEvidence: TextEvidence | undefined = callSource ?? (candidateCase?.notes.trim()
+    ? { kind: "call_notes", filename: "Workstation notes", parsedText: candidateCase.notes }
+    : undefined);
   const resume = resumeSource ? parseResumeText(resumeSource.parsedText ?? "", resumeSource.filename) : null;
   const jd = jdSource ? parseJdText(jdSource.parsedText ?? "", jdSource.filename) : { title: "", client: "", location: "", source: "" };
-  const call = explicitFacts(callSource);
+  const call = explicitFacts(callEvidence);
   const autofill: Record<string, string> = {};
   if (draft.resume && resume) { draft.resume = resume.form; Object.assign(autofill, resume.sources); }
   if (draft.submission) {
@@ -358,14 +379,14 @@ export function createAutofilledDraft(feature: FeatureDefinition, candidateCase:
     };
     for (const [key, value] of Object.entries(values)) if (value) {
       draft.submission = { ...draft.submission, [key]: value };
-      autofill[`submission.${key}`] = key === "name" || key === "title" ? resumeSource!.filename : callSource!.filename;
+      autofill[`submission.${key}`] = key === "name" || key === "title" ? resumeSource!.filename : callEvidence!.filename;
     }
   }
   if (draft.fields) {
     const offerValues: Record<string, [string, string]> = {
       "Company Name": [jd.client, jd.source], "Candidate Full Name": [resume?.form.name ?? "", resumeSource?.filename ?? ""],
-      "Job Title": [jd.title, jd.source], "Base Salary and Pay Frequency": [call.compensationTarget, callSource?.filename ?? ""],
-      "Work Location": [call.location || jd.location, call.location ? callSource?.filename ?? "" : jd.source],
+      "Job Title": [jd.title, jd.source], "Base Salary and Pay Frequency": [call.compensationTarget, callEvidence?.filename ?? ""],
+      "Work Location": [call.location || jd.location, call.location ? callEvidence?.filename ?? "" : jd.source],
     };
     draft.fields = draft.fields.map((field, index) => {
       const [value, source] = offerValues[field.label] ?? ["", ""];
@@ -387,7 +408,7 @@ export function createAutofilledDraft(feature: FeatureDefinition, candidateCase:
     });
   }
   if (draft.resultKind === "document") {
-    const relevant = feature.id === "draft-job-posting" ? sourceTextDraft([jdSource]) : sourceTextDraft([resumeSource, jdSource, callSource]);
+    const relevant = feature.id === "draft-job-posting" ? sourceTextDraft([jdSource]) : sourceTextDraft([resumeSource, jdSource, callEvidence]);
     if (relevant.document) { draft.document = relevant.document; autofill.document = relevant.source; }
   }
   if (draft.resultKind === "pdf" && draft.artifactPayload) {

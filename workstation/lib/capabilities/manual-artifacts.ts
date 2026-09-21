@@ -116,6 +116,30 @@ function required(payload: Record<string, unknown>, fields: readonly (readonly [
   return fields.flatMap(([path, label]) => stringAtPath(payload, path).trim() ? [] : [{ path, message: `${label} is required.` }]);
 }
 
+function ledgerRecords(
+  value: string,
+  path: "source_ledger" | "asset_ledger",
+  heading: "Claim" | "Asset",
+  labels: readonly string[],
+): { records: string[]; problems: ManualProblem[] } {
+  const starts = [...value.matchAll(new RegExp(`^\\s*##\\s+${heading}(?:\\s+.+)?\\s*$`, "gim"))];
+  if (!starts.length) {
+    return {
+      records: [],
+      problems: [{ path, message: `${heading} ledger requires one structured ## ${heading} record per item.` }],
+    };
+  }
+  const records = starts.map((start, index) => value.slice(
+    start.index,
+    starts[index + 1]?.index ?? value.length,
+  ));
+  const problems = records.flatMap((record, index) => labels.flatMap((label) => {
+    const present = new RegExp(`^\\s*(?:[-*]\\s*)?${label.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}:\\s*\\S`, "im").test(record);
+    return present ? [] : [{ path, message: `${heading} ${index + 1} is missing ${label}.` }];
+  }));
+  return { records, problems };
+}
+
 export function validateManualArtifactPayload(featureId: string, payload: Record<string, unknown>): ManualProblem[] {
   if (featureId === "reference-check-pdf") {
     return required(payload, [
@@ -135,6 +159,42 @@ export function validateManualArtifactPayload(featureId: string, payload: Record
   const authorities = valueAtPath(payload, "brief.source_control.authoritative_sources");
   if (!Array.isArray(authorities) || authorities.filter((item) => typeof item === "string" && item.trim()).length < 2) {
     problems.push({ path: "brief.source_control.authoritative_sources", message: "At least two authoritative source identifiers are required." });
+  }
+  const sourceLedger = stringAtPath(payload, "source_ledger");
+  const sourceRecords = ledgerRecords(sourceLedger, "source_ledger", "Claim", [
+    "Claim", "Source", "Publication date", "Retrieval date", "Scope", "Status",
+  ]);
+  problems.push(...sourceRecords.problems);
+  if (Array.isArray(authorities)) {
+    for (const authority of authorities) {
+      if (typeof authority === "string" && authority.trim() && !sourceLedger.toLocaleLowerCase().includes(authority.trim().toLocaleLowerCase())) {
+        problems.push({ path: "source_ledger", message: `Source ledger is missing authoritative source: ${authority.trim()}.` });
+      }
+    }
+  }
+  if (status === "approved_for_candidate_use") {
+    for (const [index, record] of sourceRecords.records.entries()) {
+      if (!/^\s*(?:[-*]\s*)?Status:\s*supported\s*$/im.test(record)) {
+        problems.push({ path: "source_ledger", message: `Claim ${index + 1} must be supported before candidate-facing approval.` });
+      }
+    }
+  }
+  const assetLedger = stringAtPath(payload, "asset_ledger");
+  const assetRecords = ledgerRecords(assetLedger, "asset_ledger", "Asset", [
+    "Creator", "Source page", "Direct asset URL or generated-file path", "Licence", "Allowed use", "Modifications", "Rendered caption",
+  ]);
+  problems.push(...assetRecords.problems);
+  const usedAssets = [
+    stringAtPath(payload, "brief.cover.image"),
+    stringAtPath(payload, "brief.role.image"),
+    stringAtPath(payload, "brief.context.image"),
+    stringAtPath(payload, "brief.decision.images.0.path"),
+    stringAtPath(payload, "brief.decision.images.1.path"),
+  ];
+  for (const asset of new Set(usedAssets.filter(Boolean))) {
+    if (!assetLedger.includes(asset)) {
+      problems.push({ path: "asset_ledger", message: `Asset ledger is missing visual used by the brief: ${asset}.` });
+    }
   }
   return problems;
 }

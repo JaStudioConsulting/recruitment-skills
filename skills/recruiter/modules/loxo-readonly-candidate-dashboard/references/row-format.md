@@ -33,6 +33,11 @@ and an `activity_type` of `none`, `attempted`, `reached`, `bounced`, or
 Synthetic builder coverage is test-only under `tests/fixtures`, never in
 production records.
 
+`stage` is the exact non-empty stage name from the current job. Custom agency
+stages are valid. An optional `job.stage_order` array may set display order. The
+builder appends any observed stage missing from that array, so valid input rows
+are never discarded by a fixed stage list.
+
 From the repository root, the documented smoke test is:
 
 ```bash

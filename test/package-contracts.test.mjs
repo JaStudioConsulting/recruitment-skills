@@ -51,16 +51,26 @@ const sourcingColumns = ["Full Name", "Title", "Company", "Location", "LinkedIn"
 const allowedStatuses = new Set(["Verified", "Unconfirmed", "Conflicting", "Outdated"]);
 const allowedEligibility = new Set(["Eligible", "Excluded"]);
 function assertSourcingRows(rows) {
-  const seen = new Set();
+  const seenUrls = new Set();
+  const seenPeople = new Map();
   for (const row of rows) {
     assert.ok(allowedEligibility.has(row.eligibility), `eligibility must be Eligible or Excluded`);
     assert.ok(allowedStatuses.has(row.evidence_status), `evidence status must be one of ${[...allowedStatuses].join(", ")}`);
-    assert.match(row.linkedin || "", /^https:\/\/[a-z0-9.-]+\/.+/i, "direct evidence URL is required");
+    if (row.linkedin) assert.match(row.linkedin, /^https?:\/\/[a-z0-9.-]+\/.+/i, "profile URL must be direct http(s) evidence");
+    else assert.ok(row.full_name?.trim() && row.company?.trim(), "rows without a profile URL require full name plus company");
     const header = [row.full_name, row.title, row.company].map((x) => String(x || "").toLowerCase()).join("|");
     assert.notEqual(header, "full name|title|company", "repeated header row is not data");
-    const key = row.linkedin?.trim().toLowerCase() || `${row.full_name}|${row.company}`.toLowerCase();
-    assert.ok(!seen.has(key), `duplicate sourcing row: ${key}`);
-    seen.add(key);
+    const urlKey = row.linkedin?.trim().toLowerCase() || "";
+    const personKey = `${row.full_name}|${row.company}`.toLowerCase();
+    assert.ok(!urlKey || !seenUrls.has(urlKey), `duplicate sourcing row: ${urlKey}`);
+    const priorUrls = seenPeople.get(personKey) || new Set();
+    assert.ok(
+      urlKey ? !priorUrls.has("") : priorUrls.size === 0,
+      `duplicate sourcing row: ${personKey}`,
+    );
+    if (urlKey) seenUrls.add(urlKey);
+    priorUrls.add(urlKey);
+    seenPeople.set(personKey, priorUrls);
   }
   assert.deepEqual(sourcingColumns, ["Full Name", "Title", "Company", "Location", "LinkedIn", "Eligibility", "Evidence Status", "Fit/Priority", "Confidence", "Evidence", "Gaps/Risks", "Notes"]);
   return rows.length;
@@ -74,13 +84,17 @@ function assertFullPackage({ drafts, pdf, attachment }) {
   if (attachment.state !== "verified") assert.ok(attachment.reason, "non-verified attachment state needs an explicit reason");
 }
 
-test("all 23 manifest routes and internal backtick routes resolve", async () => {
+test("all 24 manifest routes and internal backtick routes resolve", async () => {
   const manifest = JSON.parse(await readFile(path.join(skills, "capabilities.json"), "utf8"));
   assert.equal(manifest.capabilities.length, 24);
   for (const capability of manifest.capabilities) {
     assert.match(capability.path, /\/GUIDE\.md$/);
     assert.ok(exists(path.join(skills, capability.path)), capability.path);
   }
+  const router = await readFile(path.join(skills, "recruiter/SKILL.md"), "utf8");
+  assert.match(router, /24 specialist capabilities now live under `modules\/`/);
+  assert.match(router, /\bloxo-pipeline\b/);
+  assert.match(router, /\btracker\b/);
   assert.deepEqual(await backtickRouteProblems(), []);
 });
 
@@ -227,7 +241,7 @@ test("root requirements include every server runtime dependency", async () => {
 
 test("sourcing and web-sourcing CLIs export exact synthetic contracts", async () => {
   const dir = await mkdtemp(path.join(root, ".tmp-sourcing-contract-"));
-  const rows = [
+    const rows = [
     { full_name: "Synthetic Candidate A", title: "Welder", company: "Synthetic Co", location: "Toronto", linkedin: "https://linkedin.com/in/synthetic-a", eligibility: "Eligible", evidence_status: "Verified", evidence: "Synthetic public evidence", fit_priority: "High", confidence: "High" },
     { full_name: "Synthetic Candidate B", title: "Millwright", company: "Synthetic Co", location: "Toronto", linkedin: "https://linkedin.com/in/synthetic-b", eligibility: "Eligible", evidence_status: "Unconfirmed", evidence: "Synthetic public evidence", fit_priority: "Review", confidence: "Medium" },
     { full_name: "Full Name", title: "Title", company: "Company", eligibility: "Eligible", evidence_status: "Verified", linkedin: "https://linkedin.com/in/header" },
@@ -245,18 +259,33 @@ test("sourcing and web-sourcing CLIs export exact synthetic contracts", async ()
     assert.equal(csv.trimEnd().split(/\r?\n/).length, 3);
     assert.equal(assertSourcingRows(rows.slice(0, 2)), 2);
     assert.throws(() => assertSourcingRows([{ ...rows[0], evidence_status: "Eligible" }]), /evidence status/);
-    assert.throws(() => assertSourcingRows([{ ...rows[0], linkedin: "" }]), /evidence URL/);
+    assert.equal(assertSourcingRows([{ ...rows[0], linkedin: "" }]), 1);
     assert.throws(() => assertSourcingRows([rows[0], rows[3]]), /duplicate/);
+    assert.throws(() => assertSourcingRows([rows[0], { ...rows[0], linkedin: "" }]), /duplicate/);
+    assert.equal(assertSourcingRows([rows[0], { ...rows[0], linkedin: "https://github.com/synthetic-a" }]), 2);
     assert.throws(() => assertSourcingRows([rows[2]]), /header/);
-    for (const invalid of [{ ...rows[0], evidence_status: "Eligible" }, { ...rows[0], linkedin: "" }]) {
+    for (const invalid of [{ ...rows[0], evidence_status: "Eligible" }, { ...rows[0], full_name: "", company: "", linkedin: "" }]) {
       const invalidInput = path.join(dir, "invalid.json");
       await writeFile(invalidInput, JSON.stringify([invalid]), "utf8");
       const failed = runPython(path.join(skills, "recruiter/modules/sourcing/scripts/sourcing_rows.py"), ["--data", invalidInput, "--kind", "candidate", "--format", "generic", "--label", "invalid", "--outdir", dir]);
       assert.notEqual(failed.status, 0, "invalid evidence rows must fail the actual sourcing CLI");
     }
 
+    const fallbackInput = path.join(dir, "fallback-rows.json");
+    await writeFile(fallbackInput, JSON.stringify([
+      { ...rows[0], full_name: "Synthetic No URL", linkedin: "https://profiles.example.invalid/synthetic-no-url" },
+      { ...rows[0], full_name: " synthetic no url ", linkedin: "" },
+      { ...rows[0], full_name: "Synthetic No URL", linkedin: "https://github.com/synthetic-no-url" },
+    ]), "utf8");
+    const fallback = runPython(path.join(skills, "recruiter/modules/sourcing/scripts/sourcing_rows.py"), ["--data", fallbackInput, "--kind", "candidate", "--format", "generic", "--label", "fallback", "--outdir", dir]);
+    assert.equal(fallback.status, 0, fallback.stderr);
+    assert.deepEqual(
+      (({ exported_rows, duplicates_removed }) => ({ exported_rows, duplicates_removed }))(JSON.parse(fallback.stdout)),
+      { exported_rows: 2, duplicates_removed: 1 },
+    );
+
     const webInput = path.join(dir, "web-rows.json");
-    await writeFile(webInput, JSON.stringify([{ full_name: "Synthetic Prospect", company: "Synthetic Co", tenure: "2 years", linkedin_link: "https://linkedin.com/in/synthetic-prospect", contact_info: "synthetic@example.invalid", eligibility: "Eligible", evidence_status: "Verified" }]), "utf8");
+    await writeFile(webInput, JSON.stringify([{ full_name: "Synthetic Prospect", company: "Synthetic Co", tenure: "2 years", profile_url: "https://github.com/synthetic-prospect", contact_info: "synthetic@example.invalid", eligibility: "Eligible", evidence_status: "Verified" }]), "utf8");
     const web = runPython(path.join(skills, "recruiter/modules/web-sourcing/scripts/build_csv.py"), ["--role", "synthetic-role", "--data", webInput, "--outdir", dir]);
     assert.equal(web.status, 0, web.stderr);
     const webSummary = JSON.parse(web.stdout);
@@ -264,6 +293,12 @@ test("sourcing and web-sourcing CLIs export exact synthetic contracts", async ()
     const webOutput = webSummary.output;
     assert.ok(exists(webOutput));
     assert.deepEqual((await readFile(webOutput, "utf8")).split(/\r?\n/)[0].replace(/^\uFEFF/, "").split(","), ["Full Name", "Company", "Tenure", "LinkedIn Link", "Contact Info", "Eligibility", "Evidence Status"]);
+    const exportGuide = await readFile(path.join(skills, "recruiter/modules/sourcing/references/export.md"), "utf8");
+    assert.match(exportGuide, /Full Name, Title, Company, Location, LinkedIn, Eligibility, Evidence Status, Fit\/Priority, Confidence, Evidence, Gaps\/Risks, Notes/);
+    assert.match(exportGuide, /First Name, Last Name, Full Name, Title, Company, Location, LinkedIn, Eligibility, Evidence Status, Tags, Notes/);
+    const webGuide = await readFile(path.join(skills, "recruiter/modules/web-sourcing/GUIDE.md"), "utf8");
+    assert.match(webGuide, /same 7 columns/i);
+    assert.doesNotMatch(webGuide, /same 5 columns/i);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
@@ -273,7 +308,8 @@ test("sourcing contract rejects invalid evidence rows before export", () => {
   ];
   assert.equal(assertSourcingRows(rows), 1);
     assert.throws(() => assertSourcingRows([{ ...rows[0], evidence_status: "Eligible" }]), /evidence status/);
-    assert.throws(() => assertSourcingRows([{ ...rows[0], linkedin: "" }]), /evidence URL/);
+    assert.equal(assertSourcingRows([{ ...rows[0], linkedin: "" }]), 1);
+    assert.throws(() => assertSourcingRows([{ ...rows[0], full_name: "", company: "", linkedin: "" }]), /full name plus company/);
 });
 
 test("full-package contract requires one draft, finished PDF, and explicit attachment state", async () => {
@@ -359,8 +395,35 @@ test("synthetic interview prep material builds and passes its automated release 
       }
     };
     await writeFile(dataPath, JSON.stringify(data), "utf8");
-    await writeFile(sources, "# Source ledger\n\n- Synthetic current job description, reviewed 2026-09-04.\n- Synthetic official company profile, reviewed 2026-09-04.\n", "utf8");
-    await writeFile(assets, "# Asset ledger\n\n- Packaged Top Tier Talent Group synthetic test visual.\n- Used only for deterministic package validation.\n", "utf8");
+    await writeFile(sources, `# Source ledger
+
+## Claim 1
+- Claim: The synthetic role includes maintenance-planning responsibility.
+- Source: Synthetic current job description
+- Publication date: unavailable
+- Retrieval date: 2026-09-04
+- Scope: Exact synthetic role used only for automated package testing.
+- Status: supported
+
+## Claim 2
+- Claim: The synthetic company produces engineered industrial components.
+- Source: Synthetic official company profile
+- Publication date: 2026-09-01
+- Retrieval date: 2026-09-04
+- Scope: Synthetic company-wide description used only for automated package testing.
+- Status: supported
+`, "utf8");
+    await writeFile(assets, `# Asset ledger
+
+## Asset 1
+- Creator: Top Tier Talent Group
+- Source page: repository://skills/recruiter/modules/brandedresume/assets/tttg_logo.png
+- Direct asset URL or generated-file path: ${logo}
+- Licence: Internal approved brand asset
+- Allowed use: Deterministic package validation
+- Modifications: None beyond proportional layout scaling
+- Rendered caption: Synthetic visual used only for automated package testing
+`, "utf8");
 
     const builder = runPython(path.join(skills, "recruiter/modules/interview-prep-material/scripts/build_interview_prep_material.py"), ["--data", dataPath, "--out", pdf, "--bounds", bounds]);
     assert.equal(builder.status, 0, builder.stderr || builder.stdout);
@@ -411,6 +474,7 @@ test("synthetic branded resume artifact QA renders every page and records automa
     const info = spawnSync("pdfinfo", [output], { encoding: "utf8" }).stdout;
     const pages = Number(info.match(/^Pages:\s+(\d+)/m)?.[1] || 0);
     assert.ok(pages > 0);
+    assert.match(info, /^Page size:\s+612 x 792 pts \(letter\)$/m);
     const imagePrefix = path.join(dir, "page");
     const render = spawnSync("pdftoppm", ["-png", "-r", "72", output, imagePrefix], { encoding: "utf8" });
     assert.equal(render.status, 0, render.stderr);
@@ -439,5 +503,13 @@ test("synthetic branded resume artifact QA renders every page and records automa
     await writeFile(completedInput, JSON.stringify(completed), "utf8");
     const qaAccepted = spawnSync("node", [path.join(skills, "recruiter/scripts/validate-artifact-qa.mjs"), completedInput], { encoding: "utf8" });
     assert.equal(qaAccepted.status, 0, qaAccepted.stderr || qaAccepted.stdout);
+
+    const oddInput = path.join(dir, "odd-skills.json");
+    const oddOutput = path.join(dir, "odd-skills.pdf");
+    await writeFile(oddInput, JSON.stringify({ ...data.resume, skills: data.resume.skills.slice(0, -1) }), "utf8");
+    const odd = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", oddInput, "--out", oddOutput, "--engine", "reportlab"], { encoding: "utf8" });
+    assert.notEqual(odd.status, 0, "odd Core Skills must fail closed");
+    assert.match(odd.stdout + odd.stderr, /Core Skills count is odd/);
+    assert.equal(exists(oddOutput), false);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });

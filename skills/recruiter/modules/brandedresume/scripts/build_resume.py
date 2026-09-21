@@ -383,7 +383,8 @@ def main():
 
     n = len(data.get("skills", []))
     if n % 2 != 0:
-        print(f"WARNING: Core Skills count is odd ({n}). The grid looks best with an even number.")
+        print(f"ERROR: Core Skills count is odd ({n}). Add or remove one source-backed skill before building.")
+        sys.exit(4)
 
     out = os.path.abspath(args.out)
     chrome = find_chrome()

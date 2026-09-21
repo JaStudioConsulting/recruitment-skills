@@ -14,7 +14,6 @@ export const documentKindSchema = z.enum([
   "submission",
   "email",
   "loxo_update",
-  "capability_runs",
 ]);
 
 export const createRoleSchema = z.object({
@@ -60,7 +59,8 @@ export const saveDocumentSchema = z.object({
     message: "Document content is required.",
   }),
   origin: z.enum(["generated", "edited"]).default("edited"),
-  sourceRefs: z.array(z.string().trim().min(1).max(200)).max(100).default([]),
+  sourceRefs: z.array(z.string().trim().min(1).max(200)).max(100).optional(),
+  capabilityRunId: z.string().trim().min(1).max(200).nullable().optional(),
 });
 
 export const sourceKindSchema = z.enum([

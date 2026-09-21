@@ -11,8 +11,19 @@ export function defaultDocumentContent(
 ): CaseDocument["content"] {
   if (kind === "resume") return EMPTY_RESUME;
   if (kind === "submission") return EMPTY_SUBMISSION;
-  if (kind === "capability_runs") return {};
   return "";
+}
+
+/**
+ * Omitting source refs means the saved version is an edit of the existing
+ * output and keeps its provenance. Passing an array, including an empty one,
+ * is an explicit replacement.
+ */
+export function resolveDocumentSourceRefs(
+  sourceRefs: readonly string[] | undefined,
+  existingSourceRefs: readonly string[],
+): string[] {
+  return [...(sourceRefs ?? existingSourceRefs)];
 }
 
 /**

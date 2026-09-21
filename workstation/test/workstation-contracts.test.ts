@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { caseDocuments } from "../db/schema";
+
 import {
   ALLOWED_PROVIDER_IDS,
   CapabilityUnavailableError,
@@ -51,11 +53,15 @@ import {
 } from "../lib/contracts/workstation";
 import { mergeCandidateCaseSnapshots } from "../lib/case-merge";
 import { buildCaseHistoryEntries } from "../lib/case-history";
-import { completeStoredDocuments } from "../lib/document-model";
+import {
+  completeStoredDocuments,
+  resolveDocumentSourceRefs,
+} from "../lib/document-model";
 import {
   DOCUMENT_KINDS,
   GENERATED_OUTPUT_KINDS,
   STORED_DOCUMENT_KINDS,
+  isStoredDocumentKind,
   type CandidateCase,
   type StoredDocumentKind,
 } from "../lib/workstation-types";
@@ -175,7 +181,6 @@ function caseFixture(revisions: {
       submission: document("submission", 1),
       email: document("email", 1),
       loxo_update: document("loxo_update", revisions.loxo_update ?? 1),
-      capability_runs: document("capability_runs", 1),
     },
     sources: [],
     updatedAt: "2026-09-17T12:00:00.000Z",
@@ -258,12 +263,7 @@ describe("stored document compatibility", () => {
       content: "",
       updatedAt: "",
     });
-    expect(completed.capability_runs).toEqual({
-      kind: "capability_runs",
-      revision: 0,
-      content: {},
-      updatedAt: "",
-    });
+    expect(completed).not.toHaveProperty("capability_runs");
   });
 
   it("preserves an already materialized Loxo update", () => {
@@ -279,6 +279,16 @@ describe("stored document compatibility", () => {
       revision: 6,
       content: "- Salary expectation: $110,000",
     });
+  });
+
+  it("retains source refs for an edit unless the caller explicitly replaces them", () => {
+    const existing = ["resume-1:sha-a", "transcript-1:sha-b"];
+
+    expect(resolveDocumentSourceRefs(undefined, existing)).toEqual(existing);
+    expect(resolveDocumentSourceRefs([], existing)).toEqual([]);
+    expect(resolveDocumentSourceRefs(["resume-2:sha-c"], existing)).toEqual([
+      "resume-2:sha-c",
+    ]);
   });
 });
 
@@ -797,9 +807,12 @@ describe("workstation request schemas", () => {
       "submission",
       "email",
       "loxo_update",
-      "capability_runs",
     ]);
     expect(DOCUMENT_KINDS).toEqual(["resume", "write_up", "submission", "email"]);
+    // Existing D1 rows remain readable at the storage boundary, but are no
+    // longer exposed as a workstation document or accepted by document APIs.
+    expect(caseDocuments.kind.enumValues).toContain("capability_runs");
+    expect(isStoredDocumentKind("capability_runs")).toBe(false);
   });
 
   it("accepts only declared case and document enums", () => {
@@ -808,9 +821,10 @@ describe("workstation request schemas", () => {
     }
     expect(caseStatusSchema.safeParse("submitted_without_approval").success).toBe(false);
 
-    for (const kind of ["resume", "write_up", "submission", "email", "loxo_update", "capability_runs"]) {
+    for (const kind of ["resume", "write_up", "submission", "email", "loxo_update"]) {
       expect(documentKindSchema.parse(kind)).toBe(kind);
     }
+    expect(documentKindSchema.safeParse("capability_runs").success).toBe(false);
     expect(documentKindSchema.safeParse("tracker_update").success).toBe(false);
   });
 
@@ -846,12 +860,17 @@ describe("workstation request schemas", () => {
   });
 
   it("allows revision 0 only for repository-controlled first materialization and validates safe source kinds", () => {
-    expect(
-      saveDocumentSchema.safeParse({
-        expectedRevision: 2,
-        content: { time: 1, blocks: [{ type: "paragraph", data: { text: "Saved text" } }] },
-      }).success,
-    ).toBe(true);
+    const edit = saveDocumentSchema.parse({
+      expectedRevision: 2,
+      content: { time: 1, blocks: [{ type: "paragraph", data: { text: "Saved text" } }] },
+    });
+    expect(edit.origin).toBe("edited");
+    expect(edit).not.toHaveProperty("sourceRefs");
+    expect(saveDocumentSchema.parse({
+      expectedRevision: 2,
+      content: "Remove provenance intentionally",
+      sourceRefs: [],
+    }).sourceRefs).toEqual([]);
     expect(saveDocumentSchema.safeParse({ expectedRevision: 0, content: "Loxo update bullets" }).success).toBe(true);
     expect(saveDocumentSchema.safeParse({ expectedRevision: -1, content: {} }).success).toBe(false);
     for (const kind of ["job_description", "resume", "transcript", "call_notes", "pasted_text", "other"]) {

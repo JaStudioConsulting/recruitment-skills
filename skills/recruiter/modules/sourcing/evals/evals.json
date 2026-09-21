@@ -37,7 +37,7 @@
       "expectations": [
         "The run creates one generic CSV, one Loxo-ready CSV, and result.md in the outputs directory.",
         "The generic CSV header exactly matches Full Name, Title, Company, Location, LinkedIn, Status, Fit/Priority, Confidence, Evidence, Gaps/Risks, Notes.",
-        "The Loxo CSV header exactly matches First Name, Last Name, Full Name, Title, Company, Location, LinkedIn, Tags, Notes.",
+        "The Loxo CSV header exactly matches First Name, Last Name, Full Name, Title, Company, Location, LinkedIn, Eligibility, Evidence Status, Tags, Notes.",
         "Each CSV contains exactly three unique data rows after removing one repeated header and one duplicate Synthetic Candidate A profile.",
         "No Loxo import or external write occurs; the skill only prepares files.",
         "result.md reports both output paths, verifies both headers, and states the exported row count."

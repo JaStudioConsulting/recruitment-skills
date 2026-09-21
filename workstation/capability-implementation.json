@@ -1,0 +1,353 @@
+{
+  "schema_version": 2,
+  "capabilities": {
+    "applicant-screening": {
+      "workflow_group": "candidate_work",
+      "inputs": ["Job description", "Applicant resumes or profiles"],
+      "context": ["Job", "Candidate batch"],
+      "output": "Individual full screening report with requirement-match scoring, strengths, concerns, suggested interview questions, and recommendation; batch screening also includes a ranked comparison table",
+      "runtime": "Grounded drafting executor",
+      "operations": [
+        { "id": "individual-screening", "label": "Screen one applicant", "stage": "analysis", "approval": "none", "output": "Full candidate screening report with identity, role, date, tier, overall score, requirement-match table, strengths, concerns, interview questions, and recommendation" },
+        { "id": "batch-screening", "label": "Screen an applicant batch", "stage": "analysis", "approval": "none", "output": "One full screening report per applicant plus a ranked batch comparison table" }
+      ],
+      "status": "interface_only",
+      "blocker": "The repository guide is present, but the workstation has no mounted screening executor or persisted screening run.",
+      "evidence": ["skills/recruiter/modules/applicant-screening/GUIDE.md"]
+    },
+    "brandedresume": {
+      "workflow_group": "candidate_work",
+      "inputs": ["Reviewed resume or candidate material", "Resolved clarification gaps"],
+      "context": ["Candidate", "Job when tailoring is requested"],
+      "output": "Source-grounded Top Tier Talent Group branded PDF resume with completed visual QA evidence",
+      "runtime": "Repository Python PDF builder plus artifact storage and visual QA",
+      "operations": [
+        { "id": "build-branded-resume", "label": "Build branded resume", "stage": "build", "approval": "none", "output": "Source-grounded Top Tier Talent Group branded PDF resume" },
+        { "id": "visual-qa", "label": "Complete visual QA", "stage": "quality_assurance", "approval": "preview", "output": "Page-by-page artifact QA evidence bound to the exact PDF" }
+      ],
+      "status": "blocked",
+      "blocker": "Execution is disabled because the active authorities conflict and no exact legislator override exists. The branded-resume guide and builder require Letter, Arial, a centered logo, and black styling, while the immutable legislator rulebook requires A4, Noto Sans, a left-positioned logo, a 24pt charcoal name, and 2px heading rules. Global Rules also ban the education em dash that the legislator rulebook requires. In addition, the hosted builder does not attest its repository commit or builder digest, the Workstation does not collect named submission versus MPC mode, and authority preflight for unresolved employer, date, location, degree, metric, and role-specific fit gaps is not connected. The artifact store and visual-QA lifecycle are implemented and tested, but they cannot make a noncompliant build executable.",
+      "evidence": ["skills/recruiter/modules/brandedresume/scripts/build_resume.py", "test/package-contracts.test.mjs", "workstation/lib/server/resume-builder.ts", "workstation/lib/server/capability-executors/artifact.ts", "workstation/lib/server/case-artifact-store.ts", "workstation/test/resume-builder.test.ts", "workstation/test/artifact-capability-executor.test.ts", "workstation/test/artifact-capability-execution-service.test.ts", "workstation/test/case-artifact-store.test.ts"]
+    },
+    "candidate-defense": {
+      "workflow_group": "candidate_work",
+      "inputs": ["Reviewed resume", "Job description or role brief", "Call notes when available", "Known client objection when stated"],
+      "context": ["Candidate", "Job"],
+      "output": "Defense brief, submission email, or grounded resume reframe for the selected mode",
+      "runtime": "Grounded drafting executor",
+      "operations": [
+        { "id": "defense-brief", "label": "Create defense brief", "stage": "analysis", "approval": "none", "output": "Evidence-grounded objection analysis, defense, remaining risks, and bottom line" },
+        { "id": "submission-email", "label": "Draft defense-framed submission", "stage": "draft", "approval": "explicit", "output": "Defense-framed submission email only after fresh confirmation following the defense brief" },
+        { "id": "resume-reframe", "label": "Draft resume reframe", "stage": "draft", "approval": "explicit", "output": "Grounded resume reframe only after fresh confirmation following the prior mode" }
+      ],
+      "status": "interface_only",
+      "blocker": "The workstation has no mounted mode-aware defense executor, persisted defense output, or fresh confirmation gate between the authority's analysis and deliverable stages.",
+      "evidence": ["skills/recruiter/modules/candidate-defense/GUIDE.md"]
+    },
+    "complete-reference-check": {
+      "workflow_group": "artifacts",
+      "inputs": ["Reference transcript or direct notes", "Candidate and applied-role context", "Referee and completion metadata"],
+      "context": ["Candidate", "Job", "Reference call"],
+      "output": "Completed reference-check PDF from the sanitized repository template with visual QA evidence",
+      "runtime": "Repository DOCX builder, document renderer, PDF storage, and visual QA",
+      "operations": [
+        { "id": "build-reference-check", "label": "Build reference-check PDF", "stage": "build", "approval": "none", "output": "Completed reference-check PDF from the repository template" },
+        { "id": "visual-qa", "label": "Complete visual QA", "stage": "quality_assurance", "approval": "preview", "output": "Page-by-page artifact QA evidence bound to the exact PDF" }
+      ],
+      "status": "partial",
+      "blocker": "The hosted adapter now invokes the canonical sanitized-DOCX builder and fails closed instead of substituting a newly drawn PDF. The deployed runtime's canonical DOCX-to-PDF renderer remains unverified, the workstation does not yet assemble the full source-bound answer schema from the reference evidence, and no mounted browser path produces the rendered-page and human visual-QA evidence. The executor therefore remains unmounted until that complete path is proven.",
+      "evidence": ["skills/recruiter/modules/complete-reference-check/scripts/build_reference_check.py", "server/artifacts.py", "test/reference-builder.test.mjs", "test/package-contracts.test.mjs"]
+    },
+    "cover-letter": {
+      "workflow_group": "writing",
+      "inputs": ["Candidate background", "Target Job and company", "Supported achievements", "Tone and referral context when relevant"],
+      "context": ["Candidate", "Job", "Client or company"],
+      "output": "Editable tailored cover-letter draft grounded in candidate evidence, the target Job, and current company-specific research",
+      "runtime": "Grounded drafting executor plus approved company research",
+      "operations": [
+        { "id": "research-target-company", "label": "Research target company", "stage": "research", "approval": "none", "output": "Current sourced company-specific findings for the cover-letter paragraph" },
+        { "id": "draft-cover-letter", "label": "Draft cover letter", "stage": "draft", "approval": "none", "output": "Editable source-grounded cover-letter draft" }
+      ],
+      "status": "interface_only",
+      "blocker": "The repository guide is present, but the workstation has no mounted cover-letter executor, approved current-company research adapter, source ledger, or persisted result. Resume and Job-description input alone cannot satisfy the required company-specific paragraph.",
+      "evidence": ["skills/recruiter/modules/cover-letter/GUIDE.md"]
+    },
+    "ja-candidate-vetting": {
+      "workflow_group": "candidate_work",
+      "inputs": ["Candidate evidence", "Role requirements", "Call evidence when available"],
+      "context": ["Candidate", "Job"],
+      "output": "Evidence-grounded candidate fit decision with risks and next action",
+      "runtime": "Grounded vetting executor",
+      "operations": [
+        { "id": "assess-candidate-fit", "label": "Assess candidate fit", "stage": "analysis", "approval": "none", "output": "Evidence-grounded candidate fit decision with risks and next action" }
+      ],
+      "status": "interface_only",
+      "blocker": "The repository module is not connected to a dedicated workstation executor or persisted result.",
+      "evidence": ["skills/recruiter/modules/ja-candidate-vetting/GUIDE.md"]
+    },
+    "ja-writer": {
+      "workflow_group": "writing",
+      "inputs": ["Writing purpose", "Audience or recipient context", "Confirmed facts", "Requested format"],
+      "context": ["Candidate when relevant", "Job when relevant", "Ja voice rules"],
+      "output": "Editable draft in Ja's repository-defined voice",
+      "runtime": "Grounded drafting executor with Ja style reference",
+      "operations": [
+        { "id": "draft-in-ja-voice", "label": "Draft in Ja's voice", "stage": "draft", "approval": "none", "output": "Editable draft in Ja's repository-defined voice" }
+      ],
+      "status": "interface_only",
+      "blocker": "The workstation contains an unmounted email feature, but no registry-backed Ja Writer executor and persisted run are exposed.",
+      "evidence": ["skills/recruiter/modules/ja-writer/GUIDE.md", "skills/recruiter/modules/ja-writer/references/ja-style.md"]
+    },
+    "job-loxo": {
+      "workflow_group": "job_client_work",
+      "inputs": ["Confirmed role details or Job description", "Client and location facts", "Compensation evidence when used"],
+      "context": ["Job", "Client"],
+      "output": "Compliant Job-posting draft and, only after approval, a verified Loxo Job outcome",
+      "runtime": "Drafting executor, salary research helper, and approved Loxo Job adapter",
+      "operations": [
+        { "id": "draft-job-posting", "label": "Draft job posting", "stage": "draft", "approval": "none", "output": "Compliant editable Job-posting draft" },
+        { "id": "publish-loxo-job", "label": "Publish Loxo Job", "stage": "external_write", "approval": "explicit", "output": "Verified Loxo Job write with readback evidence" }
+      ],
+      "status": "interface_only",
+      "blocker": "Draft guidance and a salary helper exist, but no connected Loxo Job adapter, approval route, or readback exists in the workstation.",
+      "evidence": ["skills/recruiter/modules/job-loxo/GUIDE.md", "skills/recruiter/modules/job-loxo/scripts/adzuna_salary_lookup.py"]
+    },
+    "legislator": {
+      "workflow_group": "artifacts",
+      "inputs": ["Recruiting document content", "Applicable document type"],
+      "context": ["Artifact", "Repository document rules"],
+      "output": "Top-to-bottom compliance checklist marking every rule Compliant, Violation, or Not Implemented, with exact file and line evidence for each violation",
+      "runtime": "Supporting policy consumed by artifact executors",
+      "operations": [
+        { "id": "audit-document", "label": "Audit document compliance", "stage": "quality_assurance", "approval": "none", "output": "Top-to-bottom compliance checklist with exact file and line evidence" }
+      ],
+      "status": "interface_only",
+      "blocker": "The policy is indexed, but the workstation has no mounted compliance-check executor or persisted checklist. The current branded-resume guide and builder also conflict with the immutable rulebook, so Legislator cannot truthfully be claimed as consumed until that conflict is resolved by the exact override protocol or implementation alignment.",
+      "evidence": ["skills/recruiter/modules/legislator/GUIDE.md"]
+    },
+    "linkedin-posts": {
+      "workflow_group": "writing",
+      "inputs": ["Post objective", "Audience", "Confirmed facts", "Call to action when requested"],
+      "context": ["Ja voice rules", "Job or company when relevant"],
+      "output": "Editable LinkedIn package containing the first-line hook, full post with character count, relevant hashtags, image specifications, and a form note when the content is not a plain post",
+      "runtime": "Grounded drafting executor",
+      "operations": [
+        { "id": "draft-linkedin-package", "label": "Draft LinkedIn package", "stage": "draft", "approval": "none", "output": "Editable LinkedIn hook, post, hashtags, image specifications, and applicable form note" }
+      ],
+      "status": "interface_only",
+      "blocker": "An unmounted draft feature exists, but the registry-backed workflow and persisted result are not exposed.",
+      "evidence": ["skills/recruiter/modules/linkedin-posts/GUIDE.md"]
+    },
+    "loxo": {
+      "workflow_group": "pipeline_tracker",
+      "inputs": ["Named read or draft request", "Candidate, Job, or pipeline identity", "Current Loxo evidence"],
+      "context": ["Candidate", "Job", "Loxo record"],
+      "output": "Read-only Loxo result, draft note, fit review, reconciliation result, or a proposed action that is not executed by this capability",
+      "runtime": "Read-only Loxo adapter plus local draft and review logic",
+      "operations": [
+        { "id": "read-loxo", "label": "Read Loxo", "stage": "read", "approval": "none", "output": "Source-grounded read-only Loxo finding or fit review" },
+        { "id": "draft-loxo-note", "label": "Draft Loxo note", "stage": "draft", "approval": "none", "output": "Editable manual Loxo note draft" },
+        { "id": "prepare-action-manifest", "label": "Prepare action manifest", "stage": "preview", "approval": "none", "output": "Proposed exact-record action manifest that performs no mutation" }
+      ],
+      "status": "blocked",
+      "blocker": "The workstation Loxo connector is not connected and the hosted server exposes only placeholder Loxo behavior.",
+      "evidence": ["workstation/lib/server/connectors.ts", "server/server.py"]
+    },
+    "loxo-automation": {
+      "workflow_group": "pipeline_tracker",
+      "inputs": ["Exact supported command", "Current Loxo record state", "Proposed change"],
+      "context": ["Candidate", "Job", "Loxo record"],
+      "output": "Previewed and explicitly approved Loxo action with precondition reread and result readback evidence",
+      "runtime": "Verified Loxo mutation adapter",
+      "operations": [
+        { "id": "prepare-action-preview", "label": "Prepare Loxo action preview", "stage": "preview", "approval": "none", "output": "Immutable exact-record Loxo action preview" },
+        { "id": "execute-approved-action", "label": "Execute approved Loxo action", "stage": "external_write", "approval": "explicit", "output": "Serialized Loxo action with precondition reread and post-write readback evidence" }
+      ],
+      "status": "blocked",
+      "blocker": "No verified Loxo mutation adapter, workstation route, or readback implementation is connected.",
+      "evidence": ["skills/recruiter/modules/loxo-automation/GUIDE.md", "workstation/lib/server/connectors.ts"]
+    },
+    "loxo-readonly-candidate-dashboard": {
+      "workflow_group": "pipeline_tracker",
+      "inputs": ["Current Loxo candidate data in the repository contract"],
+      "context": ["Candidate", "Loxo record"],
+      "output": "Standalone read-only job-specific HTML candidate dashboard with stage, search, Applied, and outreach controls; browser localStorage persistence for Decision and Notes; and CSV and JSON exports",
+      "runtime": "Repository dashboard builder plus verified Loxo read adapter",
+      "operations": [
+        { "id": "read-loxo-job", "label": "Read exact Loxo Job", "stage": "read", "approval": "none", "output": "Current job-specific candidate rows from a verified read-only Loxo adapter" },
+        { "id": "build-dashboard", "label": "Build dashboard", "stage": "build", "approval": "none", "output": "Standalone interactive HTML dashboard that requires no server" },
+        { "id": "edit-local-review", "label": "Edit local Decision and Notes", "stage": "local_edit", "approval": "none", "output": "Decision and Notes saved only in browser localStorage and never written to Loxo" },
+        { "id": "export-csv", "label": "Export dashboard CSV", "stage": "export", "approval": "none", "output": "Local CSV export of the dashboard review" },
+        { "id": "export-json", "label": "Export dashboard JSON", "stage": "export", "approval": "none", "output": "Local JSON export of the dashboard review" }
+      ],
+      "status": "partial",
+      "blocker": "The dashboard builder now validates and preserves arbitrary input stages and includes the required outreach filter under synthetic tests. No live Loxo read adapter or mounted workstation workflow exists, so current-record ingestion and artifact handoff remain unverified.",
+      "evidence": ["skills/recruiter/modules/loxo-readonly-candidate-dashboard/GUIDE.md", "skills/recruiter/modules/loxo-readonly-candidate-dashboard/scripts/build_dashboard.py", "test/loxo-dashboard-runtime.test.mjs", "test/workbench-and-template-contracts.test.mjs"]
+    },
+    "loxo-pipeline": {
+      "workflow_group": "pipeline_tracker",
+      "inputs": ["Current pipeline data", "Named review or action", "Verified Job and candidate identities"],
+      "context": ["Job", "Candidate", "Loxo pipeline"],
+      "output": "Pipeline review or proposed gated pipeline action",
+      "runtime": "Repository pipeline helpers plus verified Loxo adapter",
+      "operations": [
+        { "id": "read-pipeline", "label": "Read pipeline", "stage": "read", "approval": "none", "output": "Current exact-Job pipeline export" },
+        { "id": "build-review", "label": "Build pipeline review", "stage": "review", "approval": "none", "output": "Offline JSON, CSV, and compact card review artifacts" },
+        { "id": "reject-candidates", "label": "Reject candidates", "stage": "external_write", "approval": "explicit", "output": "Serialized rejection actions with precondition reread and rejected_at readback" }
+      ],
+      "status": "partial",
+      "blocker": "Offline helpers now require explicit validated config and a declared transport, fail closed without an adapter, and synthetically verify immutable preview approval, precondition reread, sequential test-of-one execution, rejected_at readback, and no retry after an unknown result. No verified live Loxo read or mutation adapter or mounted workstation execution route exists, so live execution and readback remain unproven.",
+      "evidence": ["skills/recruiter/modules/loxo-pipeline/GUIDE.md", "skills/recruiter/modules/loxo-pipeline/scripts/pull_pipeline.mjs", "skills/recruiter/modules/loxo-pipeline/scripts/build_review.py", "skills/recruiter/modules/loxo-pipeline/scripts/reject.mjs", "test/loxo-pipeline-runtime.test.mjs", "test/loxo-workflows.test.mjs"]
+    },
+    "offer-letter": {
+      "workflow_group": "writing",
+      "inputs": ["Confirmed candidate and company", "Role and start date", "Compensation and employment terms", "Signing authority"],
+      "context": ["Candidate", "Job", "Client"],
+      "output": "Editable offer-letter draft only after every required offer field is confirmed; optional terms are omitted when absent",
+      "runtime": "Grounded drafting executor",
+      "operations": [
+        { "id": "collect-required-offer-details", "label": "Collect required offer details", "stage": "intake", "approval": "none", "output": "Seven complete required offer-information groups" },
+        { "id": "draft-offer-letter", "label": "Draft offer letter", "stage": "draft", "approval": "none", "output": "Editable offer-letter draft with optional terms omitted when absent" }
+      ],
+      "status": "interface_only",
+      "blocker": "The repository guide and an unmounted form definition exist, but no registry-backed executor, persisted offer document, or seven-field completeness gate is exposed. The authority forbids drafting until candidate name, Job title, start date, salary and pay frequency, employment type, manager name and title, and company plus signing authority are all confirmed.",
+      "evidence": ["skills/recruiter/modules/offer-letter/GUIDE.md"]
+    },
+    "interview-prep-material": {
+      "workflow_group": "artifacts",
+      "inputs": ["Exact company and role", "Current Job description", "Confirmed work location", "Approved brand assets and external sources"],
+      "context": ["Job", "Client", "Reusable role artifact"],
+      "output": "Reusable candidate-facing interview-prep PDF with source and asset ledgers plus visual QA",
+      "runtime": "Repository PDF builder, validator, artifact storage, and visual QA",
+      "operations": [
+        { "id": "research-role-brief", "label": "Research role brief", "stage": "research", "approval": "none", "output": "Current sourced company, site, location, and role evidence with source and asset ledgers" },
+        { "id": "build-internal-draft", "label": "Build internal draft PDF", "stage": "draft", "approval": "none", "output": "Watermarked internal-draft interview-prep PDF" },
+        { "id": "release-candidate-pdf", "label": "Release candidate-facing PDF", "stage": "release", "approval": "preview", "output": "Candidate-facing interview-prep PDF after publication-status, validation, and page-by-page visual-QA gates" }
+      ],
+      "status": "partial",
+      "blocker": "The canonical builder and validator pass synthetic tests, durable artifact storage plus the human visual-QA lifecycle are implemented, and the hosted adapter now rejects short ledgers instead of synthesizing replacement evidence. The workflow remains unmounted because the workstation does not assemble the full typed builder payload, ingest current official company and location research, transfer approved licensed assets, or preserve real claim and asset ledgers. Candidate release also lacks the authority-required publication gate, rendered-page images, canonical artifact-QA validation evidence, and completed human per-page review.",
+      "evidence": ["skills/recruiter/modules/interview-prep-material/scripts/build_interview_prep_material.py", "skills/recruiter/modules/interview-prep-material/scripts/validate_interview_prep_material.py", "server/artifacts.py", "test/package-contracts.test.mjs"]
+    },
+    "recruiting-hr": {
+      "workflow_group": "job_client_work",
+      "inputs": ["Selected HR subworkflow", "Relevant organization, role, policy, performance, compensation, interview, offer, or onboarding evidence"],
+      "context": ["Job", "Client", "Organization"],
+      "output": "Planning or draft output from the routed recruiting and HR submodule",
+      "runtime": "Mode-aware grounded drafting executor",
+      "operations": [
+        { "id": "route-hr-subworkflow", "label": "Run selected HR planning or draft subworkflow", "stage": "draft", "approval": "none", "output": "Planning or draft output from the selected repository HR submodule" }
+      ],
+      "status": "interface_only",
+      "blocker": "Nine routed HR submodules exist, but the workstation has no mounted executor or persisted run for them. The child guides reference HRIS, ATS, compensation, knowledge-base, project-tracker, and chat adapters that skills/manifests/plugins.json does not declare, and root tests check package contracts rather than live adapter outcomes.",
+      "evidence": ["skills/recruiter/modules/recruiting-hr/GUIDE.md", "skills/manifests/plugins.json", "test/package-contracts.test.mjs"]
+    },
+    "sourcing": {
+      "workflow_group": "sourcing",
+      "inputs": ["Role or prospect criteria", "Exclusions and conflict rules", "Candidate preferences for opportunity mapping", "Rows to audit when supplied"],
+      "context": ["Job", "Candidate", "Client and conflict rules"],
+      "output": "Evidence-backed candidate or prospect discovery/audit table, candidate opportunity map, full-workflow shortlist, or explicitly approved generic or Loxo-ready CSV export",
+      "runtime": "Public research adapter plus repository normalization and export helpers",
+      "operations": [
+        { "id": "candidate-discovery", "label": "Candidate discovery", "stage": "research", "approval": "none", "output": "Evidence-backed table of newly discovered candidates" },
+        { "id": "candidate-audit", "label": "Candidate audit", "stage": "review", "approval": "none", "output": "Verified and ranked supplied candidate list" },
+        { "id": "candidate-opportunities", "label": "Candidate opportunities", "stage": "research", "approval": "none", "output": "Preference-aware open-role opportunity map for one candidate" },
+        { "id": "prospect-discovery", "label": "Prospect discovery", "stage": "research", "approval": "none", "output": "Evidence-backed table of hiring or business-development contacts" },
+        { "id": "prospect-audit", "label": "Prospect audit", "stage": "review", "approval": "none", "output": "Verified and prioritized supplied prospect list" },
+        { "id": "full-candidate-workflow", "label": "Full candidate workflow", "stage": "research", "approval": "none", "output": "Found, verified, ranked, and shortlisted candidate table" },
+        { "id": "full-prospect-workflow", "label": "Full prospect workflow", "stage": "research", "approval": "none", "output": "Found, verified, prioritized, and shortlisted prospect table" },
+        { "id": "export-generic-csv", "label": "Export generic CSV", "stage": "export", "approval": "explicit", "output": "Generic CSV built only from explicitly approved rows" },
+        { "id": "export-loxo-csv", "label": "Export Loxo-ready CSV", "stage": "export", "approval": "explicit", "output": "Loxo-ready CSV built only from explicitly approved rows" }
+      ],
+      "status": "partial",
+      "blocker": "Normalization, generic and Loxo export schemas, URL-optional name-plus-company fallback dedupe, and explicit-URL conflict preservation are aligned and covered by synthetic tests. No mounted public-research executor, persisted sourcing run, approval record, or live research outcome exists.",
+      "evidence": ["skills/recruiter/modules/sourcing/GUIDE.md", "skills/recruiter/modules/sourcing/references/export.md", "skills/recruiter/modules/sourcing/scripts/sourcing_rows.py", "test/package-contracts.test.mjs"]
+    },
+    "tracker": {
+      "workflow_group": "pipeline_tracker",
+      "inputs": ["Named Tracker operation", "Full live workbook snapshot", "Complete mailbox and source evidence when required", "Exact write authorization for mutations"],
+      "context": ["Candidate", "Job", "Tracker Submissions", "Tracker Leads", "SF Jobs"],
+      "output": "Read result, deterministic change plan, approved write, per-row readback, and final QA evidence",
+      "runtime": "Repository planners plus verified Gmail and Google Sheets adapters",
+      "operations": [
+        { "id": "read", "label": "Check, search, audit, verify, ownership, or SF Jobs read-through", "stage": "read", "approval": "none", "output": "Source-backed read-only Tracker result" },
+        { "id": "prepare-change-plan", "label": "Prepare deterministic change plan", "stage": "preview", "approval": "none", "output": "Offline validated proposed rows or corrections without a write" },
+        { "id": "write-submissions", "label": "Write authorized Submissions changes", "stage": "external_write", "approval": "explicit", "output": "Scoped Submissions writes with per-row readback and final QA" },
+        { "id": "import-leads", "label": "Import authorized Leads", "stage": "external_write", "approval": "explicit", "output": "Validated explicitly authorized Leads import with readback" },
+        { "id": "repair", "label": "Repair exact authorized fields", "stage": "external_write", "approval": "explicit", "output": "Exact source-backed repairs with expected-previous checks, readback, and QA" }
+      ],
+      "status": "partial",
+      "blocker": "Offline Submissions and Leads planners pass tests, but no live Gmail or Sheets adapter, execution route, readback, formatting QA, or visual QA is connected.",
+      "evidence": ["test/tracker.test.mjs", "test/leads.test.mjs", "workstation/lib/server/connectors.ts"]
+    },
+    "tttg-candidate-submission": {
+      "workflow_group": "candidate_work",
+      "inputs": ["Legacy request routed to current write-up and branded resume authority"],
+      "context": ["Candidate", "Job"],
+      "output": "No independent output. Current authority is write-up plus brandedresume.",
+      "runtime": "Compatibility route only",
+      "operations": [
+        { "id": "inspect-authority", "label": "Inspect compatibility authority", "stage": "internal", "approval": "none", "output": "No independent output; route to write-up plus brandedresume" }
+      ],
+      "status": "not_applicable",
+      "blocker": "",
+      "evidence": ["skills/recruiter/modules/tttg-candidate-submission/GUIDE.md"]
+    },
+    "tttg-resume-engine-workspace": {
+      "workflow_group": "artifacts",
+      "inputs": ["Internal evaluation request"],
+      "context": ["Repository artifact evaluation"],
+      "output": "No production output. Production routes through brandedresume.",
+      "runtime": "Internal evaluation material only",
+      "operations": [
+        { "id": "inspect-authority", "label": "Inspect internal evaluation authority", "stage": "internal", "approval": "none", "output": "No production output; route production work through brandedresume" }
+      ],
+      "status": "not_applicable",
+      "blocker": "",
+      "evidence": ["skills/recruiter/modules/tttg-resume-engine-workspace/GUIDE.md"]
+    },
+    "vet": {
+      "workflow_group": "candidate_work",
+      "inputs": ["Reviewed resume", "Job description for fit and submission modes", "Call notes when available"],
+      "context": ["Candidate", "Job"],
+      "output": "Vetting verdict, submission email, parsed resume, or staged full package",
+      "runtime": "Mode-aware grounded vetting and drafting executor",
+      "operations": [
+        { "id": "vet", "label": "Vet candidate", "stage": "analysis", "approval": "none", "output": "Source-grounded fit verdict and gaps only" },
+        { "id": "submission-email", "label": "Draft submission email", "stage": "draft", "approval": "explicit", "output": "Submission email only after fresh confirmation following vetting" },
+        { "id": "parsed-resume", "label": "Draft parsed resume", "stage": "draft", "approval": "explicit", "output": "Parsed resume only after fresh confirmation following the prior mode" },
+        { "id": "full-package", "label": "Create full package", "stage": "draft", "approval": "explicit", "output": "Explicitly requested staged vet, submission, and parsed-resume package" }
+      ],
+      "status": "interface_only",
+      "blocker": "The main workstation builds a simplified package, but it does not expose or persist the repository's staged vet modes, fresh-confirmation stop gates, or a resolved canonical verdict vocabulary. The recruiter router requires GO/NO-GO/NEEDS VERIFICATION, this guide requires NO or FIT: YES/CONDITIONAL, and ja-candidate-vetting requires Yes/No, so the workstation must not normalize these silently.",
+      "evidence": ["skills/recruiter/modules/vet/GUIDE.md", "workstation/components/workstation/recruiter-workstation.tsx"]
+    },
+    "web-sourcing": {
+      "workflow_group": "sourcing",
+      "inputs": ["Titles", "Must-have skills", "Location", "Seniority", "Exclusions"],
+      "context": ["Job", "Client and conflict rules"],
+      "output": "Reviewable evidence table followed by an approved CSV export",
+      "runtime": "Restricted public web search plus repository CSV builder",
+      "operations": [
+        { "id": "research-review-table", "label": "Research and review source table", "stage": "research", "approval": "none", "output": "Seven-column evidence table for review" },
+        { "id": "export-approved-csv", "label": "Export approved CSV", "stage": "export", "approval": "explicit", "output": "CSV generated only after explicit row approval" }
+      ],
+      "status": "partial",
+      "blocker": "The seven-column guide and CSV builder are aligned, and the builder accepts canonical profile_url plus compatible aliases for LinkedIn, Indeed, GitHub, and other HTTP profile URLs under synthetic tests. No mounted restricted public-search executor, persisted sourcing run, approval record, or live sourcing outcome exists.",
+      "evidence": ["skills/recruiter/modules/web-sourcing/GUIDE.md", "skills/recruiter/modules/web-sourcing/scripts/build_csv.py", "test/package-contracts.test.mjs"]
+    },
+    "write-up": {
+      "workflow_group": "candidate_work",
+      "inputs": ["Reviewed candidate material", "Transcript or call notes", "Job description", "Named submission or MPC destination", "Recipient context"],
+      "context": ["Candidate", "Job", "Client"],
+      "output": "One source-grounded submission email draft plus a visually verified branded PDF resume",
+      "runtime": "Grounded package executor, branded resume builder, Gmail draft adapter, artifact storage, and QA",
+      "operations": [
+        { "id": "draft-package", "label": "Draft candidate package", "stage": "draft", "approval": "none", "output": "Persisted source-linked resume, submission, presentation-email, and Loxo-note drafts" },
+        { "id": "release-package", "label": "Release candidate package", "stage": "release", "approval": "preview", "output": "Visually verified branded PDF and reviewed presentation email ready for separately authorized downstream use" }
+      ],
+      "status": "partial",
+      "blocker": "A mounted persisted executor now saves source-linked resume, submission, presentation-email, and Loxo-note draft versions through the canonical run boundary. It does not yet resolve the named submission or MPC destination and recipient, build and store the branded PDF, pass human visual QA, create a Gmail draft with the verified attachment, read that draft back, or record complete package evidence.",
+      "evidence": ["test/package-contracts.test.mjs", "workstation/lib/server/capability-executors/write-up.ts", "workstation/lib/server/capability-execution-service.ts", "workstation/test/write-up-executor.test.ts", "workstation/test/capability-execution-service.test.ts"]
+    }
+  }
+}

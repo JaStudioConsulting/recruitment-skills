@@ -95,7 +95,7 @@ or `Outdated`, before approval or export.
 ### 7. On approval, build the CSV
 Once Ja explicitly approves (e.g. "looks good", "export it", "go"), run
 `scripts/build_csv.py` with the approved rows to write the file. The script takes a JSON
-array of row objects and writes a CSV with the same 5 columns to
+array of row objects and writes a CSV with the same 7 columns to
 `/absolute/path/to/output/<role-slug>-sourcing-<date>.csv`. Pass `--role` for the filename slug.
 
 ```bash

@@ -1,9 +1,11 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from pypdf import PdfReader
 
+import artifacts
 from artifacts import build_interview_pdf, build_reference_pdf, validate_interview_payload, validate_reference_payload
 
 
@@ -31,8 +33,33 @@ class ArtifactTests(unittest.TestCase):
                 "context": {"eyebrow": "The work", "headline": "A production-floor system.", "intro": "Connect planning, technical depth, and follow-through.", "image": logo, "image_caption": "Synthetic context visual.", "columns": [section("Signal to action", "Use reviewed evidence to rank asset risk."), section("Repair to learning", "Use failure learning to update plans.")], "note_title": "Questions", "note_body": "Confirm equipment, team, schedule, and planning system."},
                 "decision": {"eyebrow": "The decision", "headline": "Assess the work and fit.", "intro": "Evaluate professional scope and practical realities.", "images": [{"path": logo, "caption": "Synthetic city visual."}, {"path": logo, "caption": "Synthetic regional visual."}], "sections": [section("Operating challenge", "Judge the assets, failure patterns, team, and support."), section("Practical decision", "Confirm schedule, travel, compensation, and location.")], "cta_title": "Explore the opportunity.", "cta_body": "Speak with Top Tier Talent Group about the next conversation."},
             },
-            "source_ledger": "# Source ledger\n\n- Synthetic current job description.\n- Synthetic official company profile.",
-            "asset_ledger": "# Asset ledger\n\n- Packaged synthetic test visual.\n- Used only for deterministic validation.",
+            "source_ledger": """# Source ledger
+
+## Claim 1
+- Claim: The synthetic role carries maintenance-planning responsibility.
+- Source: Synthetic current job description
+- Publication date: unavailable
+- Retrieval date: 2026-09-18
+- Scope: Exact synthetic role used only for deterministic testing.
+- Status: supported
+
+## Claim 2
+- Claim: The synthetic company produces engineered industrial components.
+- Source: Synthetic official company profile
+- Publication date: 2026-09-01
+- Retrieval date: 2026-09-18
+- Scope: Synthetic company-wide description used only for deterministic testing.
+- Status: supported""",
+            "asset_ledger": f"""# Asset ledger
+
+## Asset 1
+- Creator: Top Tier Talent Group
+- Source page: repository://skills/recruiter/modules/brandedresume/assets/tttg_logo.png
+- Direct asset URL or generated-file path: {logo}
+- Licence: Internal approved brand asset
+- Allowed use: Candidate-facing Top Tier Talent Group recruiting material
+- Modifications: None beyond proportional layout scaling
+- Rendered caption: Synthetic test visual""",
         }
 
     def test_reference_payload_is_closed(self):
@@ -44,7 +71,12 @@ class ArtifactTests(unittest.TestCase):
 
     def test_reference_pdf_builds_through_repository_template(self):
         with tempfile.TemporaryDirectory() as temp:
-            result = build_reference_pdf(self.reference_payload(), temp)
+            with patch("artifacts._run", wraps=artifacts._run) as runner:
+                result = build_reference_pdf(self.reference_payload(), temp)
+            self.assertTrue(any(
+                str(artifacts.REFERENCE_BUILDER) in call.args[0]
+                for call in runner.call_args_list
+            ), "reference build must invoke the canonical repository template builder")
             self.assertTrue(result["ok"])
             self.assertTrue(result["visual_review_required"])
             self.assertGreater(result["bytes"], 1000)
@@ -60,6 +92,8 @@ class ArtifactTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             result = build_interview_pdf(self.interview_payload(), temp)
             self.assertTrue(result["ok"])
+            self.assertFalse(result["release_ready"])
+            self.assertEqual(result["provenance_validation"], "structured_caller_evidence_only")
             self.assertGreater(result["bytes"], 1000)
             self.assertIn('"pages": 4', result["validator_output"])
             self.assertTrue((Path(temp) / f"{result['token']}.pdf").is_file())
@@ -67,6 +101,33 @@ class ArtifactTests(unittest.TestCase):
     def test_interview_payload_rejects_non_contract_shape(self):
         with self.assertRaisesRegex(ValueError, "exact interview-prep"):
             validate_interview_payload({"brief": {}, "source_ledger": "source", "asset_ledger": "asset"})
+
+    def test_interview_payload_rejects_unstructured_ledgers_instead_of_synthesizing_them(self):
+        payload = self.interview_payload()
+        payload["source_ledger"] = "a\nb\nc\nd"
+        with self.assertRaisesRegex(ValueError, "Claim ledger"):
+            validate_interview_payload(payload)
+
+        payload = self.interview_payload()
+        payload["asset_ledger"] = "w\nx\ny\nz"
+        with self.assertRaisesRegex(ValueError, "Asset ledger"):
+            validate_interview_payload(payload)
+
+    def test_candidate_approval_requires_supported_claims_and_complete_asset_mapping(self):
+        payload = self.interview_payload()
+        payload["source_ledger"] = payload["source_ledger"].replace(
+            "Status: supported", "Status: unverified", 1
+        )
+        with self.assertRaisesRegex(ValueError, "supported before candidate-facing approval"):
+            validate_interview_payload(payload)
+
+        payload = self.interview_payload()
+        payload["asset_ledger"] = payload["asset_ledger"].replace(
+            "Direct asset URL or generated-file path:",
+            "Direct asset URL or generated-file path: /wrong/path\n- Original path:",
+        )
+        with self.assertRaisesRegex(ValueError, "unsupported field|missing visuals"):
+            validate_interview_payload(payload)
 
 
 if __name__ == "__main__":

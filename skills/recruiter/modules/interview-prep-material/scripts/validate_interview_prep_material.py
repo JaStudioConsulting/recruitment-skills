@@ -13,6 +13,8 @@ from typing import Any
 
 from pypdf import PdfReader
 
+from ledger_contract import validate_interview_ledgers
+
 
 PLACEHOLDERS = ["lorem ipsum", "placeholder", "[confirm", "[insert", "todo", "tbd"]
 
@@ -107,10 +109,19 @@ def main() -> None:
 
     source_text = sources_path.read_text(encoding="utf-8")
     asset_text = assets_path.read_text(encoding="utf-8")
-    if len(source_text.splitlines()) < 4:
-        raise ValueError("source ledger is too short to document claim provenance")
-    if len(asset_text.splitlines()) < 4:
-        raise ValueError("asset ledger is too short to document visual provenance")
+    used_assets = [
+        data["cover"]["image"],
+        data["role"]["image"],
+        data["context"]["image"],
+        *[image["path"] for image in data["decision"]["images"]],
+    ]
+    validate_interview_ledgers(
+        source_text,
+        asset_text,
+        data["source_control"]["authoritative_sources"],
+        status,
+        used_assets,
+    )
 
     annotations = 0
     for page in reader.pages:

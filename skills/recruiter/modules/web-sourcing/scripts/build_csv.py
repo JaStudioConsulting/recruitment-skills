@@ -6,7 +6,10 @@ Usage:
     cat rows.json | python3 build_csv.py --role "machinist-ohio"
 
 rows.json is a JSON array of objects with keys (any missing key -> blank cell):
-    full_name, company, tenure, linkedin_link, contact_info, eligibility, evidence_status
+    full_name, company, tenure, profile_url, contact_info, eligibility, evidence_status
+
+For backward compatibility, ``linkedin_link``, ``public_profile``, and ``linkedin``
+are accepted aliases for ``profile_url``.
 """
 import argparse
 import csv
@@ -24,7 +27,7 @@ FIELD_MAP = {
     "Full Name": "full_name",
     "Company": "company",
     "Tenure": "tenure",
-    "LinkedIn Link": "linkedin_link",
+    "LinkedIn Link": "profile_url",
     "Contact Info": "contact_info",
     "Eligibility": "eligibility",
     "Evidence Status": "evidence_status",
@@ -42,6 +45,18 @@ def protect_csv(value):
     return "'" + value if value.startswith(("=", "+", "-", "@")) else value
 
 
+def profile_url(row):
+    for key in ("profile_url", "linkedin_link", "public_profile", "linkedin"):
+        value = str(row.get(key, "")).strip()
+        if value:
+            return value
+    return ""
+
+
+def field_value(row, column):
+    return profile_url(row) if column == "LinkedIn Link" else row.get(FIELD_MAP[column], "")
+
+
 def normalize_rows(rows):
     cleaned, seen = [], set()
     headers_removed = duplicates_removed = 0
@@ -57,9 +72,9 @@ def normalize_rows(rows):
             raise SystemExit(f"row {index}: Eligibility must be Eligible or Excluded")
         if evidence_status not in EVIDENCE_STATUSES:
             raise SystemExit(f"row {index}: Evidence Status must be Verified, Unconfirmed, Conflicting, or Outdated")
-        parsed = urlparse(str(row.get("linkedin_link", "")).strip())
+        parsed = urlparse(profile_url(row))
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-            raise SystemExit(f"row {index}: LinkedIn Link must be a direct http(s) profile/evidence URL")
+            raise SystemExit(f"row {index}: Profile URL must be a direct http(s) profile/evidence URL")
         profile = f"https://{parsed.netloc.lower()}{parsed.path.rstrip('/')}"
         key = "url:" + profile
         if key in seen:
@@ -95,7 +110,7 @@ def main():
         writer = csv.writer(f)
         writer.writerow(COLUMNS)
         for row in cleaned:
-            writer.writerow([protect_csv(row.get(FIELD_MAP[col], "")) for col in COLUMNS])
+            writer.writerow([protect_csv(field_value(row, col)) for col in COLUMNS])
     os.replace(temp_path, outpath)
 
     print(json.dumps({"output": str(outpath), "input_rows": len(rows), "exported_rows": len(cleaned), "headers_removed": headers_removed, "duplicates_removed": duplicates_removed}, indent=2))
