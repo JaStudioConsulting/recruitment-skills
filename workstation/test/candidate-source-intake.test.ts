@@ -89,7 +89,7 @@ describe("atomic source-first candidate intake", () => {
     mocks = harness();
   });
 
-  it("reuses the exact resume for the same Job without creating or uploading twice", async () => {
+  it("reuses the exact resume for the same Job and refreshes its immutable object", async () => {
     const first = await intakeNewCandidateResumeWithDependencies({
       userId: USER_ID,
       roleId: ROLE_ID,
@@ -108,7 +108,8 @@ describe("atomic source-first candidate intake", () => {
     expect(repeated.candidate.id).toBe(first.candidate.id);
     expect(repeated.candidateCase.id).toBe(first.candidateCase.id);
     expect(mocks.persistAtomic).toHaveBeenCalledTimes(1);
-    expect(mocks.putObject).toHaveBeenCalledTimes(1);
+    expect(mocks.putObject).toHaveBeenCalledTimes(2);
+    expect(mocks.putObject.mock.calls[1][0]).toBe(mocks.putObject.mock.calls[0][0]);
   });
 
   it("does not merge different resume bytes merely because the reviewed name matches", async () => {

@@ -194,7 +194,15 @@ async function storeSource(input: {
   const { intake, sha256 } = resolved;
 
   const existing = await getActiveCaseSourceBySha256(input.userId, input.caseId, sha256);
-  if (existing) return;
+  if (existing) {
+    // An exact-byte replay is safe and also repairs a previously committed row
+    // whose R2 object was truncated before the upload-buffer detachment fix.
+    await bucket.put(`cases/${input.caseId}/sources/${existing.id}`, bytes, {
+      httpMetadata: { contentType: input.contentType },
+      customMetadata: { sha256 },
+    });
+    return;
+  }
 
   await bucket.put(storageKey, bytes, {
     onlyIf: { etagDoesNotMatch: "*" },
@@ -357,13 +365,16 @@ export async function intakeNewCandidateResumeWithDependencies(
     deterministicIntakeUuid("source", input.userId, input.roleId, identityFingerprint),
   ]);
 
-  const existing = await dependencies.getExisting(input.userId, caseId);
-  if (existing) return existing;
-
   // The object key is content-derived. Concurrent/retry puts therefore write
   // the same immutable bytes to the same key instead of creating orphan
   // staging objects that cannot safely be reconciled with a D1 commit.
   const storageKey = `cases/${caseId}/sources/${sourceId}`;
+  const existing = await dependencies.getExisting(input.userId, caseId);
+  if (existing) {
+    await dependencies.putObject(storageKey, bytes, contentType, resolved.sha256);
+    return existing;
+  }
+
   await dependencies.putObject(storageKey, bytes, contentType, resolved.sha256);
   try {
     const result = await dependencies.persistAtomic(input.userId, {
@@ -492,7 +503,13 @@ async function storeRoleSource(input: {
   const { intake, sha256 } = resolved;
   assertJobSourceKind(intake.kind);
   const existing = await getActiveRoleSourceBySha256(input.userId, input.roleId, sha256);
-  if (existing) return;
+  if (existing) {
+    await bucket.put(`roles/${input.roleId}/sources/${existing.id}`, bytes, {
+      httpMetadata: { contentType: input.contentType },
+      customMetadata: { sha256 },
+    });
+    return;
+  }
 
   await bucket.put(storageKey, bytes, {
     onlyIf: { etagDoesNotMatch: "*" },
