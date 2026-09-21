@@ -14,6 +14,7 @@ import {
   Play,
   Plus,
   Search,
+  Trash2,
   Type,
   Upload,
   UploadCloud,
@@ -21,6 +22,16 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { HandwritingCanvas } from "@/components/workstation/handwriting-canvas";
 import { ResumeFormEditor } from "@/components/workstation/resume-form";
 import { WorkflowBrowser, type WorkflowExecutionFeedback } from "@/components/workstation/workflow-browser";
@@ -418,6 +429,8 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const [outputVersionState, setOutputVersionState] = useState<OutputVersionState | null>(null);
   const [packageBusy, setPackageBusy] = useState(false);
   const [workflowsOpen, setWorkflowsOpen] = useState(false);
+  const [deleteRoleOpen, setDeleteRoleOpen] = useState(false);
+  const [deleteRoleBusy, setDeleteRoleBusy] = useState(false);
   const [workflowExecutionFeedback, setWorkflowExecutionFeedback] = useState<WorkflowExecutionFeedback | null>(null);
   const [capabilityRuns, setCapabilityRuns] = useState<CapabilityRunRecord[]>([]);
   const [capabilityRunsLoading, setCapabilityRunsLoading] = useState(false);
@@ -449,6 +462,8 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   useEffect(() => {
     outputKindRef.current = outputKind;
   }, [outputKind]);
+
+  const activeRole = roles.find((role) => role.id === roleId) ?? null;
 
   const clearActionFeedback = useCallback(() => {
     setActionErrorMessage("");
@@ -721,6 +736,27 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       if (latestRequestIsCurrent(caseSelectionRequestRef, requestToken)) setLoading(false);
     }
   }, [caseSaveState, cases, clearActionFeedback, outputEditBusy, outputEditSession, persistCase, replaceCase, showActionError]);
+
+  const deleteSelectedRole = useCallback(async () => {
+    if (!activeRole || deleteRoleBusy) return;
+    setDeleteRoleBusy(true);
+    try {
+      if (caseTimer.current) clearTimeout(caseTimer.current);
+      await workstationApi.deleteRole(activeRole.id);
+      roleIdRef.current = "";
+      setRoleId("");
+      setCandidateId("");
+      activeCaseRef.current = null;
+      setActiveCase(null);
+      setDeleteRoleOpen(false);
+      await loadWorkspace();
+      setActionMessage("Job deleted.");
+    } catch (error) {
+      showActionError(error, "The Job could not be deleted.");
+    } finally {
+      setDeleteRoleBusy(false);
+    }
+  }, [activeRole, deleteRoleBusy, loadWorkspace, showActionError]);
 
   const startResize = useCallback((event: React.PointerEvent) => {
     event.preventDefault();
@@ -1353,7 +1389,6 @@ export function RecruiterWorkstation({ user }: { user: User }) {
   const resumeSourceUrl = activeCase && selectedResume
     ? `/api/cases/${activeCase.id}/sources/${selectedResume.id}?inline=1`
     : "";
-  const activeRole = roles.find((role) => role.id === roleId) ?? null;
   const activeCandidate = candidates.find((candidate) => candidate.id === candidateId) ?? null;
   const outputVersions = activeCase
     ? outputVersionsForScope(outputVersionState, activeCase.id, outputKind)
@@ -1370,7 +1405,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     actionMessage === actionErrorMessage ||
     /could not|failed|select|choose|save or cancel|required|not run|cannot|changed before|no mounted|review the candidate name/i.test(actionMessage)
   );
-  const actionDialogOpen = addSourcesOpen || Boolean(creationMode) || pasteOpen || workflowsOpen;
+  const actionDialogOpen = addSourcesOpen || Boolean(creationMode) || pasteOpen || workflowsOpen || deleteRoleOpen;
   const pastedSourceCanSave = Boolean(pendingJobFile || pendingCandidateFile || pastedSource.trim()) && !sourceBusy && !intakeBusy && (
     pasteScope === "candidate"
       ? sourceTarget === "new_candidate" || !activeCase
@@ -1423,6 +1458,8 @@ export function RecruiterWorkstation({ user }: { user: User }) {
               <DropdownMenuItem onSelect={() => void startNewJobFromSource()}><UploadCloud />New Job from source</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => openCreationDialog("role")}><FolderOpen />Add Job manually</DropdownMenuItem>
               <DropdownMenuItem disabled={!roleId} onSelect={() => openCreationDialog("candidate")}><UserRound />Add candidate manually</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" disabled={!activeRole} onSelect={() => setDeleteRoleOpen(true)}><Trash2 />Delete Job</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -1542,6 +1579,21 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       </DialogContent></Dialog>
 
       <Dialog open={Boolean(creationMode)} onOpenChange={(open) => { if (!open) closeCreationDialog(); }}><DialogContent><DialogHeader><DialogTitle>{creationMode === "role" ? "New Job folder" : "Add candidate"}</DialogTitle><DialogDescription>{creationMode === "role" ? "Save the role and company for reusable Job context." : "Save the candidate for use across recruiter workflows."}</DialogDescription></DialogHeader><div className="dialog-fields"><label>{creationMode === "role" ? "Job title" : "Candidate name"}<Input value={creationPrimary} onChange={(event) => setCreationPrimary(event.target.value)} /></label><label>{creationMode === "role" ? "Client or company" : "Current title"}<Input value={creationSecondary} onChange={(event) => setCreationSecondary(event.target.value)} /></label></div>{actionNeedsAttention ? <p className="dialog-action-error" role="alert">{actionMessage}</p> : null}<DialogFooter><Button variant="outline" onClick={closeCreationDialog}>Cancel</Button><Button onClick={() => void submitCreation()} disabled={!creationPrimary.trim() || (creationMode === "role" && !creationSecondary.trim())}>Add</Button></DialogFooter></DialogContent></Dialog>
+
+      <AlertDialog open={deleteRoleOpen} onOpenChange={(open) => { if (!deleteRoleBusy) setDeleteRoleOpen(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this Job?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {activeRole ? `${activeRole.title}${activeRole.client ? ` · ${activeRole.client}` : ""}` : "This Job"} and its candidate cases, attached sources, notes, drafts and generated artifacts will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteRoleBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" disabled={deleteRoleBusy} onClick={() => void deleteSelectedRole()}>{deleteRoleBusy ? "Deleting..." : "Delete Job"}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={pasteOpen} onOpenChange={(open) => { if (!open) closePasteDialog(); }}><DialogContent><DialogHeader><DialogTitle>{pendingJobFile ? "Review Job source" : pendingCandidateFile ? "Review candidate source" : `Paste ${pasteScope === "job" ? "Job source" : "candidate source"}`}</DialogTitle><DialogDescription>{pendingJobFile ? "The original file stays unchanged. Review the detected classification and Job identity." : pendingCandidateFile ? "The original file stays unchanged. Confirm only identity found in the source, or assign non-resume evidence to an existing candidate." : "Paste the complete source. It is classified before anything is created."}</DialogDescription></DialogHeader><Textarea aria-label={pasteScope === "job" ? "Job source text" : "Candidate source text"} value={pastedSource} readOnly={Boolean(pendingJobFile || pendingCandidateFile)} onChange={(event) => {
         const value = event.target.value;

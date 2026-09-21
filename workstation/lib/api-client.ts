@@ -8,6 +8,7 @@ import type { CapabilityPreparationResponse } from "./server/capability-service"
 import type { CapabilityExecutionResponse } from "./server/capability-execution-service";
 import type { CapabilityRunRecord } from "./server/capability-run-repository";
 import type { UploadedSourceProposal } from "./source-intake";
+import type { DeleteJobFolderResult } from "./server/job-folder-delete";
 import type { CandidateCase, CandidateRecord, CandidateSourceIntakeResult, CaseDocument, DocumentVersion, JobSource, RoleRecord, SourceKind, StoredDocumentKind, WorkspacePayload } from "./workstation-types";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -25,6 +26,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 export const workstationApi = {
   load: () => request<WorkspacePayload>("/api/workspace"),
   createRole: (input: { title: string; client: string }) => request<RoleRecord>("/api/roles", { method: "POST", body: JSON.stringify(input) }),
+  deleteRole: (roleId: string) => request<DeleteJobFolderResult>(`/api/roles/${roleId}`, { method: "DELETE" }),
   createCandidate: (input: { name: string; currentTitle: string }) => request<CandidateRecord>("/api/candidates", { method: "POST", body: JSON.stringify(input) }),
   openCase: (input: { roleId: string; candidateId: string }) => request<CandidateCase>("/api/cases", { method: "POST", body: JSON.stringify(input) }),
   updateCase: (caseId: string, input: { expectedRevision: number; notes?: string; notesDrawingSvg?: string; notesFont?: string; notesSize?: number; status?: string }) => request<CandidateCase>(`/api/cases/${caseId}`, { method: "PATCH", body: JSON.stringify(input) }),

@@ -80,6 +80,9 @@ describe("bounded recruiter workstation layout", () => {
     expect(workstation).toContain('role="tab" aria-selected={workspaceView === "work"}');
     expect(workstation).toContain('role="tab" aria-selected={workspaceView === "sources"}');
     expect(workstation).toContain("New Job from source");
+    expect(workstation).toContain("Delete Job");
+    expect(workstation).toContain("workstationApi.deleteRole");
+    expect(workstation).toContain("candidate cases, attached sources, notes, drafts and generated artifacts will be permanently removed");
     expect(workstation).not.toContain("Paste JD");
     expect(workstation).not.toContain(">Paste text</Button>");
     expect(workstation).not.toContain("One workspace. From conversation to submission.");
