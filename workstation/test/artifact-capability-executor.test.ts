@@ -1,0 +1,311 @@
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("cloudflare:workers", () => ({ env: {} }));
+
+import {
+  executeArtifactCapabilityWithDependencies,
+  type ArtifactCapabilityExecutorDependencies,
+} from "../lib/server/capability-executors/artifact";
+import type {
+  CapabilityRunRecord,
+  CaseArtifactRecord,
+} from "../lib/server/capability-run-repository";
+import type { CandidateCase, CaseDocument, CaseSource } from "../lib/workstation-types";
+
+function run(input: {
+  capabilityId: string;
+  executorId: string;
+  extraInput?: string;
+}): CapabilityRunRecord {
+  return {
+    id: "run-1",
+    caseId: "case-1",
+    roleId: "role-1",
+    candidateId: "candidate-1",
+    capabilityId: input.capabilityId,
+    executorId: input.executorId,
+    supportingAuthorityIds: [],
+    authorityDigest: "a".repeat(64),
+    sourceRefs: ["resume-source:sha-resume"],
+    inputSnapshotHash: "b".repeat(64),
+    input: {
+      extraInput: input.extraInput ?? "",
+      provider: "workstation",
+      model: `${input.executorId}-v1`,
+    },
+    outputKind: "pdf",
+    implementationStatus: "partial",
+    provider: "workstation",
+    model: `${input.executorId}-v1`,
+    preparedAt: "2026-09-20T13:00:00.000Z",
+    status: "running",
+    result: null,
+    evidence: {},
+    error: null,
+    startedAt: "2026-09-20T13:00:01.000Z",
+    finishedAt: null,
+    createdBy: "user-1",
+    createdAt: "2026-09-20T13:00:00.000Z",
+    updatedAt: "2026-09-20T13:00:01.000Z",
+  };
+}
+
+function candidateCase(): CandidateCase {
+  const document = (kind: CaseDocument["kind"], content: CaseDocument["content"] = ""): CaseDocument => ({
+    kind,
+    revision: 2,
+    content,
+    updatedAt: "2026-09-20T12:00:00.000Z",
+  });
+  const resumeSource: CaseSource = {
+    id: "resume-source",
+    kind: "resume",
+    filename: "Synthetic Candidate Resume.txt",
+    contentType: "text/plain",
+    sizeBytes: 100,
+    sha256: "sha-resume",
+    captureTime: "2026-09-20T12:00:00.000Z",
+    lifecycleStatus: "reviewed",
+    reviewStatus: "reviewed",
+    parsedText: "Synthetic Candidate\nMaintenance Supervisor\nProfessional Summary\nSynthetic summary\nSkills\nCMMS\nProfessional Experience\nMaintenance Supervisor | Example Manufacturing | Toronto, ON | 2020 - Present\n- Maintained synthetic equipment.\nEducation\nSynthetic College",
+    classificationMethod: "manual",
+  };
+  return {
+    id: "case-1",
+    roleId: "role-1",
+    candidateId: "candidate-1",
+    status: "active",
+    notes: "",
+    notesDrawingSvg: "",
+    notesFont: "System",
+    notesSize: 20,
+    revision: 3,
+    facts: [],
+    assistant: { missing: [], askNext: [], fitConcern: "", nextAction: "" },
+    externalRefs: {},
+    documents: {
+      resume: document("resume", {
+        format: "tttg-resume-form-v1",
+        name: "Synthetic Candidate",
+        headline: "Maintenance Supervisor",
+        summary: "Synthetic source-grounded summary.",
+        skills: "CMMS\nPreventive maintenance",
+        jobs: [{
+          title: "Maintenance Supervisor",
+          company: "Example Manufacturing",
+          location: "Toronto, ON",
+          dates: "2020 - Present",
+          bullets: "Maintained synthetic equipment.",
+        }],
+        educationHeading: "Education",
+        education: "Synthetic College",
+        sections: [],
+      }),
+      write_up: document("write_up"),
+      submission: document("submission"),
+      email: document("email"),
+      loxo_update: document("loxo_update"),
+    },
+    sources: [resumeSource],
+    updatedAt: "2026-09-20T12:00:00.000Z",
+  };
+}
+
+function persistedArtifact(kind: string): CaseArtifactRecord {
+  return {
+    id: "artifact-1",
+    caseId: "case-1",
+    runId: "run-1",
+    kind,
+    filename: "Synthetic.pdf",
+    contentType: "application/pdf",
+    storageKey: "cases/case-1/artifacts/artifact-1/Synthetic.pdf",
+    sha256: "c".repeat(64),
+    sizeBytes: 128,
+    revision: 1,
+    evidence: { builder: { result: { provider: "synthetic" } } },
+    visualQaStatus: "pending",
+    reviewedBy: null,
+    reviewedAt: null,
+    reviewEvidence: {},
+    createdBy: "user-1",
+    createdAt: "2026-09-20T13:00:02.000Z",
+  };
+}
+
+function dependencies() {
+  const callResumeBuilder = vi.fn<ArtifactCapabilityExecutorDependencies["callResumeBuilder"]>(async () => ({
+    status: "built" as const,
+    filename: "Synthetic Resume.pdf",
+    downloadUrl: "/files/resume.pdf",
+    expiresInSeconds: 3600,
+    contactRemoved: ["email"],
+    notes: ["synthetic builder note"],
+  }));
+  const buildManualArtifact = vi.fn<ArtifactCapabilityExecutorDependencies["buildManualArtifact"]>(async () => ({
+    status: "built" as const,
+    filename: "Synthetic.pdf",
+    downloadUrl: "/files/manual.pdf",
+  }));
+  const persistCaseArtifact = vi.fn(async (input: {
+    kind?: string;
+  }) => persistedArtifact(input.kind ?? "artifact"));
+  const value: ArtifactCapabilityExecutorDependencies = {
+    callResumeBuilder,
+    buildManualArtifact,
+    persistCaseArtifact,
+    endpoint: "https://builder.example/mcp",
+    token: "synthetic-token",
+  };
+  return { value, callResumeBuilder, buildManualArtifact, persistCaseArtifact };
+}
+
+describe("canonical PDF capability executor adapters", () => {
+  it("uses the existing branded-resume builder and persists its expiring result before QA", async () => {
+    const deps = dependencies();
+    const capabilityRun = run({ capabilityId: "brandedresume", executorId: "brand-resume" });
+
+    const result = await executeArtifactCapabilityWithDependencies({
+      userId: "user-1",
+      caseId: "case-1",
+      run: capabilityRun,
+      candidateCase: candidateCase(),
+    }, deps.value);
+
+    expect(deps.callResumeBuilder).toHaveBeenCalledWith({
+      mode: "named_submission",
+      candidate: {
+        name: "Synthetic Candidate",
+        headline: "Maintenance Supervisor",
+        summary: "Synthetic source-grounded summary.",
+        skills: ["CMMS", "Preventive maintenance"],
+        experience: [{
+          title: "Maintenance Supervisor",
+          company: "Example Manufacturing",
+          location: "Toronto, ON",
+          dates: "2020 - Present",
+          bullets: ["Maintained synthetic equipment."],
+        }],
+        education: ["Synthetic College"],
+        sections: [],
+        education_heading: "Education",
+      },
+    }, {
+      endpoint: "https://builder.example/mcp",
+      token: "synthetic-token",
+    });
+    expect(deps.persistCaseArtifact).toHaveBeenCalledWith({
+      userId: "user-1",
+      caseId: "case-1",
+      runId: "run-1",
+      filename: "Synthetic Resume.pdf",
+      kind: "brandedresume",
+      executorId: "brand-resume",
+      source: {
+        downloadUrl: "https://builder.example/files/resume.pdf",
+        evidence: {
+          executorId: "brand-resume",
+          tool: "build_pdf",
+          sourceRefs: ["resume-source:sha-resume"],
+          expiresInSeconds: 3600,
+          contactRemoved: ["email"],
+          notes: ["synthetic builder note"],
+        },
+      },
+    });
+    expect(result).toMatchObject({
+      status: "awaiting_visual_qa",
+      capabilityId: "brandedresume",
+      executorId: "brand-resume",
+      artifact: {
+        id: "artifact-1",
+        filename: "Synthetic.pdf",
+        sha256: "c".repeat(64),
+        visualQaStatus: "pending",
+      },
+      canonicalIncomplete: { visualQaPassed: false },
+    });
+  });
+
+  it("never persists when the branded-resume builder refuses the input", async () => {
+    const deps = dependencies();
+    deps.callResumeBuilder.mockResolvedValue({
+      status: "refused",
+      problems: ["summary contains contact details"],
+    });
+
+    await expect(executeArtifactCapabilityWithDependencies({
+      userId: "user-1",
+      caseId: "case-1",
+      run: run({ capabilityId: "brandedresume", executorId: "brand-resume" }),
+      candidateCase: candidateCase(),
+    }, deps.value)).rejects.toThrow("summary contains contact details");
+
+    expect(deps.persistCaseArtifact).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["complete-reference-check", "reference-check-pdf", "build_reference_check_pdf"],
+    ["interview-prep-material", "interview-prep-pdf", "build_interview_prep_pdf"],
+  ] as const)(
+    "invokes and persists the existing %s manual builder boundary",
+    async (capabilityId, executorId, tool) => {
+      const payload = { synthetic: { grounded: true } };
+      const deps = dependencies();
+      const capabilityRun = run({
+        capabilityId,
+        executorId,
+        extraInput: JSON.stringify(payload),
+      });
+
+      const result = await executeArtifactCapabilityWithDependencies({
+        userId: "user-1",
+        caseId: "case-1",
+        run: capabilityRun,
+        candidateCase: candidateCase(),
+      }, deps.value);
+
+      expect(deps.buildManualArtifact).toHaveBeenCalledWith(
+        executorId,
+        tool,
+        payload,
+        { endpoint: "https://builder.example/mcp", token: "synthetic-token" },
+      );
+      expect(deps.persistCaseArtifact).toHaveBeenCalledWith(expect.objectContaining({
+        userId: "user-1",
+        caseId: "case-1",
+        runId: "run-1",
+        kind: capabilityId,
+        executorId,
+        source: {
+          downloadUrl: "https://builder.example/files/manual.pdf",
+          evidence: {
+            executorId,
+            tool,
+            sourceRefs: ["resume-source:sha-resume"],
+          },
+        },
+      }));
+      expect(result.status).toBe("awaiting_visual_qa");
+      expect(result.artifact.visualQaStatus).toBe("pending");
+    },
+  );
+
+  it("refuses malformed prepared manual payloads before invoking a builder", async () => {
+    const deps = dependencies();
+
+    await expect(executeArtifactCapabilityWithDependencies({
+      userId: "user-1",
+      caseId: "case-1",
+      run: run({
+        capabilityId: "complete-reference-check",
+        executorId: "reference-check-pdf",
+        extraInput: "not-json",
+      }),
+      candidateCase: candidateCase(),
+    }, deps.value)).rejects.toThrow("valid JSON object");
+
+    expect(deps.buildManualArtifact).not.toHaveBeenCalled();
+    expect(deps.persistCaseArtifact).not.toHaveBeenCalled();
+  });
+});

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 const workstation = await readFile(new URL("../components/workstation/recruiter-workstation.tsx", import.meta.url), "utf8");
+const workflowBrowser = await readFile(new URL("../components/workstation/workflow-browser.tsx", import.meta.url), "utf8");
 const handwriting = await readFile(new URL("../components/workstation/handwriting-canvas.tsx", import.meta.url), "utf8");
 
 function rule(selector: string) {
@@ -52,16 +53,52 @@ describe("bounded recruiter workstation layout", () => {
   it("uses Job folders, automatic intake, and one package action", () => {
     expect(workstation).toContain('label="Job folder"');
     expect(workstation).toContain("Job knowledge");
+    expect(workstation).toContain("Paste JD");
+    expect(workstation).toContain("Drop a Job description");
+    expect(workstation).toContain("Paste the whole JD");
+    expect(workstation).toContain("proposePastedSource");
+    expect(workstation).toContain("Complete Job identity detected");
+    expect(workstation).not.toContain("pastedSourceTitle");
+    expect(workstation).not.toContain("This creates an internal workstation record only");
+    expect(workstation).toContain("Save the role and company for reusable Job context.");
+    expect(workstation).toContain("Save the candidate for use across recruiter workflows.");
     expect(workstation).toContain("Files are parsed and classified automatically");
     expect(workstation).toContain("Create after-call package");
+    expect(workstation).toContain("WorkflowBrowser");
+    expect(workstation).not.toContain("CapabilityEngine");
+    expect(workstation).toContain('onClick={() => void executeCapability("write-up")}');
+    expect(workstation).toContain("activeCaseAvailable={Boolean(activeCase)}");
+    expect(workstation).toContain("onExecute={executeCapability}");
+    expect(workstation).toContain("workstationApi.prepareCapability");
+    expect(workstation).toContain("workstationApi.executeCapabilityRun");
+    expect(workstation).toContain("workstationApi.listCapabilityRuns");
+    expect(workflowBrowser).toContain("feature.mounted");
+    expect(workflowBrowser).toContain("activeCaseAvailable");
+    expect(workflowBrowser).toContain("disabled={!activeCaseAvailable || executing}");
+    expect(workflowBrowser).toContain("{mountedExecutor ?");
+    expect(workflowBrowser).toContain("serializeCapabilityInputs(selectedInputValues)");
+    expect(workflowBrowser).toContain("await onExecute(");
+    expect(workstation).not.toContain("createAfterCallPackage");
+    expect(workstation).not.toContain("createAutofilledDraft");
+    expect(workstation).toContain("Workflows");
     expect(workstation).toContain("Read-only preview");
     expect(workstation).toContain("Save changes");
+    expect(workstation).toContain("Cancel");
+    expect(workstation).toContain('origin: "edited"');
+    expect(workflowBrowser).toContain("Saved runs");
+    expect(workflowBrowser).toContain("summarizeRunEvidence");
+    expect(workflowBrowser).toContain("run.id");
+    expect(workflowBrowser).toContain("run.status");
+    expect(workflowBrowser).toContain("run.updatedAt");
     expect(workstation).toContain("Needs confirmation");
     expect(workstation).not.toContain("Create after-call drafts");
     expect(workstation).not.toContain("Vet candidate");
     expect(workstation).not.toContain("All features");
     expect(workstation).not.toContain("tttg-ai-provider");
     expect(workstation).not.toContain("AI drafting needs");
+    expect(rule(".source-first-job-intake")).toMatch(/display:\s*flex/);
+    expect(rule(".source-first-job-drop")).toMatch(/border:\s*1px dashed/);
+    expect(rule(".paste-kind-review")).toMatch(/display:\s*grid/);
   });
 
   it("lets narrow mobile pages scroll without losing bounded editors", () => {

@@ -9,16 +9,55 @@ import json
 from pathlib import Path
 from typing import Any
 
-STAGE_ORDER = ["Applied", "Longlist", "Shortlist", "Outbound", "Screening", "Rejected"]
 DECISIONS = ["", "Priority", "Screen", "Hold", "Pass", "Contacted", "Submit"]
+ACTIVITY_TYPES = ("none", "attempted", "reached", "bounced", "replied")
+
+
+def valid_stage(value: Any, label: str) -> str:
+    if not isinstance(value, str) or value != value.strip() or not value or len(value) > 120:
+        raise ValueError(f"{label} must be a non-empty stage string of at most 120 characters.")
+    if any(ord(character) < 32 for character in value):
+        raise ValueError(f"{label} must not contain control characters.")
+    return value
+
+
+def stage_order(job: dict[str, Any], candidates: list[dict[str, Any]]) -> list[str]:
+    configured = job.get("stage_order", [])
+    if not isinstance(configured, list):
+        raise ValueError("'job.stage_order' must be a list when supplied.")
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for index, value in enumerate(configured):
+        stage = valid_stage(value, f"job.stage_order[{index}]")
+        if stage in seen:
+            raise ValueError(f"Duplicate job.stage_order value: {stage}")
+        seen.add(stage)
+        ordered.append(stage)
+    for candidate in candidates:
+        stage = candidate["stage"]
+        if stage not in seen:
+            seen.add(stage)
+            ordered.append(stage)
+    return ordered
 
 
 def load_payload(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict) or "job" not in payload or "candidates" not in payload:
         raise ValueError("Input JSON must contain 'job' and 'candidates'.")
+    if not isinstance(payload["job"], dict):
+        raise ValueError("'job' must be an object.")
     if not isinstance(payload["candidates"], list):
         raise ValueError("'candidates' must be a list.")
+    for index, candidate in enumerate(payload["candidates"]):
+        if not isinstance(candidate, dict):
+            raise ValueError(f"candidates[{index}] must be an object.")
+        candidate["stage"] = valid_stage(candidate.get("stage"), f"candidates[{index}].stage")
+        activity_type = candidate.get("activity_type")
+        if activity_type not in ACTIVITY_TYPES:
+            allowed = ", ".join(ACTIVITY_TYPES)
+            raise ValueError(f"candidates[{index}].activity_type must be one of: {allowed}.")
+    stage_order(payload["job"], payload["candidates"])
     return payload
 
 
@@ -29,6 +68,7 @@ def js_json(value: Any) -> str:
 def build_html(payload: dict[str, Any]) -> str:
     job = payload["job"]
     candidates = payload["candidates"]
+    stages = stage_order(job, candidates)
     title = html.escape(f"{job.get('title', 'Candidate Dashboard')} — {job.get('company', '')}")
     storage_key = f"loxo-dashboard-{job.get('job_id', 'job')}-v1"
 
@@ -53,21 +93,21 @@ input,select,textarea,button{{font:inherit}}input,select,textarea{{border:1px so
 </head>
 <body><div class=\"shell\">
 <section class=\"hero\"><h1 id=\"title\"></h1><div class=\"meta\" id=\"meta\"></div></section>
-<section class=\"controls\"><input id=\"search\" type=\"search\" placeholder=\"Search candidates…\"><select id=\"stage\"><option value=\"\">All stages</option></select><select id=\"applied\"><option value=\"\">Applied: All</option><option value=\"yes\">Applied: Yes</option><option value=\"no\">Applied: No</option></select><button id=\"csv\">Export CSV</button><button id=\"json\">Export JSON</button></section>
+<section class=\"controls\"><input id=\"search\" type=\"search\" placeholder=\"Search candidates…\"><select id=\"stage\"><option value=\"\">All stages</option></select><select id=\"applied\"><option value=\"\">Applied: All</option><option value=\"yes\">Applied: Yes</option><option value=\"no\">Applied: No</option></select><select id=\"outreach\"><option value=\"\">Outreach: All</option><option value=\"none\">Outreach: No job-specific outreach</option><option value=\"attempted\">Outreach: Attempted</option><option value=\"reached\">Outreach: Reached</option><option value=\"bounced\">Outreach: Bounced</option><option value=\"replied\">Outreach: Replied</option></select><button id=\"csv\">Export CSV</button><button id=\"json\">Export JSON</button></section>
 <main id=\"app\"></main>
 </div>
 <script>
-const job={js_json(job)};const candidates={js_json(candidates)};const stageOrder={js_json(STAGE_ORDER)};const storageKey={js_json(storage_key)};const decisions={js_json(DECISIONS)};
+const job={js_json(job)};const candidates={js_json(candidates)};const stageOrder={js_json(stages)};const storageKey={js_json(storage_key)};const decisions={js_json(DECISIONS)};
 const saved=JSON.parse(localStorage.getItem(storageKey)||'{{}}');const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}}[c]));
 document.getElementById('title').textContent=`${{job.title||'Candidate Dashboard'}} — ${{job.company||''}}`;document.getElementById('meta').textContent=[job.location,job.salary,job.schedule,`Job ID ${{job.job_id}}`].filter(Boolean).join(' • ');
 stageOrder.forEach(s=>document.getElementById('stage').insertAdjacentHTML('beforeend',`<option>${{esc(s)}}</option>`));
-function rows(){{const q=document.getElementById('search').value.toLowerCase();const st=document.getElementById('stage').value;const ap=document.getElementById('applied').value;return candidates.filter(r=>{{const h=[r.candidate,r.stage,r.industry,r.tickets,r.activity,(r.employment||[]).join(' '),r.employment_summary].join(' ').toLowerCase();return(!q||h.includes(q))&&(!st||r.stage===st)&&(!ap||(ap==='yes')===!!r.applied)}})}}
+function rows(){{const q=document.getElementById('search').value.toLowerCase();const st=document.getElementById('stage').value;const ap=document.getElementById('applied').value;const outreach=document.getElementById('outreach').value;return candidates.filter(r=>{{const h=[r.candidate,r.stage,r.industry,r.tickets,r.activity,(r.employment||[]).join(' '),r.employment_summary].join(' ').toLowerCase();return(!q||h.includes(q))&&(!st||r.stage===st)&&(!ap||(ap==='yes')===!!r.applied)&&(!outreach||r.activity_type===outreach)}})}}
 function emp(r){{return(r.employment||[]).map(x=>{{const p=x.split(' | ');return`<div class=\"role\"><b>${{esc(p[0])}}</b>${{esc(p.slice(1).join(' • '))}}</div>`}}).join('')+`<div class=\"summary\">${{esc(r.employment_summary||'')}}</div>`}}
 function render(){{const rs=rows();document.getElementById('app').innerHTML=stageOrder.map(st=>{{const g=rs.filter(r=>r.stage===st);if(!g.length)return'';return`<section class=\"stage\"><h2>${{esc(st)}} (${{g.length}})</h2><div class=\"wrap\"><table><thead><tr><th>Stage</th><th>🟣 Applied</th><th>Candidate</th><th>Recent Employment Snapshot</th><th>Industry</th><th>Tickets / Licences</th><th>Activity / Outreach</th><th>Decision</th><th>Notes</th></tr></thead><tbody>${{g.map(r=>{{const l=saved[r.id]||{{}};return`<tr data-id=\"${{r.id}}\"><td><span class=\"badge\">${{esc(r.stage)}}</span></td><td><span class=\"badge ${{r.applied?'applied':'not-applied'}}\">${{r.applied?'Yes':'No'}}</span></td><td><b>${{esc(r.candidate)}}</b></td><td>${{emp(r)}}</td><td>${{esc(r.industry)}}</td><td>${{esc(r.tickets)}}</td><td>${{esc(r.activity)}}</td><td><select class=\"decision\">${{decisions.map(d=>`<option value=\"${{esc(d)}}\" ${{(l.decision||'')===d?'selected':''}}>${{esc(d||'Unreviewed')}}</option>`).join('')}}</select></td><td><textarea class=\"notes\">${{esc(l.notes||'')}}</textarea></td></tr>`}}).join('')}}</tbody></table></div></section>`}}).join('');wire()}}
 function wire(){{document.querySelectorAll('.stage h2').forEach(h=>h.onclick=()=>h.nextElementSibling.classList.toggle('hidden'));document.querySelectorAll('tr[data-id]').forEach(tr=>{{const id=tr.dataset.id,d=tr.querySelector('.decision'),n=tr.querySelector('.notes');const save=()=>{{saved[id]={{decision:d.value,notes:n.value}};localStorage.setItem(storageKey,JSON.stringify(saved))}};d.onchange=save;n.oninput=save}})}}
 function download(text,name,type){{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{{type}}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}}
-function exportRows(){{return candidates.map(r=>{{const l=saved[r.id]||{{}};return{{Stage:r.stage,Applied:r.applied?'Yes':'No',Candidate:r.candidate,Employment:[...(r.employment||[]),r.employment_summary||''].join(' | '),Industry:r.industry,Tickets:r.tickets,Activity:r.activity,Decision:l.decision||'',Notes:l.notes||''}}}})}}
-document.getElementById('csv').onclick=()=>{{const r=exportRows(),h=Object.keys(r[0]),csv=[h.join(','),...r.map(x=>h.map(k=>`\"${{String(x[k]??'').replace(/\"/g,'\"\"')}}\"`).join(','))].join('\n');download(csv,'candidate-dashboard.csv','text/csv')}};document.getElementById('json').onclick=()=>download(JSON.stringify({{job,candidates:exportRows()}},null,2),'candidate-dashboard.json','application/json');['search','stage','applied'].forEach(id=>document.getElementById(id).addEventListener(id==='search'?'input':'change',render));render();
+function exportRows(){{return candidates.map(r=>{{const l=saved[r.id]||{{}};return{{Stage:r.stage,Applied:r.applied?'Yes':'No',Candidate:r.candidate,Employment:[...(r.employment||[]),r.employment_summary||''].join(' | '),Industry:r.industry,Tickets:r.tickets,Activity:r.activity,OutreachStatus:r.activity_type,Decision:l.decision||'',Notes:l.notes||''}}}})}}
+document.getElementById('csv').onclick=()=>{{const r=exportRows(),h=Object.keys(r[0]),csv=[h.join(','),...r.map(x=>h.map(k=>`\"${{String(x[k]??'').replace(/\"/g,'\"\"')}}\"`).join(','))].join('\n');download(csv,'candidate-dashboard.csv','text/csv')}};document.getElementById('json').onclick=()=>download(JSON.stringify({{job,candidates:exportRows()}},null,2),'candidate-dashboard.json','application/json');['search','stage','applied','outreach'].forEach(id=>document.getElementById(id).addEventListener(id==='search'?'input':'change',render));render();
 </script></body></html>"""
 
 

@@ -1,14 +1,16 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   candidateCases,
   candidates,
+  capabilityRuns,
   caseActivity,
   caseDocumentVersions,
   caseDocuments,
   caseSources,
   roleSources,
   roles,
+  sourceIntakes,
 } from "@/db/schema";
 import { ApiError } from "@/lib/server/api";
 import { connectorCapabilities } from "@/lib/server/connectors";
@@ -23,10 +25,12 @@ import {
 import {
   completeStoredDocuments,
   defaultDocumentContent,
+  resolveDocumentSourceRefs,
 } from "@/lib/document-model";
 import {
   SOURCE_KINDS,
   STORED_DOCUMENT_KINDS,
+  isStoredDocumentKind,
   type AssistantState,
   type CandidateCase,
   type CandidateFact,
@@ -42,6 +46,10 @@ import {
   type WorkspacePayload,
 } from "@/lib/workstation-types";
 import type { UpdateCaseInput } from "@/lib/contracts/workstation";
+import {
+  jobIdentitiesMatch,
+  normalizedJobIdentityKey,
+} from "@/lib/source-intake";
 
 const EMPTY_ASSISTANT: AssistantState = {
   missing: [],
@@ -70,7 +78,22 @@ function candidateRecord(row: typeof candidates.$inferSelect): CandidateRecord {
   return { id: row.id, name: row.name, currentTitle: row.currentTitle };
 }
 
-function sourceRecord(row: typeof caseSources.$inferSelect): CaseSource {
+type SourceRecordRow = Pick<
+  typeof caseSources.$inferSelect,
+  | "id"
+  | "kind"
+  | "filename"
+  | "contentType"
+  | "sizeBytes"
+  | "sha256"
+  | "reviewStatus"
+  | "lifecycleStatus"
+  | "parsedText"
+  | "classificationMethod"
+  | "createdAt"
+>;
+
+function sourceRecord(row: SourceRecordRow): CaseSource {
   const kind = SOURCE_KINDS.includes(row.kind as SourceKind)
     ? (row.kind as SourceKind)
     : "other";
@@ -98,23 +121,30 @@ function sourceRecord(row: typeof caseSources.$inferSelect): CaseSource {
 
 function jobSourceRecord(row: typeof roleSources.$inferSelect): JobSource {
   return {
-    ...sourceRecord(row as typeof caseSources.$inferSelect),
+    ...sourceRecord(row),
     roleId: row.roleId,
     contextStatus: row.contextStatus === "superseded" ? "superseded" : "active",
   };
 }
 
-function documentRecord(row: typeof caseDocuments.$inferSelect): CaseDocument {
+function documentRecord(
+  row: typeof caseDocuments.$inferSelect,
+  knownKind?: StoredDocumentKind,
+): CaseDocument {
+  const kind = knownKind ?? (isStoredDocumentKind(row.kind) ? row.kind : null);
+  if (!kind) throw new Error(`Unsupported case document kind: ${row.kind}`);
   return {
-    kind: row.kind,
+    kind,
     revision: row.revision,
-    content: parseJson(row.contentJson, defaultDocumentContent(row.kind)),
+    content: parseJson(row.contentJson, defaultDocumentContent(kind)),
     updatedAt: row.updatedAt,
   };
 }
 
 function documentMap(rows: Array<typeof caseDocuments.$inferSelect>) {
-  return completeStoredDocuments(rows.map(documentRecord));
+  return completeStoredDocuments(rows.flatMap((row) => {
+    return isStoredDocumentKind(row.kind) ? [documentRecord(row, row.kind)] : [];
+  }));
 }
 
 export async function assertOwnedCase(userId: string, caseId: string) {
@@ -213,25 +243,123 @@ export async function loadWorkspace(userId: string): Promise<WorkspacePayload> {
   };
 }
 
-export async function createRole(
+export type RoleIdentityRow = {
+  id: string;
+  ownerId: string;
+  title: string;
+  client: string | null;
+  identityKey: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RoleIdentityDependencies = {
+  findByIdentityKey: (ownerId: string, identityKey: string) => Promise<RoleIdentityRow | null>;
+  listLegacyRoles: (ownerId: string) => Promise<RoleIdentityRow[]>;
+  claimLegacyRole: (
+    ownerId: string,
+    roleId: string,
+    identityKey: string,
+    updatedAt: string,
+  ) => Promise<RoleIdentityRow | null>;
+  insertRole: (row: RoleIdentityRow) => Promise<RoleIdentityRow | null>;
+  randomUUID: () => string;
+  now: () => string;
+};
+
+export async function findOrCreateRoleWithDependencies(
+  userId: string,
+  input: { title: string; client?: string },
+  dependencies: RoleIdentityDependencies,
+): Promise<RoleRecord> {
+  const identityKey = normalizedJobIdentityKey(input);
+  if (!identityKey) throw new ApiError(400, "A Job title is required.");
+
+  const current = await dependencies.findByIdentityKey(userId, identityKey);
+  if (current) return roleRecord(current as typeof roles.$inferSelect);
+
+  const legacyMatch = (await dependencies.listLegacyRoles(userId))
+    .find((role) => jobIdentitiesMatch(role, input));
+  if (legacyMatch) {
+    const claimed = await dependencies.claimLegacyRole(
+      userId,
+      legacyMatch.id,
+      identityKey,
+      dependencies.now(),
+    );
+    if (claimed) return roleRecord(claimed as typeof roles.$inferSelect);
+    const concurrentClaim = await dependencies.findByIdentityKey(userId, identityKey);
+    if (concurrentClaim) return roleRecord(concurrentClaim as typeof roles.$inferSelect);
+  }
+
+  const timestamp = dependencies.now();
+  const created = await dependencies.insertRole({
+    id: dependencies.randomUUID(),
+    ownerId: userId,
+    title: input.title,
+    client: input.client || null,
+    identityKey,
+    status: "active",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  });
+  if (created) return roleRecord(created as typeof roles.$inferSelect);
+
+  const concurrent = await dependencies.findByIdentityKey(userId, identityKey);
+  if (concurrent) return roleRecord(concurrent as typeof roles.$inferSelect);
+  throw new ApiError(409, "The Job identity changed during creation. Retry the request.");
+}
+
+const roleIdentityDependencies: RoleIdentityDependencies = {
+  async findByIdentityKey(ownerId, identityKey) {
+    const [row] = await getDb()
+      .select()
+      .from(roles)
+      .where(and(eq(roles.ownerId, ownerId), eq(roles.identityKey, identityKey)))
+      .limit(1);
+    return row ?? null;
+  },
+  async listLegacyRoles(ownerId) {
+    return getDb()
+      .select()
+      .from(roles)
+      .where(and(eq(roles.ownerId, ownerId), isNull(roles.identityKey)));
+  },
+  async claimLegacyRole(ownerId, roleId, identityKey, updatedAt) {
+    try {
+      const [row] = await getDb()
+        .update(roles)
+        .set({ identityKey, updatedAt })
+        .where(and(
+          eq(roles.ownerId, ownerId),
+          eq(roles.id, roleId),
+          isNull(roles.identityKey),
+        ))
+        .returning();
+      return row ?? null;
+    } catch (error) {
+      if (error instanceof Error && /unique constraint/i.test(error.message)) return null;
+      throw error;
+    }
+  },
+  async insertRole(row) {
+    const [created] = await getDb()
+      .insert(roles)
+      .values(row)
+      .onConflictDoNothing()
+      .returning();
+    return created ?? null;
+  },
+  randomUUID: () => crypto.randomUUID(),
+  now,
+};
+
+export function createRole(
   userId: string,
   input: { title: string; client?: string },
 ): Promise<RoleRecord> {
-  const db = getDb();
-  const timestamp = now();
-  const [row] = await db
-    .insert(roles)
-    .values({
-      id: crypto.randomUUID(),
-      ownerId: userId,
-      title: input.title,
-      client: input.client || null,
-      status: "active",
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    })
-    .returning();
-  return roleRecord(row);
+  return findOrCreateRoleWithDependencies(userId, input, roleIdentityDependencies);
 }
 
 export async function createCandidate(
@@ -436,7 +564,11 @@ export async function saveCaseDocument(
   kind: StoredDocumentKind,
   expectedRevision: number,
   content: CaseDocument["content"],
-  metadata: { origin?: "generated" | "edited"; sourceRefs?: string[] } = {},
+  metadata: {
+    origin?: "generated" | "edited";
+    sourceRefs?: string[];
+    capabilityRunId?: string | null;
+  } = {},
 ): Promise<CaseDocument> {
   const db = getDb();
   await assertOwnedCase(userId, caseId);
@@ -450,11 +582,54 @@ export async function saveCaseDocument(
     throw new ApiError(413, "Document content is too large.");
   }
   const timestamp = now();
+  let existingSourceRefs: string[] = [];
+  let existingCapabilityRunId: string | null = null;
+  if ((metadata.sourceRefs === undefined || metadata.capabilityRunId === undefined) &&
+      expectedRevision > 0) {
+    const [existingVersion] = await db
+      .select({
+        sourceRefsJson: caseDocumentVersions.sourceRefsJson,
+        capabilityRunId: caseDocumentVersions.capabilityRunId,
+      })
+      .from(caseDocumentVersions)
+      .where(
+        and(
+          eq(caseDocumentVersions.caseId, caseId),
+          eq(caseDocumentVersions.kind, kind),
+          eq(caseDocumentVersions.revision, expectedRevision),
+        ),
+      )
+      .limit(1);
+    existingSourceRefs = existingVersion
+      ? parseJson<string[]>(existingVersion.sourceRefsJson, [])
+      : [];
+    existingCapabilityRunId = existingVersion?.capabilityRunId ?? null;
+  }
+  const sourceRefs = resolveDocumentSourceRefs(
+    metadata.sourceRefs,
+    existingSourceRefs,
+  );
+  const capabilityRunId = metadata.capabilityRunId === undefined
+    ? existingCapabilityRunId
+    : metadata.capabilityRunId;
+  if (capabilityRunId) {
+    const [ownedRun] = await db
+      .select({ id: capabilityRuns.id })
+      .from(capabilityRuns)
+      .where(and(
+        eq(capabilityRuns.id, capabilityRunId),
+        eq(capabilityRuns.caseId, caseId),
+      ))
+      .limit(1);
+    if (!ownedRun) {
+      throw new ApiError(409, "The capability run does not belong to this candidate case.");
+    }
+  }
 
-  // Existing cases predate loxo_update and capability_runs. Hydration presents
-  // either missing row as revision 0, then first save materializes revision 1.
+  // Existing cases predate loxo_update. Hydration presents a missing row as
+  // revision 0, then the first save materializes revision 1.
   if (expectedRevision === 0) {
-    if (kind !== "loxo_update" && kind !== "capability_runs") {
+    if (kind !== "loxo_update") {
       throw new ApiError(409, "Only a newly introduced document may start at revision 0.", {
         currentRevision: null,
       });
@@ -488,7 +663,8 @@ export async function saveCaseDocument(
         kind,
         revision: created.revision,
         contentJson,
-        sourceRefsJson: JSON.stringify(metadata.sourceRefs ?? []),
+        sourceRefsJson: JSON.stringify(sourceRefs),
+        capabilityRunId,
         origin: metadata.origin ?? "edited",
         createdBy: userId,
         createdAt: timestamp,
@@ -508,7 +684,7 @@ export async function saveCaseDocument(
         details: { kind, materialized: true },
       }),
     ]);
-    return documentRecord(created);
+    return documentRecord(created, kind);
   }
 
   const [updated] = await db
@@ -543,7 +719,8 @@ export async function saveCaseDocument(
       kind,
       revision: updated.revision,
       contentJson,
-      sourceRefsJson: JSON.stringify(metadata.sourceRefs ?? []),
+      sourceRefsJson: JSON.stringify(sourceRefs),
+      capabilityRunId,
       origin: metadata.origin ?? "edited",
       createdBy: userId,
       createdAt: timestamp,
@@ -563,7 +740,7 @@ export async function saveCaseDocument(
       details: { kind },
     }),
   ]);
-  return documentRecord(updated);
+  return documentRecord(updated, kind);
 }
 
 export async function listDocumentVersions(
@@ -582,9 +759,81 @@ export async function listDocumentVersions(
     revision: row.revision,
     content: parseJson(row.contentJson, defaultDocumentContent(kind)),
     sourceRefs: parseJson<string[]>(row.sourceRefsJson, []),
+    capabilityRunId: row.capabilityRunId,
     origin: row.origin === "generated" ? "generated" : "edited",
     createdAt: row.createdAt,
   }));
+}
+
+export type SourceIntakeFingerprint = {
+  sha256: string;
+  contentType: string;
+  parserVersion: string;
+};
+
+export type PersistedSourceIntakeRecord = SourceIntakeFingerprint & {
+  id: string;
+  sizeBytes: number;
+  parsedText: string | null;
+  createdAt: string;
+};
+
+export async function getPersistedSourceIntake(
+  userId: string,
+  fingerprint: SourceIntakeFingerprint,
+): Promise<PersistedSourceIntakeRecord | null> {
+  const [record] = await getDb()
+    .select()
+    .from(sourceIntakes)
+    .where(and(
+      eq(sourceIntakes.ownerId, userId),
+      eq(sourceIntakes.sha256, fingerprint.sha256),
+      eq(sourceIntakes.contentType, fingerprint.contentType),
+      eq(sourceIntakes.parserVersion, fingerprint.parserVersion),
+    ))
+    .limit(1);
+  return record ? {
+    id: record.id,
+    sha256: record.sha256,
+    contentType: record.contentType,
+    sizeBytes: record.sizeBytes,
+    parserVersion: record.parserVersion,
+    parsedText: record.parsedText,
+    createdAt: record.createdAt,
+  } : null;
+}
+
+export async function persistSourceIntake(
+  userId: string,
+  intake: SourceIntakeFingerprint & {
+    sizeBytes: number;
+    parsedText: string | null;
+  },
+): Promise<PersistedSourceIntakeRecord> {
+  const [created] = await getDb()
+    .insert(sourceIntakes)
+    .values({
+      id: crypto.randomUUID(),
+      ownerId: userId,
+      ...intake,
+      createdAt: now(),
+    })
+    .onConflictDoNothing()
+    .returning();
+  if (created) {
+    return {
+      id: created.id,
+      sha256: created.sha256,
+      contentType: created.contentType,
+      sizeBytes: created.sizeBytes,
+      parserVersion: created.parserVersion,
+      parsedText: created.parsedText,
+      createdAt: created.createdAt,
+    };
+  }
+  const concurrent = await getPersistedSourceIntake(userId, intake);
+  if (concurrent) return concurrent;
+  throw new ApiError(409, "Source intake changed during persistence. Retry the upload.");
 }
 
 export type NewSource = {
@@ -599,6 +848,7 @@ export type NewSource = {
   lifecycleStatus: SourceLifecycleStatus;
   parsedText: string | null;
   classificationMethod: CaseSource["classificationMethod"];
+  intakeRecordId?: string | null;
 };
 
 export async function insertSource(userId: string, source: NewSource) {
@@ -628,6 +878,7 @@ export async function insertSource(userId: string, source: NewSource) {
         contentType: source.contentType,
         sizeBytes: source.sizeBytes,
         sha256: source.sha256,
+        intakeRecordId: source.intakeRecordId ?? null,
         lifecycleStatus: source.lifecycleStatus,
         classificationMethod: source.classificationMethod,
       },

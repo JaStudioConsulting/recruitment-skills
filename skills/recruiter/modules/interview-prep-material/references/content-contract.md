@@ -47,6 +47,11 @@ Required:
 
 The source list is internal build evidence and is not printed in the candidate PDF.
 
+The companion ledgers are strict Markdown records, not free-form notes. Follow the
+exact `## Claim` and `## Asset` field labels in the guide. Every value in
+`authoritative_sources` must be represented by a Claim record, and every image
+path used in this content JSON must be represented by an Asset record.
+
 ## `privacy`
 
 - `banned_terms`: candidate names, interviewer names, personal identifiers, internal project labels, stale role names, and any other text that must not appear in the reusable PDF.

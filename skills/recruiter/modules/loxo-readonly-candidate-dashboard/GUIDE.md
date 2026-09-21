@@ -187,6 +187,13 @@ it is not production data.
 Allowed `activity_type` values are `none`, `attempted`, `reached`, `bounced`,
 and `replied`.
 
+Preserve every non-empty current stage exactly as supplied. The builder accepts
+arbitrary agency stage names. If `job.stage_order` is supplied, it is the
+preferred order and any observed stages not listed there are appended in first
+appearance order. Without `job.stage_order`, all observed stages remain visible
+in first appearance order. Never force candidates into a repository-owned stage
+list or drop a valid custom stage.
+
 ### 9. Generate the external HTML dashboard
 
 The dashboard must:
@@ -218,6 +225,10 @@ Decision options should default to:
 - Submit
 
 The visual design can vary. Functional behaviour and factual rules must remain consistent.
+
+The outreach control filters the normalized `activity_type` field. It must
+include All, No job-specific outreach (`none`), Attempted, Reached, Bounced, and
+Replied. Kanban stage is never used as an outreach proxy.
 
 Use `scripts/build_dashboard.py` when available.
 

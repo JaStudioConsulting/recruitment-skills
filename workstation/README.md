@@ -1,34 +1,63 @@
 # Recruiter Workstation
 
-The full-page Recruiter Workstation described in the Codex build specification.
-It is a private, owner-scoped ChatGPT Site and a separate surface from the
-compact MCP candidate dashboard in `ui/`.
+The full-page Recruiter Workstation is the browser interface for the canonical
+capabilities in this repository. It is the existing ChatGPT Site, not a second
+copy of the product, and is a separate surface from the compact MCP candidate
+dashboard in `ui/`.
 
 ## What is included
 
-- role and candidate context bar
+- a generated registry for all 24 canonical repository capabilities, including
+  authority paths, required inputs, output contracts, approval gates, truthful
+  implementation status, blockers, and verification evidence
+- persistent Job folders and reusable candidate cases
 - candidate-specific Apple Pencil Scribble/typed notes with font and size controls
-- one multi-file drop zone with Resume, Transcript, Job Description, and Call
-  Notes status tickers, plus titled pasted-text source capture
+- source-first file and whole-text intake for resumes, transcripts, Job
+  descriptions, and call notes; sources are classified and parsed once, then
+  reused by the Job or candidate case
+- confident Job identity proposals from complete Job descriptions, with review
+  instead of invented company or role values when confidence is insufficient
 - truthful source lifecycle states: uploaded, parsed, classified, and reviewed
 - large call-notes surface beside the selected uploaded resume for quick reference
 - candidate-specific typed notes and `js-draw` handwriting notes, with a focus control that collapses the resume panel
-- on-demand Brand Resume and Candidate Write-Up actions instead of permanent output tabs
-  - Brand Resume uses the repository-defined presentation modes: named submission, internal-team MPC, and external-client blind MPC.
-  - Candidate Write-Up offers either the candidate submission draft or the full after-call package: branded resume, submission, presentation email draft, and Loxo update bullets.
+- a repository-driven workflow browser grouped by candidate, Job/client,
+  sourcing, pipeline/Tracker, writing, and artifact work
+- the mounted Candidate Write-Up workflow, which persists source-grounded resume,
+  candidate-submission, presentation-email, and Loxo-update drafts
+- read-only generated output by default, with explicit Edit, Cancel, Save,
+  optimistic revision checks, source provenance, run lineage, and version history
+- durable capability-run and PDF-artifact history that survives reloads
+- explicit preview and approval requirements represented per operation; no live
+  recruiting mutation is exercised by automated tests
 - independently scrolling Notes and document panes with sticky iPad actions
-- D1 case/document metadata with optimistic revisions
+- D1 Job, candidate, case, source, document, run, and artifact metadata
 - R2 source blobs addressed by opaque case/source IDs
-- explicit host connector capability states and approval-bound write contracts
+- R2-backed immutable PDF storage, authenticated download, and page-by-page
+  human visual-QA evidence before a PDF run can complete
 
 Plain-text, Markdown, text-based PDF, and DOCX sources can be parsed and
 classified inside the Site. Image-only files remain in the uploaded state; the
 UI does not claim otherwise.
 
 The Site does not ship private candidate data or connector credentials. Gmail,
-Calendar, Drive, Tracker, Loxo, package generation, and PDF generation require an
-authenticated host broker. Standalone mode reports them as unavailable and
-performs no external write.
+Calendar, Drive, Tracker, Loxo, and other external operations require their real
+authenticated adapters plus the repository-defined preview, approval,
+idempotency, mutation, and readback gates. The capability registry names the
+exact missing boundary when one is unavailable and performs no substitute write.
+
+The approval and idempotency helpers currently encode contract tests only; they
+are not durable authorization records and no production route may treat them as
+such. No external mutation executor is mounted. Before the first one is mounted,
+its preview, grant, single-use consumption, idempotency result, unknown-result
+reconciliation, and readback evidence must be persisted with owner-scoped
+database constraints and tested through the real route.
+
+Branded Resume is intentionally blocked and unmounted. Its active repository
+authorities currently conflict on page size, typography, logo placement, name
+style, and punctuation; no exact legislator override was supplied. The hosted
+builder also does not attest the governing authority digest or collect every
+required presentation mode. Persisted PDF and visual-QA infrastructure exists,
+but it does not make that conflicting capability executable.
 
 ## Local development
 
@@ -40,14 +69,49 @@ npm run db:generate
 npm run build
 ```
 
-Apply the generated migration to the local Sites D1 database before running the
-preview. The exact command is documented in the shared Sites runtime instructions
-bundled by the starter. `npm run dev` uses the Sites local ChatGPT sign-in shim on
-loopback; production authentication remains dispatch-owned.
+Apply every checked-in migration to the local Sites D1 database before running
+the preview. The exact command is documented in the shared Sites runtime
+instructions bundled by the starter. `npm run dev` uses the Sites local ChatGPT
+sign-in shim on loopback; production authentication remains dispatch-owned.
+
+## Safe browser end-to-end tests
+
+Install Chromium once, then run the isolated Playwright suite:
+
+```bash
+npx playwright install chromium
+npm run db:e2e:reset
+npm run test:e2e
+# Optional: watch the same suite in a visible browser.
+npm run test:e2e:headed
+```
+
+`npm run test:e2e` removes only `workstation/.playwright/state` and
+`workstation/.playwright/runtime`, reapplies every checked-in D1 migration, and
+starts the Workstation on `127.0.0.1:4317` with the local Sites sign-in shim.
+Connector and local-AI environment variables are removed from that server, and
+the browser suite rejects off-origin requests. It therefore exercises persisted
+Job, candidate, source, draft, edit, version, reload, and blocked-workflow
+behavior without writing to Loxo, Gmail, Tracker, or another live service.
+
+PDF artifact review is intentionally not fabricated in this browser suite. The
+current PDF-producing workflows are unmounted, so there is no deterministic
+public UI path to a synthetic PDF. Artifact storage and visual-QA contracts stay
+covered by the Workstation unit/integration suite until a PDF executor is safely
+mounted.
+
+Repository-level validation also regenerates and checks the capability registry:
+
+```bash
+cd ..
+npm run workstation:registry:check
+npm run validate
+npm test
+```
 
 ## Source of truth and deployment
 
 GitHub `main` in this repository is the code authority. The existing TTTG
-Recruiting Workbench Site is the deployment target. Keep its current owner-only
-audience, publish from an exact repository commit, and never edit a second Site
-copy as an independent source.
+Recruiting Workbench Site is the deployment target. Preserve its current access
+policy, publish from an exact merged repository commit, and never edit a second
+Site copy as an independent source.

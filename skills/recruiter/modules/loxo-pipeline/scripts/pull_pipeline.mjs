@@ -1,125 +1,296 @@
 /**
- * pull_pipeline.mjs — reference pull of a Loxo job pipeline via a logged-in
- * browser session. Writes <out>/<slug>_pipeline.json and .csv, plus a
- * <out>/<slug>_cvs/ folder of resume text.
+ * Offline-safe core for pulling a Loxo job pipeline through a host-supplied
+ * transport. This module contains no browser driver, credentials, account IDs,
+ * or agency-specific workflow-stage IDs.
  *
- * AGENT-AGNOSTIC NOTE
- * -------------------
- * This reference uses `ego-browser`'s helpers (useOrCreateTaskSpace,
- * openOrReuseTab, browserFetch, pageInfo, cliLog) because that is what was
- * available where this skill was first built. `browserFetch(path, opts)` runs
- * `fetch()` inside the user's logged-in Loxo tab. Any agent can reproduce this
- * with its own browser driver (Playwright/Puppeteer/Chrome-extension): the only
- * thing that matters is issuing the same GET requests from a context that has
- * the user's Loxo session cookies. Endpoints are in reference/loxo-endpoints.md.
+ * A consumer must import pullPipeline(config, transport) and provide:
+ *   transport.getJSON(relativePath) -> parsed JSON
  *
- * Run (in the ego-browser runtime):
- *   ego-browser nodejs < pull_pipeline.mjs
- * with CONFIG below edited, or adapt the fetch layer to your environment.
+ * Direct execution fails closed because this repository does not ship a live
+ * Loxo adapter.
  */
-import fs from 'node:fs'
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-// ---- CONFIG (edit these) --------------------------------------------------
-const AGENCY_ID = 29866
-const JOB_ID = 0                 // <-- set the Loxo job id
-const OUT_DIR = process.env.HOME + '/Downloads'
-const SLUG = 'loxo_job'          // filename prefix
-// stages to KEEP (Loxo stage ids). Default = active pipeline, no rejects/subs.
-const INCLUDE = {
-  268196: 'Applied', 244487: 'Longlist', 244488: 'Shortlist',
-  244489: 'Outbound', 330190: 'Follow Up', 244490: 'Screening',
-  245671: 'Offer', 244494: 'Hired',
-}
-const STAGE_ORDER = Object.keys(INCLUDE)
-// ---------------------------------------------------------------------------
+const BOT = /^(Loxo Agent|Loxo Bot)$/i;
+const CONTACT = /phone call|voicemail|no answer|email|sms|text|meeting|screen|responded|intake|call -/i;
 
-const BOT = /^(Loxo Agent|Loxo Bot)$/i
-const CONTACT = /phone call|voicemail|no answer|email|sms|text|meeting|screen|responded|intake|call -/i
-const b = p => browserFetch(p, { headers: { Accept: 'application/json' } })
-// Full stage-name -> id map (for deriving stage from "Moved to X" events on the
-// browser transport, which does NOT return workflow_stage_id on the list).
-const STAGE_BY_NAME = {
-  'Applied': 268196, 'Longlist': 244487, 'Shortlist': 244488, 'Outbound': 244489,
-  'Follow Up': 330190, 'Screening': 244490, 'Internal Submission': 245262,
-  'Submitted': 244491, 'Interview #1': 244492, 'Interview #2+': 305775,
-  'Offer': 245671, 'Rejected': 244493, 'Hired': 244494,
-}
-// Derive a candidate's current stage id. API/MCP list gives workflow_stage_id
-// directly; the browser list does not, so fall back to the latest job-scoped
-// "Moved to <Stage>" event, then to applied_at -> Applied.
-function deriveStageId(cand, jobEvs) {
-  if (cand.workflow_stage_id) return cand.workflow_stage_id
-  const moves = jobEvs.filter(e => /^Moved to /i.test((e.activity_type || {}).name || ''))
-  if (moves.length) return STAGE_BY_NAME[moves[0].activity_type.name.replace(/^Moved to /i, '')] || null
-  if (cand.applied_at) return STAGE_BY_NAME['Applied']
-  return null
-}
-
-async function main() {
-  await useOrCreateTaskSpace('loxo pull ' + JOB_ID)
-  await openOrReuseTab(`https://top-tier-talent-group.app.loxo.co/agencies/${AGENCY_ID}/jobs/${JOB_ID}/pipeline`, { wait: true, timeout: 30 })
-  const info = await pageInfo()
-  if (/login/.test(info.url)) { cliLog('LOGIN_WALL — user must be logged into Loxo in this browser.'); return }
-
-  // 1. all candidates (paged)
-  let all = [], page = 1, got
-  do { got = JSON.parse(await b(`/agencies/${AGENCY_ID}/jobs/${JOB_ID}/candidates.json?per_page=250&page=${page}`)); all = all.concat(got.candidates || got); page++ }
-  while ((got.candidates || got).length === 250 && page <= 8)
-  const uniq = Object.values(Object.fromEntries(all.map(c => [c.person.id, c])))
-
-  const cvdir = `${OUT_DIR}/${SLUG}_cvs`; fs.mkdirSync(cvdir, { recursive: true })
-  const rows = []
-
-  // 2+3. enrich every candidate (events give stage on the browser transport),
-  //      then keep only the included stages.
-  for (const c of uniq) {
-    const p = c.person
-    // activity (also used to derive stage + applied on the browser transport)
-    let evs = []
-    try { evs = (JSON.parse(await b(`/agencies/${AGENCY_ID}/person_events.json?person_id=${p.id}&per_page=80`)).person_events) || [] } catch {}
-    const jobEvs = evs.filter(e => e.job_id === JOB_ID)
-    const stageId = deriveStageId(c, jobEvs)
-    if (!INCLUDE[stageId]) continue // filter to included stages
-
-    const loc = p.location || [p.city, p.state].filter(Boolean).join(', ')
-    const r = {
-      stage: INCLUDE[stageId], _o: STAGE_ORDER.indexOf(String(stageId)),
-      person_id: p.id, name: p.name, title: p.current_title || '', company: p.current_company || '',
-      location: loc, email: (p.emails || []).map(e => e.value).join('; '),
-      phone: (p.phones || []).map(x => x.value).join('; '), linkedin: p.linkedin_url || '',
-      has_resume: false,
-      applied: (c.applied_at != null) || jobEvs.some(e => /^applied$/i.test((e.activity_type || {}).key || '')),
-      contacted: false, contacts: [], snippet: '',
-      loxo_url: `https://app.loxo.co/agencies/${AGENCY_ID}/people/${p.id}`,
-    }
-    // resume
-    let list = []
-    try { list = JSON.parse(await b(`/agencies/${AGENCY_ID}/people/${p.id}/resumes.json`)) } catch {}
-    if (Array.isArray(list) && list.length) {
-      r.has_resume = true; let combined = ''
-      for (const res of list) {
-        let txt = res.extracted_text
-        if (txt == null) { try { txt = JSON.parse(await b(`/agencies/${AGENCY_ID}/people/${p.id}/resumes/${res.id}`)).extracted_text || '' } catch { txt = '' } }
-        combined += `\n----- ${res.name} -----\n${txt || '(no extracted text)'}\n`
-      }
-      r.snippet = combined.replace(/-----[^\n]*-----/g, '').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim().slice(0, 900)
-      const safe = r.name.replace(/[^A-Za-z0-9 .-]/g, '').trim()
-      fs.writeFileSync(`${cvdir}/${r.stage} - ${safe}.txt`, `${r.name}\nStage: ${r.stage}\nPhone: ${r.phone || '-'}\nEmail: ${r.email || '-'}\nCurrent: ${r.title} at ${r.company}\nLoxo: ${r.loxo_url}\n${'='.repeat(50)}\n${combined}`)
-    }
-    // contact activity
-    const human = evs.filter(e => { const by = e.created_by_name || '', tn = (e.activity_type || {}).name || ''; return by && !BOT.test(by) && (CONTACT.test(tn) || e.email || e.sms || e.twilio_call) })
-    r.contacted = human.length > 0
-    r.contacts = human.slice(0, 6).map(e => `${(e.created_at || '').slice(0, 10)} · ${e.created_by_name}: ${(e.activity_type || {}).name}`)
-    rows.push(r)
+export function asPositiveInteger(value, label) {
+  const parsed = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value;
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new TypeError(`${label} must be a positive integer.`);
   }
-  rows.sort((a, z) => a._o - z._o || a.name.localeCompare(z.name))
-  rows.forEach(r => delete r._o)
-
-  // 4. write JSON + CSV
-  fs.writeFileSync(`${OUT_DIR}/${SLUG}_pipeline.json`, JSON.stringify(rows, null, 2))
-  const cols = ['stage', 'applied', 'name', 'title', 'company', 'location', 'email', 'phone', 'linkedin', 'has_resume', 'contacted', 'person_id', 'loxo_url']
-  const csv = [cols.join(',')].concat(rows.map(r => cols.map(c => `"${String(r[c] ?? '').replace(/"/g, '""')}"`).join(','))).join('\n')
-  fs.writeFileSync(`${OUT_DIR}/${SLUG}_pipeline.csv`, csv)
-  cliLog(`wrote ${rows.length} candidates | resumes ${rows.filter(r => r.has_resume).length} | applied ${rows.filter(r => r.applied).length} | contacted ${rows.filter(r => r.contacted).length}`)
+  return parsed;
 }
-main()
+
+export function normalizeBaseUrl(value) {
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new TypeError("baseUrl must be an absolute HTTPS URL.");
+  }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash) {
+    throw new TypeError("baseUrl must be an HTTPS origin without credentials, path, query, or fragment.");
+  }
+  return parsed.href.replace(/\/$/, "");
+}
+
+export function validateStageDefinitions(value) {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new TypeError("stages must be a non-empty array from the current agency workflow.");
+  }
+  const ids = new Set();
+  const names = new Set();
+  return value.map((stage, index) => {
+    if (!stage || typeof stage !== "object" || Array.isArray(stage)) {
+      throw new TypeError(`stages[${index}] must be an object.`);
+    }
+    const id = asPositiveInteger(stage.id, `stages[${index}].id`);
+    const rawName = typeof stage.name === "string" ? stage.name : "";
+    const name = rawName.trim();
+    if (rawName !== name || !name || name.length > 120 || /[\u0000-\u001f]/.test(name)) {
+      throw new TypeError(`stages[${index}].name must be a non-empty stage name without control characters.`);
+    }
+    const nameKey = name.toLocaleLowerCase("en-CA");
+    if (ids.has(id)) throw new TypeError(`Duplicate workflow-stage id ${id}.`);
+    if (names.has(nameKey)) throw new TypeError(`Duplicate workflow-stage name ${name}.`);
+    ids.add(id);
+    names.add(nameKey);
+    return { id, name, include: stage.include === true };
+  });
+}
+
+function assertConfiguredStage(stageId, stages, label) {
+  const id = asPositiveInteger(stageId, label);
+  if (!stages.some((stage) => stage.id === id)) {
+    throw new TypeError(`${label} must reference a configured stage.`);
+  }
+  return id;
+}
+
+function optionalBoundedInteger(value, fallback, label, maximum) {
+  if (value == null) return fallback;
+  const parsed = asPositiveInteger(value, label);
+  if (parsed > maximum) throw new TypeError(`${label} must be at most ${maximum}.`);
+  return parsed;
+}
+
+export function validatePullConfig(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("Pipeline config must be an object.");
+  }
+  const stages = validateStageDefinitions(value.stages);
+  if (!stages.some((stage) => stage.include)) {
+    throw new TypeError("At least one configured stage must set include: true.");
+  }
+  const outputDir = typeof value.outputDir === "string" ? value.outputDir.trim() : "";
+  if (!outputDir || !path.isAbsolute(outputDir)) {
+    throw new TypeError("outputDir must be an explicit absolute path.");
+  }
+  const slug = typeof value.slug === "string" ? value.slug.trim() : "";
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(slug)) {
+    throw new TypeError("slug must be an explicit filesystem-safe name.");
+  }
+  return {
+    agencyId: asPositiveInteger(value.agencyId, "agencyId"),
+    jobId: asPositiveInteger(value.jobId, "jobId"),
+    baseUrl: normalizeBaseUrl(value.baseUrl),
+    outputDir,
+    slug,
+    stages,
+    appliedStageId: assertConfiguredStage(value.appliedStageId, stages, "appliedStageId"),
+    pageSize: optionalBoundedInteger(value.pageSize, 250, "pageSize", 250),
+    maxPages: optionalBoundedInteger(value.maxPages, 20, "maxPages", 1000),
+  };
+}
+
+export function candidateList(payload) {
+  const value = Array.isArray(payload) ? payload : payload?.candidates;
+  if (!Array.isArray(value)) throw new TypeError("Candidate transport response must contain a candidates array.");
+  return value;
+}
+
+export function eventList(payload) {
+  const value = Array.isArray(payload) ? payload : payload?.person_events;
+  if (!Array.isArray(value)) throw new TypeError("Event transport response must contain a person_events array.");
+  return value;
+}
+
+export function candidatePerson(candidate) {
+  return candidate?.person && typeof candidate.person === "object" ? candidate.person : candidate;
+}
+
+export function candidatePersonId(candidate) {
+  const person = candidatePerson(candidate);
+  const raw = person?.id ?? candidate?.person_id;
+  try {
+    return asPositiveInteger(raw, "candidate person id");
+  } catch {
+    return null;
+  }
+}
+
+function sameId(left, right) {
+  return left != null && right != null && String(left) === String(right);
+}
+
+function eventTime(event) {
+  const parsed = Date.parse(event?.created_at || "");
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+export function deriveStageId(candidate, jobEvents, config) {
+  const stages = validateStageDefinitions(config?.stages);
+  const configuredIds = new Set(stages.map(({ id }) => id));
+  const direct = candidate?.workflow_stage_id;
+  if (direct != null) {
+    const parsed = typeof direct === "string" && /^\d+$/.test(direct) ? Number(direct) : direct;
+    if (configuredIds.has(parsed)) return parsed;
+  }
+
+  const byName = new Map(stages.map(({ id, name }) => [name.toLocaleLowerCase("en-CA"), id]));
+  const moves = (Array.isArray(jobEvents) ? jobEvents : [])
+    .map((event, index) => ({ event, index }))
+    .filter(({ event }) => /^Moved to\s+/i.test(event?.activity_type?.name || ""))
+    .sort((left, right) => eventTime(right.event) - eventTime(left.event) || left.index - right.index);
+  for (const { event } of moves) {
+    const name = event.activity_type.name.replace(/^Moved to\s+/i, "").trim().toLocaleLowerCase("en-CA");
+    if (byName.has(name)) return byName.get(name);
+  }
+
+  if (candidate?.applied_at != null) {
+    return assertConfiguredStage(config?.appliedStageId, stages, "appliedStageId");
+  }
+  return null;
+}
+
+function requireReadTransport(transport) {
+  if (!transport || typeof transport.getJSON !== "function") {
+    throw new TypeError("A declared transport with getJSON(path) is required. No live Loxo adapter is bundled.");
+  }
+  return transport;
+}
+
+function candidatesEndpoint(config, page) {
+  return `/agencies/${config.agencyId}/jobs/${config.jobId}/candidates.json?per_page=${config.pageSize}&page=${page}`;
+}
+
+async function allCandidates(config, transport) {
+  const all = [];
+  for (let page = 1; page <= config.maxPages; page += 1) {
+    const batch = candidateList(await transport.getJSON(candidatesEndpoint(config, page)));
+    all.push(...batch);
+    if (batch.length < config.pageSize) return all;
+  }
+  throw new Error(`Candidate pagination reached maxPages=${config.maxPages}; refusing a potentially truncated export.`);
+}
+
+function safeFilePart(value, fallback) {
+  const cleaned = String(value || "").replace(/[^A-Za-z0-9 .-]/g, "").trim();
+  return cleaned || fallback;
+}
+
+function csvCell(value) {
+  return `"${String(value ?? "").replace(/"/g, '""')}"`;
+}
+
+export async function pullPipeline(rawConfig, declaredTransport, io = fs) {
+  const config = validatePullConfig(rawConfig);
+  const transport = requireReadTransport(declaredTransport);
+  const stageById = new Map(config.stages.map((stage, index) => [stage.id, { ...stage, order: index }]));
+  const all = await allCandidates(config, transport);
+  const unique = new Map();
+  for (const candidate of all) {
+    const personId = candidatePersonId(candidate);
+    if (personId == null) throw new TypeError("Every candidate must contain a valid person id.");
+    unique.set(personId, candidate);
+  }
+
+  const resumeDir = path.join(config.outputDir, `${config.slug}_cvs`);
+  io.mkdirSync(resumeDir, { recursive: true });
+  const rows = [];
+
+  for (const candidate of unique.values()) {
+    const person = candidatePerson(candidate);
+    const personId = candidatePersonId(candidate);
+    const events = eventList(await transport.getJSON(`/agencies/${config.agencyId}/person_events.json?person_id=${personId}&per_page=80`));
+    const jobEvents = events.filter((event) => sameId(event?.job_id, config.jobId));
+    const stageId = deriveStageId(candidate, jobEvents, config);
+    const stage = stageById.get(stageId);
+    if (!stage?.include) continue;
+
+    const location = person.location || [person.city, person.state].filter(Boolean).join(", ");
+    const row = {
+      stage: stage.name,
+      _order: stage.order,
+      person_id: personId,
+      name: person.name || candidate.name || "",
+      title: person.current_title || candidate.current_title || "",
+      company: person.current_company || candidate.current_company || "",
+      location,
+      email: (person.emails || []).map((item) => item.value).filter(Boolean).join("; "),
+      phone: (person.phones || []).map((item) => item.value).filter(Boolean).join("; "),
+      linkedin: person.linkedin_url || "",
+      has_resume: false,
+      applied: candidate.applied_at != null || jobEvents.some((event) => /^applied$/i.test(event?.activity_type?.key || "")),
+      contacted: false,
+      contacts: [],
+      snippet: "",
+      loxo_url: `${config.baseUrl}/agencies/${config.agencyId}/people/${personId}`,
+    };
+
+    const resumePayload = await transport.getJSON(`/agencies/${config.agencyId}/people/${personId}/resumes.json`);
+    if (!Array.isArray(resumePayload)) throw new TypeError("Resume transport response must be an array.");
+    if (resumePayload.length > 0) {
+      row.has_resume = true;
+      let combined = "";
+      for (const resume of resumePayload) {
+        let text = resume.extracted_text;
+        if (text == null) {
+          const detail = await transport.getJSON(`/agencies/${config.agencyId}/people/${personId}/resumes/${asPositiveInteger(resume.id, "resume id")}`);
+          text = detail?.extracted_text || "";
+        }
+        combined += `\n----- ${resume.name || "Resume"} -----\n${text || "(no extracted text)"}\n`;
+      }
+      row.snippet = combined.replace(/-----[^\n]*-----/g, "").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim().slice(0, 900);
+      const filename = `${safeFilePart(row.stage, "Stage")} - ${safeFilePart(row.name, String(personId))}.txt`;
+      io.writeFileSync(path.join(resumeDir, filename), `${row.name}\nStage: ${row.stage}\nPhone: ${row.phone || "-"}\nEmail: ${row.email || "-"}\nCurrent: ${row.title} at ${row.company}\nLoxo: ${row.loxo_url}\n${"=".repeat(50)}\n${combined}`);
+    }
+
+    const human = events.filter((event) => {
+      const createdBy = event?.created_by_name || "";
+      const activityName = event?.activity_type?.name || "";
+      return createdBy && !BOT.test(createdBy) && (CONTACT.test(activityName) || event.email || event.sms || event.twilio_call);
+    });
+    row.contacted = human.length > 0;
+    row.contacts = human.slice(0, 6).map((event) => `${String(event.created_at || "").slice(0, 10)} · ${event.created_by_name}: ${event.activity_type?.name || "Activity"}`);
+    rows.push(row);
+  }
+
+  rows.sort((left, right) => left._order - right._order || left.name.localeCompare(right.name));
+  rows.forEach((row) => delete row._order);
+  const jsonPath = path.join(config.outputDir, `${config.slug}_pipeline.json`);
+  const csvPath = path.join(config.outputDir, `${config.slug}_pipeline.csv`);
+  io.writeFileSync(jsonPath, JSON.stringify(rows, null, 2));
+  const columns = ["stage", "applied", "name", "title", "company", "location", "email", "phone", "linkedin", "has_resume", "contacted", "person_id", "loxo_url"];
+  const csv = [columns.join(","), ...rows.map((row) => columns.map((column) => csvCell(row[column])).join(","))].join("\n");
+  io.writeFileSync(csvPath, csv);
+  return {
+    rows,
+    jsonPath,
+    csvPath,
+    summary: {
+      candidates: rows.length,
+      resumes: rows.filter((row) => row.has_resume).length,
+      applied: rows.filter((row) => row.applied).length,
+      contacted: rows.filter((row) => row.contacted).length,
+    },
+  };
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  console.error("No live Loxo transport is bundled. Import pullPipeline(config, transport) and supply a verified declared adapter.");
+  process.exitCode = 2;
+}

@@ -37,6 +37,9 @@
     "pack:check": "node scripts/check-packed-artifact.mjs",
     "authority:check": "node skills/recruiter/scripts/authority.mjs",
     "authority:ensure": "node skills/recruiter/scripts/authority.mjs ensure",
+    "workstation:registry": "node scripts/generate-workstation-registry.mjs && node scripts/generate-workstation-capability-table.mjs",
+    "workstation:registry:check": "node scripts/generate-workstation-registry.mjs --check && node scripts/generate-workstation-capability-table.mjs --check",
+    "workstation:capability-table": "node scripts/generate-workstation-capability-table.mjs",
     "install:local": "node scripts/install-local.mjs",
     "sync:local": "node scripts/sync-local.mjs"
   },

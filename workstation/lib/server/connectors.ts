@@ -6,8 +6,8 @@ export const connectorCapabilities: ConnectorCapability[] = [
   {
     id: "pdf",
     label: "Branded resume PDF",
-    status: "available",
-    detail: "Brand resume sends the TTTG resume form to the hosted branded resume builder. External-client blind MPC is not available yet.",
+    status: "unsupported",
+    detail: "The hosted builder is reachable, but branded-resume execution is disabled because its layout contract conflicts with the immutable legislator rulebook and no exact override is recorded.",
   },
   {
     id: "gmail",

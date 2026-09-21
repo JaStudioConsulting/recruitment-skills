@@ -1,0 +1,3098 @@
+{
+  "schemaVersion": 3,
+  "frontDoor": "skills/recruiter/SKILL.md",
+  "topLevelSkills": [
+    "skills/recruiter/SKILL.md",
+    "skills/tracker-manager/SKILL.md"
+  ],
+  "repositoryAuthorityPaths": [
+    "docs/consolidation/CUTOVER.md",
+    "docs/knowledge-architecture.md",
+    "docs/templates/branded-resume-contract.md",
+    "docs/templates/presentation-email-contract.md",
+    "docs/templates/submission-data-contract.md",
+    "skills/GLOBAL-RULES.md",
+    "skills/TOOL-CONVENTIONS.md",
+    "skills/capabilities.json",
+    "skills/manifests/template-kits.json",
+    "skills/recruiter/SKILL.md",
+    "skills/recruiter/assets/job-template-kit/campaign-step.md",
+    "skills/recruiter/assets/job-template-kit/candidate-follow-up.md",
+    "skills/recruiter/assets/job-template-kit/candidate-submission.md",
+    "skills/recruiter/assets/job-template-kit/client-follow-up.md",
+    "skills/recruiter/assets/job-template-kit/outreach.md",
+    "skills/recruiter/assets/job-template-kit/rejection.md",
+    "skills/recruiter/assets/job-template-kit/scheduling-availability.md",
+    "skills/recruiter/modules/applicant-screening/GUIDE.md",
+    "skills/recruiter/modules/brandedresume/GUIDE.md",
+    "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",
+    "skills/recruiter/modules/brandedresume/references/example-candidate.json",
+    "skills/recruiter/modules/brandedresume/scripts/build_resume.py",
+    "skills/recruiter/modules/candidate-defense/GUIDE.md",
+    "skills/recruiter/modules/complete-reference-check/GUIDE.md",
+    "skills/recruiter/modules/complete-reference-check/assets/reference-check-template.docx",
+    "skills/recruiter/modules/complete-reference-check/references/reference-check-standard.md",
+    "skills/recruiter/modules/complete-reference-check/references/template-contract.md",
+    "skills/recruiter/modules/complete-reference-check/scripts/build_reference_check.py",
+    "skills/recruiter/modules/cover-letter/GUIDE.md",
+    "skills/recruiter/modules/interview-prep-material/GUIDE.md",
+    "skills/recruiter/modules/interview-prep-material/references/content-contract.md",
+    "skills/recruiter/modules/interview-prep-material/scripts/build_interview_prep_material.py",
+    "skills/recruiter/modules/interview-prep-material/scripts/validate_interview_prep_material.py",
+    "skills/recruiter/modules/ja-candidate-vetting/GUIDE.md",
+    "skills/recruiter/modules/ja-writer/GUIDE.md",
+    "skills/recruiter/modules/ja-writer/references/ja-style.md",
+    "skills/recruiter/modules/job-loxo/GUIDE.md",
+    "skills/recruiter/modules/job-loxo/references/compliance-footer.md",
+    "skills/recruiter/modules/job-loxo/scripts/adzuna_salary_lookup.py",
+    "skills/recruiter/modules/legislator/GUIDE.md",
+    "skills/recruiter/modules/legislator/references/tttg-document-structure-rules-v3.md",
+    "skills/recruiter/modules/linkedin-posts/GUIDE.md",
+    "skills/recruiter/modules/loxo-automation/GUIDE.md",
+    "skills/recruiter/modules/loxo-pipeline/GUIDE.md",
+    "skills/recruiter/modules/loxo-pipeline/references/loxo-endpoints.md",
+    "skills/recruiter/modules/loxo-pipeline/scripts/build_review.py",
+    "skills/recruiter/modules/loxo-pipeline/scripts/pull_pipeline.mjs",
+    "skills/recruiter/modules/loxo-pipeline/scripts/reject.mjs",
+    "skills/recruiter/modules/loxo-readonly-candidate-dashboard/GUIDE.md",
+    "skills/recruiter/modules/loxo-readonly-candidate-dashboard/references/row-format.md",
+    "skills/recruiter/modules/loxo-readonly-candidate-dashboard/scripts/build_dashboard.py",
+    "skills/recruiter/modules/loxo/GUIDE.md",
+    "skills/recruiter/modules/loxo/references/ARCHIVAL-browser-procedures.md",
+    "skills/recruiter/modules/loxo/references/ARCHIVAL-loxo-business-development.md",
+    "skills/recruiter/modules/loxo/references/ARCHIVAL-loxo-workflow.md",
+    "skills/recruiter/modules/loxo/references/gmail-loxo-candidate-reconciliation.md",
+    "skills/recruiter/modules/loxo/references/loxo-candidate-fit-review.md",
+    "skills/recruiter/modules/loxo/references/loxo-linkedin-candidate-vetting.md",
+    "skills/recruiter/modules/loxo/references/loxo-outreach.md",
+    "skills/recruiter/modules/loxo/references/loxo-platform-overview.md",
+    "skills/recruiter/modules/loxo/references/loxo-safe-pipeline-actions.md",
+    "skills/recruiter/modules/loxo/references/prospect-campaign-learning.md",
+    "skills/recruiter/modules/offer-letter/GUIDE.md",
+    "skills/recruiter/modules/recruiting-hr/GUIDE.md",
+    "skills/recruiter/modules/recruiting-hr/interview-prep/GUIDE.md",
+    "skills/recruiter/modules/sourcing/GUIDE.md",
+    "skills/recruiter/modules/sourcing/references/candidate.md",
+    "skills/recruiter/modules/sourcing/references/export.md",
+    "skills/recruiter/modules/sourcing/references/opportunities.md",
+    "skills/recruiter/modules/sourcing/references/prospect.md",
+    "skills/recruiter/modules/sourcing/scripts/adzuna_search.py",
+    "skills/recruiter/modules/sourcing/scripts/sourcing_rows.py",
+    "skills/recruiter/modules/tracker/GUIDE.md",
+    "skills/recruiter/modules/tttg-candidate-submission/GUIDE.md",
+    "skills/recruiter/modules/tttg-resume-engine-workspace/GUIDE.md",
+    "skills/recruiter/modules/vet/GUIDE.md",
+    "skills/recruiter/modules/vet/references/sourcing-enrichment.md",
+    "skills/recruiter/modules/web-sourcing/GUIDE.md",
+    "skills/recruiter/modules/web-sourcing/references/boolean-patterns.md",
+    "skills/recruiter/modules/web-sourcing/scripts/build_csv.py",
+    "skills/recruiter/modules/write-up/GUIDE.md",
+    "skills/recruiter/modules/write-up/assets/submission_email_template.html",
+    "skills/recruiter/references/active-job-template-kit.md",
+    "skills/recruiter/references/call-recording-recovery.md",
+    "skills/recruiter/references/candidate-prep-workspace.md",
+    "skills/recruiter/references/consolidated-legacy-routes.md",
+    "skills/recruiter/references/decision-framework.md",
+    "skills/recruiter/references/jd-screening-guide.md",
+    "skills/recruiter/references/master-matching-prompt.md",
+    "skills/recruiter/references/playbook-principles.md",
+    "skills/recruiter/references/submission-format.md",
+    "skills/recruiter/references/vetting-framework.md",
+    "skills/recruiter/scripts/authority.mjs",
+    "skills/recruiter/scripts/validate-artifact-qa.mjs",
+    "skills/recruiter/templates/candidate-call-submission-template.md",
+    "skills/tracker-manager/GUIDE.md",
+    "skills/tracker-manager/SKILL.md",
+    "skills/tracker-manager/leads/GUIDE.md",
+    "skills/tracker-manager/leads/references/layout.md",
+    "skills/tracker-manager/references/contract.json",
+    "skills/tracker-manager/references/leads-contract.json",
+    "skills/tracker-manager/references/row-contract.md",
+    "skills/tracker-manager/references/sf-jobs-contract.md",
+    "skills/tracker-manager/scripts/leads.mjs",
+    "skills/tracker-manager/scripts/tracker.mjs",
+    "tests/fixtures/synthetic-candidate-dashboard.json"
+  ],
+  "repositoryAuthorityDigest": "f4ba347334840eb3ab619cf20419ddc6e311b3b03d23f1445d80cdbbec371d5d",
+  "policies": [
+    "skills/GLOBAL-RULES.md",
+    "skills/TOOL-CONVENTIONS.md"
+  ],
+  "generatedFrom": [
+    "skills/capabilities.json",
+    "workstation/capability-implementation.json",
+    "workstation/capability-features.json"
+  ],
+  "capabilities": [
+    {
+      "id": "applicant-screening",
+      "label": "applicant-screening",
+      "summary": "Screens and scores job candidates against position requirements. Evaluates resumes, produces structured screening reports with ranked tiers (strong interview / phone screen / maybe / not a fit), and suggests targeted interview questions. Supports individual and batch screening. Trigger: user asks to screen a candidate, evaluate a resume, shortlist applicants, or rank candidates for a role.",
+      "authorityPath": "skills/recruiter/modules/applicant-screening/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "d7e9490bf7de28d4ee657bcf680813c1074300c0f810192644ad9ceeb5ba4978",
+      "repositoryGroup": "on_demand",
+      "repositoryStatus": "active",
+      "workflowGroup": "candidate_work",
+      "inputs": [
+        "Job description",
+        "Applicant resumes or profiles"
+      ],
+      "context": [
+        "Job",
+        "Candidate batch"
+      ],
+      "output": "Individual full screening report with requirement-match scoring, strengths, concerns, suggested interview questions, and recommendation; batch screening also includes a ranked comparison table",
+      "runtime": "Grounded drafting executor",
+      "operations": [
+        {
+          "id": "individual-screening",
+          "label": "Screen one applicant",
+          "stage": "analysis",
+          "approval": "none",
+          "output": "Full candidate screening report with identity, role, date, tier, overall score, requirement-match table, strengths, concerns, interview questions, and recommendation"
+        },
+        {
+          "id": "batch-screening",
+          "label": "Screen an applicant batch",
+          "stage": "analysis",
+          "approval": "none",
+          "output": "One full screening report per applicant plus a ranked batch comparison table"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "screen-applicants",
+          "label": "Screen applicants for this role",
+          "runtime": "local_ai",
+          "mounted": false,
+          "resultKind": "document",
+          "operationId": "individual-screening",
+          "supportingCapabilityIds": [],
+          "supportingAuthorities": []
+        }
+      ],
+      "implementation": {
+        "status": "interface_only",
+        "blocker": "The repository guide is present, but the workstation has no mounted screening executor or persisted screening run.",
+        "evidence": [
+          "skills/recruiter/modules/applicant-screening/GUIDE.md"
+        ]
+      }
+    },
+    {
+      "id": "brandedresume",
+      "label": "brandedresume",
+      "summary": "Internal recruiter capability for a source-grounded branded PDF resume. The recruiter front door selects this guide when Ja asks to brand or format candidate material. It is not a standalone invocation.",
+      "authorityPath": "skills/recruiter/modules/brandedresume/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",
+        "skills/recruiter/modules/brandedresume/references/example-candidate.json",
+        "skills/recruiter/modules/brandedresume/scripts/build_resume.py",
+        "skills/recruiter/modules/legislator/GUIDE.md",
+        "skills/recruiter/modules/legislator/references/tttg-document-structure-rules-v3.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "f785876e4100d9083a6ecb443c145c07491cd4a60359f11c76db37fcf8accc97",
+      "repositoryGroup": "daily_core",
+      "repositoryStatus": "active",
+      "workflowGroup": "candidate_work",
+      "inputs": [
+        "Reviewed resume or candidate material",
+        "Resolved clarification gaps"
+      ],
+      "context": [
+        "Candidate",
+        "Job when tailoring is requested"
+      ],
+      "output": "Source-grounded Top Tier Talent Group branded PDF resume with completed visual QA evidence",
+      "runtime": "Repository Python PDF builder plus artifact storage and visual QA",
+      "operations": [
+        {
+          "id": "build-branded-resume",
+          "label": "Build branded resume",
+          "stage": "build",
+          "approval": "none",
+          "output": "Source-grounded Top Tier Talent Group branded PDF resume"
+        },
+        {
+          "id": "visual-qa",
+          "label": "Complete visual QA",
+          "stage": "quality_assurance",
+          "approval": "preview",
+          "output": "Page-by-page artifact QA evidence bound to the exact PDF"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "brand-resume",
+          "label": "Brand resume",
+          "runtime": "deterministic_server",
+          "mounted": false,
+          "resultKind": "pdf",
+          "operationId": "build-branded-resume",
+          "supportingCapabilityIds": [
+            "legislator"
+          ],
+          "supportingAuthorities": [
+            {
+              "id": "legislator",
+              "authorityDigest": "140577b54acf31b36cc05e7023c9ba80bc286d6ca5d99c550b8991ed890c50ef"
+            }
+          ]
+        }
+      ],
+      "implementation": {
+        "status": "blocked",
+        "blocker": "Execution is disabled because the active authorities conflict and no exact legislator override exists. The branded-resume guide and builder require Letter, Arial, a centered logo, and black styling, while the immutable legislator rulebook requires A4, Noto Sans, a left-positioned logo, a 24pt charcoal name, and 2px heading rules. Global Rules also ban the education em dash that the legislator rulebook requires. In addition, the hosted builder does not attest its repository commit or builder digest, the Workstation does not collect named submission versus MPC mode, and authority preflight for unresolved employer, date, location, degree, metric, and role-specific fit gaps is not connected. The artifact store and visual-QA lifecycle are implemented and tested, but they cannot make a noncompliant build executable.",
+        "evidence": [
+          "skills/recruiter/modules/brandedresume/scripts/build_resume.py",
+          "test/package-contracts.test.mjs",
+          "workstation/lib/server/resume-builder.ts",
+          "workstation/lib/server/capability-executors/artifact.ts",
+          "workstation/lib/server/case-artifact-store.ts",
+          "workstation/test/resume-builder.test.ts",
+          "workstation/test/artifact-capability-executor.test.ts",
+          "workstation/test/artifact-capability-execution-service.test.ts",
+          "workstation/test/case-artifact-store.test.ts"
+        ]
+      }
+    },
+    {
+      "id": "candidate-defense",
+      "label": "candidate-defense",
+      "summary": "Defense-first candidate advocacy for Top Tier Talent Group.",
+      "authorityPath": "skills/recruiter/modules/candidate-defense/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/ja-writer/references/ja-style.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "b9d50397923df3a911b0ac0fe8976ec8a63092e619f1db047848813616eeb179",
+      "repositoryGroup": "on_demand",
+      "repositoryStatus": "active",
+      "workflowGroup": "candidate_work",
+      "inputs": [
+        "Reviewed resume",
+        "Job description or role brief",
+        "Call notes when available",
+        "Known client objection when stated"
+      ],
+      "context": [
+        "Candidate",
+        "Job"
+      ],
+      "output": "Defense brief, submission email, or grounded resume reframe for the selected mode",
+      "runtime": "Grounded drafting executor",
+      "operations": [
+        {
+          "id": "defense-brief",
+          "label": "Create defense brief",
+          "stage": "analysis",
+          "approval": "none",
+          "output": "Evidence-grounded objection analysis, defense, remaining risks, and bottom line"
+        },
+        {
+          "id": "submission-email",
+          "label": "Draft defense-framed submission",
+          "stage": "draft",
+          "approval": "explicit",
+          "output": "Defense-framed submission email only after fresh confirmation following the defense brief"
+        },
+        {
+          "id": "resume-reframe",
+          "label": "Draft resume reframe",
+          "stage": "draft",
+          "approval": "explicit",
+          "output": "Grounded resume reframe only after fresh confirmation following the prior mode"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "defend-candidate",
+          "label": "Defend a borderline candidate",
+          "runtime": "local_ai",
+          "mounted": false,
+          "resultKind": "document",
+          "operationId": "defense-brief",
+          "supportingCapabilityIds": [],
+          "supportingAuthorities": []
+        }
+      ],
+      "implementation": {
+        "status": "interface_only",
+        "blocker": "The workstation has no mounted mode-aware defense executor, persisted defense output, or fresh confirmation gate between the authority's analysis and deliverable stages.",
+        "evidence": [
+          "skills/recruiter/modules/candidate-defense/GUIDE.md"
+        ]
+      }
+    },
+    {
+      "id": "complete-reference-check",
+      "label": "complete-reference-check",
+      "summary": "Complete candidate reference checks from supported evidence and generate a polished Top Tier Talent Group PDF from the repository-owned sanitized blank template.",
+      "authorityPath": "skills/recruiter/modules/complete-reference-check/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/complete-reference-check/assets/reference-check-template.docx",
+        "skills/recruiter/modules/complete-reference-check/references/reference-check-standard.md",
+        "skills/recruiter/modules/complete-reference-check/references/template-contract.md",
+        "skills/recruiter/modules/complete-reference-check/scripts/build_reference_check.py",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "f2bd1ef303677799da47e7f173dd676e1ccf8017ee1fb28e3f4878b4e8826fe5",
+      "repositoryGroup": "on_demand",
+      "repositoryStatus": "active",
+      "workflowGroup": "artifacts",
+      "inputs": [
+        "Reference transcript or direct notes",
+        "Candidate and applied-role context",
+        "Referee and completion metadata"
+      ],
+      "context": [
+        "Candidate",
+        "Job",
+        "Reference call"
+      ],
+      "output": "Completed reference-check PDF from the sanitized repository template with visual QA evidence",
+      "runtime": "Repository DOCX builder, document renderer, PDF storage, and visual QA",
+      "operations": [
+        {
+          "id": "build-reference-check",
+          "label": "Build reference-check PDF",
+          "stage": "build",
+          "approval": "none",
+          "output": "Completed reference-check PDF from the repository template"
+        },
+        {
+          "id": "visual-qa",
+          "label": "Complete visual QA",
+          "stage": "quality_assurance",
+          "approval": "preview",
+          "output": "Page-by-page artifact QA evidence bound to the exact PDF"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "reference-check-pdf",
+          "label": "Reference check PDF",
+          "runtime": "local_ai",
+          "mounted": false,
+          "resultKind": "pdf",
+          "operationId": "build-reference-check",
+          "supportingCapabilityIds": [],
+          "supportingAuthorities": []
+        }
+      ],
+      "implementation": {
+        "status": "partial",
+        "blocker": "The hosted adapter now invokes the canonical sanitized-DOCX builder and fails closed instead of substituting a newly drawn PDF. The deployed runtime's canonical DOCX-to-PDF renderer remains unverified, the workstation does not yet assemble the full source-bound answer schema from the reference evidence, and no mounted browser path produces the rendered-page and human visual-QA evidence. The executor therefore remains unmounted until that complete path is proven.",
+        "evidence": [
+          "skills/recruiter/modules/complete-reference-check/scripts/build_reference_check.py",
+          "server/artifacts.py",
+          "test/reference-builder.test.mjs",
+          "test/package-contracts.test.mjs"
+        ]
+      }
+    },
+    {
+      "id": "cover-letter",
+      "label": "cover-letter",
+      "summary": "Writes tailored, compelling cover letters for job applications. Personalizes tone, highlights quantified achievements, and integrates company-specific research. Supports standard, referral, career-change, and entry-level variants. Trigger: user asks to write or draft a cover letter, application letter, or letter of interest.",
+      "authorityPath": "skills/recruiter/modules/cover-letter/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "3271d05a2287ae87cba575e9e381f01d6436d14bec9daa924fc7a8de1875c0df",
+      "repositoryGroup": "on_demand",
+      "repositoryStatus": "active",
+      "workflowGroup": "writing",
+      "inputs": [
+        "Candidate background",
+        "Target Job and company",
+        "Supported achievements",
+        "Tone and referral context when relevant"
+      ],
+      "context": [
+        "Candidate",
+        "Job",
+        "Client or company"
+      ],
+      "output": "Editable tailored cover-letter draft grounded in candidate evidence, the target Job, and current company-specific research",
+      "runtime": "Grounded drafting executor plus approved company research",
+      "operations": [
+        {
+          "id": "research-target-company",
+          "label": "Research target company",
+          "stage": "research",
+          "approval": "none",
+          "output": "Current sourced company-specific findings for the cover-letter paragraph"
+        },
+        {
+          "id": "draft-cover-letter",
+          "label": "Draft cover letter",
+          "stage": "draft",
+          "approval": "none",
+          "output": "Editable source-grounded cover-letter draft"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "cover-letter",
+          "label": "Cover letter",
+          "runtime": "local_ai",
+          "mounted": false,
+          "resultKind": "document",
+          "operationId": "draft-cover-letter",
+          "supportingCapabilityIds": [],
+          "supportingAuthorities": []
+        }
+      ],
+      "implementation": {
+        "status": "interface_only",
+        "blocker": "The repository guide is present, but the workstation has no mounted cover-letter executor, approved current-company research adapter, source ledger, or persisted result. Resume and Job-description input alone cannot satisfy the required company-specific paragraph.",
+        "evidence": [
+          "skills/recruiter/modules/cover-letter/GUIDE.md"
+        ]
+      }
+    },
+    {
+      "id": "ja-candidate-vetting",
+      "label": "ja-candidate-vetting",
+      "summary": "This file defines how to assess candidate fit before submission.",
+      "authorityPath": "skills/recruiter/modules/ja-candidate-vetting/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/loxo-automation/GUIDE.md",
+        "skills/recruiter/modules/loxo/GUIDE.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-browser-procedures.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-loxo-business-development.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-loxo-workflow.md",
+        "skills/recruiter/modules/loxo/references/gmail-loxo-candidate-reconciliation.md",
+        "skills/recruiter/modules/loxo/references/loxo-candidate-fit-review.md",
+        "skills/recruiter/modules/loxo/references/loxo-linkedin-candidate-vetting.md",
+        "skills/recruiter/modules/loxo/references/loxo-outreach.md",
+        "skills/recruiter/modules/loxo/references/loxo-platform-overview.md",
+        "skills/recruiter/modules/loxo/references/loxo-safe-pipeline-actions.md",
+        "skills/recruiter/modules/loxo/references/prospect-campaign-learning.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "69c35f26657a2b951f2a3d66cce873ec0d57263e87d4907321636493a94cd5f3",
+      "repositoryGroup": "daily_core",
+      "repositoryStatus": "active",
+      "workflowGroup": "candidate_work",
+      "inputs": [
+        "Candidate evidence",
+        "Role requirements",
+        "Call evidence when available"
+      ],
+      "context": [
+        "Candidate",
+        "Job"
+      ],
+      "output": "Evidence-grounded candidate fit decision with risks and next action",
+      "runtime": "Grounded vetting executor",
+      "operations": [
+        {
+          "id": "assess-candidate-fit",
+          "label": "Assess candidate fit",
+          "stage": "analysis",
+          "approval": "none",
+          "output": "Evidence-grounded candidate fit decision with risks and next action"
+        }
+      ],
+      "executorFeatures": [],
+      "implementation": {
+        "status": "interface_only",
+        "blocker": "The repository module is not connected to a dedicated workstation executor or persisted result.",
+        "evidence": [
+          "skills/recruiter/modules/ja-candidate-vetting/GUIDE.md"
+        ]
+      }
+    },
+    {
+      "id": "ja-writer",
+      "label": "ja-writer",
+      "summary": "Write in Ja Maralit's voice for Top Tier Talent Group — candidate submissions, candidate outreach, client emails, follow-ups, LinkedIn notes, and any recruiting copy. Grounded in Ja's verified writing patterns, not generic templates. Use whenever Ja says \"write this\", \"draft an email\", \"submit this candidate\", \"reach out to\", \"present {name}\", \"write the submission\", \"follow up with\", or asks for anything in his voice. Load references/ja-style.md for the exact patterns, signature handling, and the two writing modes.",
+      "authorityPath": "skills/recruiter/modules/ja-writer/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/ja-writer/references/ja-style.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "6f15c981684b71717c12a4d64eb15a0ea3d291e88d763b60e012d69370fe8504",
+      "repositoryGroup": "daily_core",
+      "repositoryStatus": "active",
+      "workflowGroup": "writing",
+      "inputs": [
+        "Writing purpose",
+        "Audience or recipient context",
+        "Confirmed facts",
+        "Requested format"
+      ],
+      "context": [
+        "Candidate when relevant",
+        "Job when relevant",
+        "Ja voice rules"
+      ],
+      "output": "Editable draft in Ja's repository-defined voice",
+      "runtime": "Grounded drafting executor with Ja style reference",
+      "operations": [
+        {
+          "id": "draft-in-ja-voice",
+          "label": "Draft in Ja's voice",
+          "stage": "draft",
+          "approval": "none",
+          "output": "Editable draft in Ja's repository-defined voice"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "email-in-my-voice",
+          "label": "Email in my voice",
+          "runtime": "local_ai",
+          "mounted": false,
+          "resultKind": "document",
+          "operationId": "draft-in-ja-voice",
+          "supportingCapabilityIds": [],
+          "supportingAuthorities": []
+        }
+      ],
+      "implementation": {
+        "status": "interface_only",
+        "blocker": "The workstation contains an unmounted email feature, but no registry-backed Ja Writer executor and persisted run are exposed.",
+        "evidence": [
+          "skills/recruiter/modules/ja-writer/GUIDE.md",
+          "skills/recruiter/modules/ja-writer/references/ja-style.md"
+        ]
+      }
+    },
+    {
+      "id": "job-loxo",
+      "label": "job-loxo",
+      "summary": "Create, audit, validate, publish, and verify Loxo job postings for Ja and Top Tier Talent Group. Use whenever Ja asks about a new Loxo job, duplicate title-and-city checks, adjacent-role overlap, title selection, Adzuna salary research, job-description drafting, Loxo field preparation, publishing, or confirming whether a job is active and live. Trigger even when Ja only asks whether a proposed job title or salary makes sense. Excludes candidate sourcing and all email, reply, notification, and outreach work.",
+      "authorityPath": "skills/recruiter/modules/job-loxo/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/job-loxo/references/compliance-footer.md",
+        "skills/recruiter/modules/job-loxo/scripts/adzuna_salary_lookup.py",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "1eda5dbe170459d2599719a1e82f2286eaee72f37b735aefeade27b04d5214c9",
+      "repositoryGroup": "on_demand",
+      "repositoryStatus": "restricted",
+      "workflowGroup": "job_client_work",
+      "inputs": [
+        "Confirmed role details or Job description",
+        "Client and location facts",
+        "Compensation evidence when used"
+      ],
+      "context": [
+        "Job",
+        "Client"
+      ],
+      "output": "Compliant Job-posting draft and, only after approval, a verified Loxo Job outcome",
+      "runtime": "Drafting executor, salary research helper, and approved Loxo Job adapter",
+      "operations": [
+        {
+          "id": "draft-job-posting",
+          "label": "Draft job posting",
+          "stage": "draft",
+          "approval": "none",
+          "output": "Compliant editable Job-posting draft"
+        },
+        {
+          "id": "publish-loxo-job",
+          "label": "Publish Loxo Job",
+          "stage": "external_write",
+          "approval": "explicit",
+          "output": "Verified Loxo Job write with readback evidence"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "draft-job-posting",
+          "label": "Draft job posting",
+          "runtime": "local_ai",
+          "mounted": false,
+          "resultKind": "document",
+          "operationId": "draft-job-posting",
+          "supportingCapabilityIds": [],
+          "supportingAuthorities": []
+        }
+      ],
+      "implementation": {
+        "status": "interface_only",
+        "blocker": "Draft guidance and a salary helper exist, but no connected Loxo Job adapter, approval route, or readback exists in the workstation.",
+        "evidence": [
+          "skills/recruiter/modules/job-loxo/GUIDE.md",
+          "skills/recruiter/modules/job-loxo/scripts/adzuna_salary_lookup.py"
+        ]
+      }
+    },
+    {
+      "id": "legislator",
+      "label": "legislator",
+      "summary": "Enforce immutable TTTG Document Structure & Rules v3.0 PRO for the TTTG resume builder. Use when creating, editing, reviewing, refactoring, or validating resume layout/UI logic, print/PDF output, MPC mode behavior, section formatting, and branded visual rules. Use whenever strict compliance is required and any rule changes must only occur after explicit manual user confirmation in chat.",
+      "authorityPath": "skills/recruiter/modules/legislator/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/legislator/references/tttg-document-structure-rules-v3.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "140577b54acf31b36cc05e7023c9ba80bc286d6ca5d99c550b8991ed890c50ef",
+      "repositoryGroup": "supporting",
+      "repositoryStatus": "active",
+      "workflowGroup": "artifacts",
+      "inputs": [
+        "Recruiting document content",
+        "Applicable document type"
+      ],
+      "context": [
+        "Artifact",
+        "Repository document rules"
+      ],
+      "output": "Top-to-bottom compliance checklist marking every rule Compliant, Violation, or Not Implemented, with exact file and line evidence for each violation",
+      "runtime": "Supporting policy consumed by artifact executors",
+      "operations": [
+        {
+          "id": "audit-document",
+          "label": "Audit document compliance",
+          "stage": "quality_assurance",
+          "approval": "none",
+          "output": "Top-to-bottom compliance checklist with exact file and line evidence"
+        }
+      ],
+      "executorFeatures": [],
+      "implementation": {
+        "status": "interface_only",
+        "blocker": "The policy is indexed, but the workstation has no mounted compliance-check executor or persisted checklist. The current branded-resume guide and builder also conflict with the immutable rulebook, so Legislator cannot truthfully be claimed as consumed until that conflict is resolved by the exact override protocol or implementation alignment.",
+        "evidence": [
+          "skills/recruiter/modules/legislator/GUIDE.md"
+        ]
+      }
+    },
+    {
+      "id": "linkedin-posts",
+      "label": "linkedin-posts",
+      "summary": "Create or optimize LinkedIn post and article copy, including professional recruiting and B2B content. Publishing and paid promotion are external actions and are not packaged here.",
+      "authorityPath": "skills/recruiter/modules/linkedin-posts/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/ja-writer/GUIDE.md",
+        "skills/recruiter/modules/ja-writer/references/ja-style.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "3c08ae0ecf8b82db62da403c1d0af1f7dc531ce6a8424d8e9bf1d07153b8a84a",
+      "repositoryGroup": "on_demand",
+      "repositoryStatus": "active",
+      "workflowGroup": "writing",
+      "inputs": [
+        "Post objective",
+        "Audience",
+        "Confirmed facts",
+        "Call to action when requested"
+      ],
+      "context": [
+        "Ja voice rules",
+        "Job or company when relevant"
+      ],
+      "output": "Editable LinkedIn package containing the first-line hook, full post with character count, relevant hashtags, image specifications, and a form note when the content is not a plain post",
+      "runtime": "Grounded drafting executor",
+      "operations": [
+        {
+          "id": "draft-linkedin-package",
+          "label": "Draft LinkedIn package",
+          "stage": "draft",
+          "approval": "none",
+          "output": "Editable LinkedIn hook, post, hashtags, image specifications, and applicable form note"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "linkedin-post",
+          "label": "LinkedIn post",
+          "runtime": "local_ai",
+          "mounted": false,
+          "resultKind": "document",
+          "operationId": "draft-linkedin-package",
+          "supportingCapabilityIds": [
+            "ja-writer"
+          ],
+          "supportingAuthorities": [
+            {
+              "id": "ja-writer",
+              "authorityDigest": "6f15c981684b71717c12a4d64eb15a0ea3d291e88d763b60e012d69370fe8504"
+            }
+          ]
+        }
+      ],
+      "implementation": {
+        "status": "interface_only",
+        "blocker": "An unmounted draft feature exists, but the registry-backed workflow and persisted result are not exposed.",
+        "evidence": [
+          "skills/recruiter/modules/linkedin-posts/GUIDE.md"
+        ]
+      }
+    },
+    {
+      "id": "loxo",
+      "label": "loxo",
+      "summary": "Use for read-only Loxo ATS/CRM orientation and draft preparation for Ja and Top Tier Talent Group. Use for source-grounded findings, exact-record review, or an approval manifest; live changes belong to the protected host adapter and safe pipeline contract.",
+      "authorityPath": "skills/recruiter/modules/loxo/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/loxo-automation/GUIDE.md",
+        "skills/recruiter/modules/loxo-pipeline/GUIDE.md",
+        "skills/recruiter/modules/loxo-pipeline/references/loxo-endpoints.md",
+        "skills/recruiter/modules/loxo-pipeline/scripts/build_review.py",
+        "skills/recruiter/modules/loxo-pipeline/scripts/pull_pipeline.mjs",
+        "skills/recruiter/modules/loxo-pipeline/scripts/reject.mjs",
+        "skills/recruiter/modules/loxo-readonly-candidate-dashboard/GUIDE.md",
+        "skills/recruiter/modules/loxo-readonly-candidate-dashboard/references/row-format.md",
+        "skills/recruiter/modules/loxo-readonly-candidate-dashboard/scripts/build_dashboard.py",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-browser-procedures.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-loxo-business-development.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-loxo-workflow.md",
+        "skills/recruiter/modules/loxo/references/gmail-loxo-candidate-reconciliation.md",
+        "skills/recruiter/modules/loxo/references/loxo-candidate-fit-review.md",
+        "skills/recruiter/modules/loxo/references/loxo-linkedin-candidate-vetting.md",
+        "skills/recruiter/modules/loxo/references/loxo-outreach.md",
+        "skills/recruiter/modules/loxo/references/loxo-platform-overview.md",
+        "skills/recruiter/modules/loxo/references/loxo-safe-pipeline-actions.md",
+        "skills/recruiter/modules/loxo/references/prospect-campaign-learning.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md",
+        "tests/fixtures/synthetic-candidate-dashboard.json"
+      ],
+      "authorityDigest": "e9a69bc6cfd1350b07ecd327018edb608f0aefaba114b403c748109ce55a9eb8",
+      "repositoryGroup": "daily_core",
+      "repositoryStatus": "read_only",
+      "workflowGroup": "pipeline_tracker",
+      "inputs": [
+        "Named read or draft request",
+        "Candidate, Job, or pipeline identity",
+        "Current Loxo evidence"
+      ],
+      "context": [
+        "Candidate",
+        "Job",
+        "Loxo record"
+      ],
+      "output": "Read-only Loxo result, draft note, fit review, reconciliation result, or a proposed action that is not executed by this capability",
+      "runtime": "Read-only Loxo adapter plus local draft and review logic",
+      "operations": [
+        {
+          "id": "read-loxo",
+          "label": "Read Loxo",
+          "stage": "read",
+          "approval": "none",
+          "output": "Source-grounded read-only Loxo finding or fit review"
+        },
+        {
+          "id": "draft-loxo-note",
+          "label": "Draft Loxo note",
+          "stage": "draft",
+          "approval": "none",
+          "output": "Editable manual Loxo note draft"
+        },
+        {
+          "id": "prepare-action-manifest",
+          "label": "Prepare action manifest",
+          "stage": "preview",
+          "approval": "none",
+          "output": "Proposed exact-record action manifest that performs no mutation"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "loxo-pipeline-review",
+          "label": "Loxo pipeline review",
+          "runtime": "loxo_read_adapter",
+          "mounted": false,
+          "resultKind": "table",
+          "operationId": "read-loxo",
+          "supportingCapabilityIds": [
+            "loxo-readonly-candidate-dashboard",
+            "loxo-pipeline"
+          ],
+          "supportingAuthorities": [
+            {
+              "id": "loxo-readonly-candidate-dashboard",
+              "authorityDigest": "9d813e5b66de9ba3ee56e175ca959fb1249d53742e29ceb99efbf731a6d54650"
+            },
+            {
+              "id": "loxo-pipeline",
+              "authorityDigest": "374a474f004609a9071c0a6f2acaadd3c80e4a7ae5c01ffe51bc9b80acc80a7a"
+            }
+          ]
+        }
+      ],
+      "implementation": {
+        "status": "blocked",
+        "blocker": "The workstation Loxo connector is not connected and the hosted server exposes only placeholder Loxo behavior.",
+        "evidence": [
+          "workstation/lib/server/connectors.ts",
+          "server/server.py"
+        ]
+      }
+    },
+    {
+      "id": "loxo-automation",
+      "label": "loxo-automation",
+      "summary": "Restricted Loxo browser action guide. Default output is read-only findings or an unsaved manual draft. A Loxo mutation requires separately named human authorization and a verified allowed browser tool in the current host.",
+      "authorityPath": "skills/recruiter/modules/loxo-automation/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/loxo/GUIDE.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-browser-procedures.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-loxo-business-development.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-loxo-workflow.md",
+        "skills/recruiter/modules/loxo/references/gmail-loxo-candidate-reconciliation.md",
+        "skills/recruiter/modules/loxo/references/loxo-candidate-fit-review.md",
+        "skills/recruiter/modules/loxo/references/loxo-linkedin-candidate-vetting.md",
+        "skills/recruiter/modules/loxo/references/loxo-outreach.md",
+        "skills/recruiter/modules/loxo/references/loxo-platform-overview.md",
+        "skills/recruiter/modules/loxo/references/loxo-safe-pipeline-actions.md",
+        "skills/recruiter/modules/loxo/references/prospect-campaign-learning.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "10fdd1e73f5e812d3b59d73af74dc6b380cb502122690d87e8b477552a2d042c",
+      "repositoryGroup": "supporting",
+      "repositoryStatus": "restricted",
+      "workflowGroup": "pipeline_tracker",
+      "inputs": [
+        "Exact supported command",
+        "Current Loxo record state",
+        "Proposed change"
+      ],
+      "context": [
+        "Candidate",
+        "Job",
+        "Loxo record"
+      ],
+      "output": "Previewed and explicitly approved Loxo action with precondition reread and result readback evidence",
+      "runtime": "Verified Loxo mutation adapter",
+      "operations": [
+        {
+          "id": "prepare-action-preview",
+          "label": "Prepare Loxo action preview",
+          "stage": "preview",
+          "approval": "none",
+          "output": "Immutable exact-record Loxo action preview"
+        },
+        {
+          "id": "execute-approved-action",
+          "label": "Execute approved Loxo action",
+          "stage": "external_write",
+          "approval": "explicit",
+          "output": "Serialized Loxo action with precondition reread and post-write readback evidence"
+        }
+      ],
+      "executorFeatures": [],
+      "implementation": {
+        "status": "blocked",
+        "blocker": "No verified Loxo mutation adapter, workstation route, or readback implementation is connected.",
+        "evidence": [
+          "skills/recruiter/modules/loxo-automation/GUIDE.md",
+          "workstation/lib/server/connectors.ts"
+        ]
+      }
+    },
+    {
+      "id": "loxo-readonly-candidate-dashboard",
+      "label": "loxo-readonly-candidate-dashboard",
+      "summary": "Build a factual, job-by-job candidate review dashboard from Loxo using read-only tools. Use when the user asks to review a Loxo job, summarize its candidates, verify Applied status, check job-specific outreach, or create an external HTML dashboard with local Decision and Notes fields. Never write to Loxo.",
+      "authorityPath": "skills/recruiter/modules/loxo-readonly-candidate-dashboard/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/loxo-readonly-candidate-dashboard/references/row-format.md",
+        "skills/recruiter/modules/loxo-readonly-candidate-dashboard/scripts/build_dashboard.py",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md",
+        "tests/fixtures/synthetic-candidate-dashboard.json"
+      ],
+      "authorityDigest": "9d813e5b66de9ba3ee56e175ca959fb1249d53742e29ceb99efbf731a6d54650",
+      "repositoryGroup": "on_demand",
+      "repositoryStatus": "read_only",
+      "workflowGroup": "pipeline_tracker",
+      "inputs": [
+        "Current Loxo candidate data in the repository contract"
+      ],
+      "context": [
+        "Candidate",
+        "Loxo record"
+      ],
+      "output": "Standalone read-only job-specific HTML candidate dashboard with stage, search, Applied, and outreach controls; browser localStorage persistence for Decision and Notes; and CSV and JSON exports",
+      "runtime": "Repository dashboard builder plus verified Loxo read adapter",
+      "operations": [
+        {
+          "id": "read-loxo-job",
+          "label": "Read exact Loxo Job",
+          "stage": "read",
+          "approval": "none",
+          "output": "Current job-specific candidate rows from a verified read-only Loxo adapter"
+        },
+        {
+          "id": "build-dashboard",
+          "label": "Build dashboard",
+          "stage": "build",
+          "approval": "none",
+          "output": "Standalone interactive HTML dashboard that requires no server"
+        },
+        {
+          "id": "edit-local-review",
+          "label": "Edit local Decision and Notes",
+          "stage": "local_edit",
+          "approval": "none",
+          "output": "Decision and Notes saved only in browser localStorage and never written to Loxo"
+        },
+        {
+          "id": "export-csv",
+          "label": "Export dashboard CSV",
+          "stage": "export",
+          "approval": "none",
+          "output": "Local CSV export of the dashboard review"
+        },
+        {
+          "id": "export-json",
+          "label": "Export dashboard JSON",
+          "stage": "export",
+          "approval": "none",
+          "output": "Local JSON export of the dashboard review"
+        }
+      ],
+      "executorFeatures": [],
+      "implementation": {
+        "status": "partial",
+        "blocker": "The dashboard builder now validates and preserves arbitrary input stages and includes the required outreach filter under synthetic tests. No live Loxo read adapter or mounted workstation workflow exists, so current-record ingestion and artifact handoff remain unverified.",
+        "evidence": [
+          "skills/recruiter/modules/loxo-readonly-candidate-dashboard/GUIDE.md",
+          "skills/recruiter/modules/loxo-readonly-candidate-dashboard/scripts/build_dashboard.py",
+          "test/loxo-dashboard-runtime.test.mjs",
+          "test/workbench-and-template-contracts.test.mjs"
+        ]
+      }
+    },
+    {
+      "id": "loxo-pipeline",
+      "label": "loxo-pipeline",
+      "summary": "Prepare a Loxo job pipeline export, offline candidate review, or exact approval-gated rejection manifest. Use for pipeline pulls, applied versus sourced review, resume and activity enrichment, review pages, and requested pipeline cleanup. Repository helpers are offline cores and do not prove a live Loxo connection.",
+      "authorityPath": "skills/recruiter/modules/loxo-pipeline/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/loxo-pipeline/references/loxo-endpoints.md",
+        "skills/recruiter/modules/loxo-pipeline/scripts/build_review.py",
+        "skills/recruiter/modules/loxo-pipeline/scripts/pull_pipeline.mjs",
+        "skills/recruiter/modules/loxo-pipeline/scripts/reject.mjs",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "374a474f004609a9071c0a6f2acaadd3c80e4a7ae5c01ffe51bc9b80acc80a7a",
+      "repositoryGroup": "on_demand",
+      "repositoryStatus": "restricted",
+      "workflowGroup": "pipeline_tracker",
+      "inputs": [
+        "Current pipeline data",
+        "Named review or action",
+        "Verified Job and candidate identities"
+      ],
+      "context": [
+        "Job",
+        "Candidate",
+        "Loxo pipeline"
+      ],
+      "output": "Pipeline review or proposed gated pipeline action",
+      "runtime": "Repository pipeline helpers plus verified Loxo adapter",
+      "operations": [
+        {
+          "id": "read-pipeline",
+          "label": "Read pipeline",
+          "stage": "read",
+          "approval": "none",
+          "output": "Current exact-Job pipeline export"
+        },
+        {
+          "id": "build-review",
+          "label": "Build pipeline review",
+          "stage": "review",
+          "approval": "none",
+          "output": "Offline JSON, CSV, and compact card review artifacts"
+        },
+        {
+          "id": "reject-candidates",
+          "label": "Reject candidates",
+          "stage": "external_write",
+          "approval": "explicit",
+          "output": "Serialized rejection actions with precondition reread and rejected_at readback"
+        }
+      ],
+      "executorFeatures": [],
+      "implementation": {
+        "status": "partial",
+        "blocker": "Offline helpers now require explicit validated config and a declared transport, fail closed without an adapter, and synthetically verify immutable preview approval, precondition reread, sequential test-of-one execution, rejected_at readback, and no retry after an unknown result. No verified live Loxo read or mutation adapter or mounted workstation execution route exists, so live execution and readback remain unproven.",
+        "evidence": [
+          "skills/recruiter/modules/loxo-pipeline/GUIDE.md",
+          "skills/recruiter/modules/loxo-pipeline/scripts/pull_pipeline.mjs",
+          "skills/recruiter/modules/loxo-pipeline/scripts/build_review.py",
+          "skills/recruiter/modules/loxo-pipeline/scripts/reject.mjs",
+          "test/loxo-pipeline-runtime.test.mjs",
+          "test/loxo-workflows.test.mjs"
+        ]
+      }
+    },
+    {
+      "id": "offer-letter",
+      "label": "offer-letter",
+      "summary": "Generates professional employment offer letters for HR and recruitment. Produces clean, formal letters covering position, compensation, start date, benefits, and contingencies. Trigger: user asks to write, draft, or generate an offer letter, employment offer, or job offer document.",
+      "authorityPath": "skills/recruiter/modules/offer-letter/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "67c610afef99a6da6dbf15f3c94acbbfa527b9427a38e42172268c4c9ffc1349",
+      "repositoryGroup": "on_demand",
+      "repositoryStatus": "active",
+      "workflowGroup": "writing",
+      "inputs": [
+        "Confirmed candidate and company",
+        "Role and start date",
+        "Compensation and employment terms",
+        "Signing authority"
+      ],
+      "context": [
+        "Candidate",
+        "Job",
+        "Client"
+      ],
+      "output": "Editable offer-letter draft only after every required offer field is confirmed; optional terms are omitted when absent",
+      "runtime": "Grounded drafting executor",
+      "operations": [
+        {
+          "id": "collect-required-offer-details",
+          "label": "Collect required offer details",
+          "stage": "intake",
+          "approval": "none",
+          "output": "Seven complete required offer-information groups"
+        },
+        {
+          "id": "draft-offer-letter",
+          "label": "Draft offer letter",
+          "stage": "draft",
+          "approval": "none",
+          "output": "Editable offer-letter draft with optional terms omitted when absent"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "offer-letter",
+          "label": "Offer letter",
+          "runtime": "local_ai",
+          "mounted": false,
+          "resultKind": "form",
+          "operationId": "draft-offer-letter",
+          "supportingCapabilityIds": [],
+          "supportingAuthorities": []
+        }
+      ],
+      "implementation": {
+        "status": "interface_only",
+        "blocker": "The repository guide and an unmounted form definition exist, but no registry-backed executor, persisted offer document, or seven-field completeness gate is exposed. The authority forbids drafting until candidate name, Job title, start date, salary and pay frequency, employment type, manager name and title, and company plus signing authority are all confirmed.",
+        "evidence": [
+          "skills/recruiter/modules/offer-letter/GUIDE.md"
+        ]
+      }
+    },
+    {
+      "id": "interview-prep-material",
+      "label": "interview-prep-material",
+      "summary": "Internal recruiter capability for reusable, role-specific candidate interview prep material in a polished PDF. The recruiter front door selects this guide when Ja asks for interview prep material, a candidate-facing company and role presentation, or a visual brief that can be sent to multiple candidates. It is not a standalone invocation.",
+      "authorityPath": "skills/recruiter/modules/interview-prep-material/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/interview-prep-material/references/content-contract.md",
+        "skills/recruiter/modules/interview-prep-material/scripts/build_interview_prep_material.py",
+        "skills/recruiter/modules/interview-prep-material/scripts/validate_interview_prep_material.py",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "9cb21d2a0cdf262db0ec5ed1a0fb3060fea076efa18a465dcaea37ce19aa087c",
+      "repositoryGroup": "on_demand",
+      "repositoryStatus": "active",
+      "workflowGroup": "artifacts",
+      "inputs": [
+        "Exact company and role",
+        "Current Job description",
+        "Confirmed work location",
+        "Approved brand assets and external sources"
+      ],
+      "context": [
+        "Job",
+        "Client",
+        "Reusable role artifact"
+      ],
+      "output": "Reusable candidate-facing interview-prep PDF with source and asset ledgers plus visual QA",
+      "runtime": "Repository PDF builder, validator, artifact storage, and visual QA",
+      "operations": [
+        {
+          "id": "research-role-brief",
+          "label": "Research role brief",
+          "stage": "research",
+          "approval": "none",
+          "output": "Current sourced company, site, location, and role evidence with source and asset ledgers"
+        },
+        {
+          "id": "build-internal-draft",
+          "label": "Build internal draft PDF",
+          "stage": "draft",
+          "approval": "none",
+          "output": "Watermarked internal-draft interview-prep PDF"
+        },
+        {
+          "id": "release-candidate-pdf",
+          "label": "Release candidate-facing PDF",
+          "stage": "release",
+          "approval": "preview",
+          "output": "Candidate-facing interview-prep PDF after publication-status, validation, and page-by-page visual-QA gates"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "interview-prep-pdf",
+          "label": "Interview prep PDF",
+          "runtime": "local_ai",
+          "mounted": false,
+          "resultKind": "pdf",
+          "operationId": "build-internal-draft",
+          "supportingCapabilityIds": [],
+          "supportingAuthorities": []
+        }
+      ],
+      "implementation": {
+        "status": "partial",
+        "blocker": "The canonical builder and validator pass synthetic tests, durable artifact storage plus the human visual-QA lifecycle are implemented, and the hosted adapter now rejects short ledgers instead of synthesizing replacement evidence. The workflow remains unmounted because the workstation does not assemble the full typed builder payload, ingest current official company and location research, transfer approved licensed assets, or preserve real claim and asset ledgers. Candidate release also lacks the authority-required publication gate, rendered-page images, canonical artifact-QA validation evidence, and completed human per-page review.",
+        "evidence": [
+          "skills/recruiter/modules/interview-prep-material/scripts/build_interview_prep_material.py",
+          "skills/recruiter/modules/interview-prep-material/scripts/validate_interview_prep_material.py",
+          "server/artifacts.py",
+          "test/package-contracts.test.mjs"
+        ]
+      }
+    },
+    {
+      "id": "recruiting-hr",
+      "label": "Recruiting HR Collection",
+      "summary": "Internal `$recruiter` collection for compensation analysis, offer drafting, interview preparation, onboarding, organization planning, people reports, performance reviews, policy lookup, and recruiting-pipeline support.",
+      "authorityPath": "skills/recruiter/modules/recruiting-hr/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/manifests/plugins.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/interview-prep-material/GUIDE.md",
+        "skills/recruiter/modules/interview-prep-material/references/content-contract.md",
+        "skills/recruiter/modules/interview-prep-material/scripts/build_interview_prep_material.py",
+        "skills/recruiter/modules/interview-prep-material/scripts/validate_interview_prep_material.py",
+        "skills/recruiter/modules/recruiting-hr/comp-analysis/GUIDE.md",
+        "skills/recruiter/modules/recruiting-hr/draft-offer/GUIDE.md",
+        "skills/recruiter/modules/recruiting-hr/interview-prep/GUIDE.md",
+        "skills/recruiter/modules/recruiting-hr/onboarding/GUIDE.md",
+        "skills/recruiter/modules/recruiting-hr/org-planning/GUIDE.md",
+        "skills/recruiter/modules/recruiting-hr/people-report/GUIDE.md",
+        "skills/recruiter/modules/recruiting-hr/performance-review/GUIDE.md",
+        "skills/recruiter/modules/recruiting-hr/policy-lookup/GUIDE.md",
+        "skills/recruiter/modules/recruiting-hr/recruiting-pipeline/GUIDE.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "4d2839952b0bee1b5f1b1ab1e4649ad1f19fdf2b3f0c88511f1b6689090e763e",
+      "repositoryGroup": "collection",
+      "repositoryStatus": "active",
+      "workflowGroup": "job_client_work",
+      "inputs": [
+        "Selected HR subworkflow",
+        "Relevant organization, role, policy, performance, compensation, interview, offer, or onboarding evidence"
+      ],
+      "context": [
+        "Job",
+        "Client",
+        "Organization"
+      ],
+      "output": "Planning or draft output from the routed recruiting and HR submodule",
+      "runtime": "Mode-aware grounded drafting executor",
+      "operations": [
+        {
+          "id": "route-hr-subworkflow",
+          "label": "Run selected HR planning or draft subworkflow",
+          "stage": "draft",
+          "approval": "none",
+          "output": "Planning or draft output from the selected repository HR submodule"
+        }
+      ],
+      "executorFeatures": [],
+      "implementation": {
+        "status": "interface_only",
+        "blocker": "Nine routed HR submodules exist, but the workstation has no mounted executor or persisted run for them. The child guides reference HRIS, ATS, compensation, knowledge-base, project-tracker, and chat adapters that skills/manifests/plugins.json does not declare, and root tests check package contracts rather than live adapter outcomes.",
+        "evidence": [
+          "skills/recruiter/modules/recruiting-hr/GUIDE.md",
+          "skills/manifests/plugins.json",
+          "test/package-contracts.test.mjs"
+        ]
+      }
+    },
+    {
+      "id": "sourcing",
+      "label": "sourcing",
+      "summary": "Unified candidate, opportunity, and business-development prospect sourcing for Ja. Use whenever Ja asks to find, source, X-ray search, verify, audit, rank, shortlist, clean, or export candidate or prospect lists, or to map jobs and opportunities for a candidate using their stated preferences. Works from LinkedIn, public jobs, internal open roles, a JD, a role brief, company criteria, candidate notes, or pasted rows. Handles public-profile research, client-company conflicts, duplicate and DNC checks, evidence-based fit or priority ratings, preference-aware job matching, and generic or Loxo-ready CSV export. Also trigger on requests such as \"review these leads\", \"who should I contact\", \"find candidates\", \"find hiring managers\", \"clean this sourcing list\", or \"export these profiles\". Do not use for resume rewriting, candidate submissions, outreach copy, message sending, or Loxo writes.",
+      "authorityPath": "skills/recruiter/modules/sourcing/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/ja-writer/GUIDE.md",
+        "skills/recruiter/modules/ja-writer/references/ja-style.md",
+        "skills/recruiter/modules/loxo-automation/GUIDE.md",
+        "skills/recruiter/modules/loxo/GUIDE.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-browser-procedures.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-loxo-business-development.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-loxo-workflow.md",
+        "skills/recruiter/modules/loxo/references/gmail-loxo-candidate-reconciliation.md",
+        "skills/recruiter/modules/loxo/references/loxo-candidate-fit-review.md",
+        "skills/recruiter/modules/loxo/references/loxo-linkedin-candidate-vetting.md",
+        "skills/recruiter/modules/loxo/references/loxo-outreach.md",
+        "skills/recruiter/modules/loxo/references/loxo-platform-overview.md",
+        "skills/recruiter/modules/loxo/references/loxo-safe-pipeline-actions.md",
+        "skills/recruiter/modules/loxo/references/prospect-campaign-learning.md",
+        "skills/recruiter/modules/sourcing/references/candidate.md",
+        "skills/recruiter/modules/sourcing/references/export.md",
+        "skills/recruiter/modules/sourcing/references/opportunities.md",
+        "skills/recruiter/modules/sourcing/references/prospect.md",
+        "skills/recruiter/modules/sourcing/scripts/adzuna_search.py",
+        "skills/recruiter/modules/sourcing/scripts/sourcing_rows.py",
+        "skills/recruiter/modules/tracker/GUIDE.md",
+        "skills/recruiter/modules/vet/GUIDE.md",
+        "skills/recruiter/modules/vet/references/sourcing-enrichment.md",
+        "skills/recruiter/modules/web-sourcing/GUIDE.md",
+        "skills/recruiter/modules/web-sourcing/references/boolean-patterns.md",
+        "skills/recruiter/modules/web-sourcing/scripts/build_csv.py",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md",
+        "skills/tracker-manager/leads/GUIDE.md",
+        "skills/tracker-manager/leads/references/layout.md",
+        "skills/tracker-manager/references/leads-contract.json",
+        "skills/tracker-manager/scripts/leads.mjs"
+      ],
+      "authorityDigest": "5b8b8bf8ee1b1c6cda70a3d7770c459b5bd0892bf63f06d9b39bbb0acc818417",
+      "repositoryGroup": "on_demand",
+      "repositoryStatus": "active",
+      "workflowGroup": "sourcing",
+      "inputs": [
+        "Role or prospect criteria",
+        "Exclusions and conflict rules",
+        "Candidate preferences for opportunity mapping",
+        "Rows to audit when supplied"
+      ],
+      "context": [
+        "Job",
+        "Candidate",
+        "Client and conflict rules"
+      ],
+      "output": "Evidence-backed candidate or prospect discovery/audit table, candidate opportunity map, full-workflow shortlist, or explicitly approved generic or Loxo-ready CSV export",
+      "runtime": "Public research adapter plus repository normalization and export helpers",
+      "operations": [
+        {
+          "id": "candidate-discovery",
+          "label": "Candidate discovery",
+          "stage": "research",
+          "approval": "none",
+          "output": "Evidence-backed table of newly discovered candidates"
+        },
+        {
+          "id": "candidate-audit",
+          "label": "Candidate audit",
+          "stage": "review",
+          "approval": "none",
+          "output": "Verified and ranked supplied candidate list"
+        },
+        {
+          "id": "candidate-opportunities",
+          "label": "Candidate opportunities",
+          "stage": "research",
+          "approval": "none",
+          "output": "Preference-aware open-role opportunity map for one candidate"
+        },
+        {
+          "id": "prospect-discovery",
+          "label": "Prospect discovery",
+          "stage": "research",
+          "approval": "none",
+          "output": "Evidence-backed table of hiring or business-development contacts"
+        },
+        {
+          "id": "prospect-audit",
+          "label": "Prospect audit",
+          "stage": "review",
+          "approval": "none",
+          "output": "Verified and prioritized supplied prospect list"
+        },
+        {
+          "id": "full-candidate-workflow",
+          "label": "Full candidate workflow",
+          "stage": "research",
+          "approval": "none",
+          "output": "Found, verified, ranked, and shortlisted candidate table"
+        },
+        {
+          "id": "full-prospect-workflow",
+          "label": "Full prospect workflow",
+          "stage": "research",
+          "approval": "none",
+          "output": "Found, verified, prioritized, and shortlisted prospect table"
+        },
+        {
+          "id": "export-generic-csv",
+          "label": "Export generic CSV",
+          "stage": "export",
+          "approval": "explicit",
+          "output": "Generic CSV built only from explicitly approved rows"
+        },
+        {
+          "id": "export-loxo-csv",
+          "label": "Export Loxo-ready CSV",
+          "stage": "export",
+          "approval": "explicit",
+          "output": "Loxo-ready CSV built only from explicitly approved rows"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "source-candidates",
+          "label": "Source candidates",
+          "runtime": "local_ai_web",
+          "mounted": false,
+          "resultKind": "table",
+          "operationId": "candidate-discovery",
+          "supportingCapabilityIds": [
+            "web-sourcing"
+          ],
+          "supportingAuthorities": [
+            {
+              "id": "web-sourcing",
+              "authorityDigest": "eebbc5b107534528379d9660eb6765c37bf6b408fee1bd0423fb5b9c89490552"
+            }
+          ]
+        }
+      ],
+      "implementation": {
+        "status": "partial",
+        "blocker": "Normalization, generic and Loxo export schemas, URL-optional name-plus-company fallback dedupe, and explicit-URL conflict preservation are aligned and covered by synthetic tests. No mounted public-research executor, persisted sourcing run, approval record, or live research outcome exists.",
+        "evidence": [
+          "skills/recruiter/modules/sourcing/GUIDE.md",
+          "skills/recruiter/modules/sourcing/references/export.md",
+          "skills/recruiter/modules/sourcing/scripts/sourcing_rows.py",
+          "test/package-contracts.test.mjs"
+        ]
+      }
+    },
+    {
+      "id": "tracker",
+      "label": "Tracker routing",
+      "summary": "Use this adapter when a request asks Recruiter to update, sync, audit, repair,\nsearch, or verify Tracker Submissions, or preview/import verified Tracker Leads.",
+      "authorityPath": "skills/recruiter/modules/tracker/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md",
+        "skills/tracker-manager/SKILL.md",
+        "skills/tracker-manager/leads/GUIDE.md",
+        "skills/tracker-manager/leads/references/layout.md",
+        "skills/tracker-manager/references/contract.json",
+        "skills/tracker-manager/references/leads-contract.json",
+        "skills/tracker-manager/references/row-contract.md",
+        "skills/tracker-manager/references/sf-jobs-contract.md",
+        "skills/tracker-manager/scripts/leads.mjs",
+        "skills/tracker-manager/scripts/tracker.mjs"
+      ],
+      "authorityDigest": "ad179f25d68f66ee3fcc248881ae66f83decfa1ae634dc210b6f1ffc7b41c5a6",
+      "repositoryGroup": "daily_core",
+      "repositoryStatus": "restricted",
+      "workflowGroup": "pipeline_tracker",
+      "inputs": [
+        "Named Tracker operation",
+        "Full live workbook snapshot",
+        "Complete mailbox and source evidence when required",
+        "Exact write authorization for mutations"
+      ],
+      "context": [
+        "Candidate",
+        "Job",
+        "Tracker Submissions",
+        "Tracker Leads",
+        "SF Jobs"
+      ],
+      "output": "Read result, deterministic change plan, approved write, per-row readback, and final QA evidence",
+      "runtime": "Repository planners plus verified Gmail and Google Sheets adapters",
+      "operations": [
+        {
+          "id": "read",
+          "label": "Check, search, audit, verify, ownership, or SF Jobs read-through",
+          "stage": "read",
+          "approval": "none",
+          "output": "Source-backed read-only Tracker result"
+        },
+        {
+          "id": "prepare-change-plan",
+          "label": "Prepare deterministic change plan",
+          "stage": "preview",
+          "approval": "none",
+          "output": "Offline validated proposed rows or corrections without a write"
+        },
+        {
+          "id": "write-submissions",
+          "label": "Write authorized Submissions changes",
+          "stage": "external_write",
+          "approval": "explicit",
+          "output": "Scoped Submissions writes with per-row readback and final QA"
+        },
+        {
+          "id": "import-leads",
+          "label": "Import authorized Leads",
+          "stage": "external_write",
+          "approval": "explicit",
+          "output": "Validated explicitly authorized Leads import with readback"
+        },
+        {
+          "id": "repair",
+          "label": "Repair exact authorized fields",
+          "stage": "external_write",
+          "approval": "explicit",
+          "output": "Exact source-backed repairs with expected-previous checks, readback, and QA"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "tracker-review",
+          "label": "Tracker",
+          "runtime": "tracker_read_adapter",
+          "mounted": false,
+          "resultKind": "table",
+          "operationId": "read",
+          "supportingCapabilityIds": [],
+          "supportingAuthorities": []
+        }
+      ],
+      "implementation": {
+        "status": "partial",
+        "blocker": "Offline Submissions and Leads planners pass tests, but no live Gmail or Sheets adapter, execution route, readback, formatting QA, or visual QA is connected.",
+        "evidence": [
+          "test/tracker.test.mjs",
+          "test/leads.test.mjs",
+          "workstation/lib/server/connectors.ts"
+        ]
+      }
+    },
+    {
+      "id": "tttg-candidate-submission",
+      "label": "tttg-candidate-submission",
+      "summary": "Use when Ja wants a candidate submission or branded resume.",
+      "authorityPath": "skills/recruiter/modules/tttg-candidate-submission/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/brandedresume/GUIDE.md",
+        "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",
+        "skills/recruiter/modules/brandedresume/references/example-candidate.json",
+        "skills/recruiter/modules/brandedresume/scripts/build_resume.py",
+        "skills/recruiter/modules/write-up/GUIDE.md",
+        "skills/recruiter/modules/write-up/assets/submission_email_template.html",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "ff6737a7c203b3277c3434371700da07fef5b185905d72b3800ea5df4382cf94",
+      "repositoryGroup": "compatibility",
+      "repositoryStatus": "legacy",
+      "workflowGroup": "candidate_work",
+      "inputs": [
+        "Legacy request routed to current write-up and branded resume authority"
+      ],
+      "context": [
+        "Candidate",
+        "Job"
+      ],
+      "output": "No independent output. Current authority is write-up plus brandedresume.",
+      "runtime": "Compatibility route only",
+      "operations": [
+        {
+          "id": "inspect-authority",
+          "label": "Inspect compatibility authority",
+          "stage": "internal",
+          "approval": "none",
+          "output": "No independent output; route to write-up plus brandedresume"
+        }
+      ],
+      "executorFeatures": [],
+      "implementation": {
+        "status": "not_applicable",
+        "blocker": "",
+        "evidence": [
+          "skills/recruiter/modules/tttg-candidate-submission/GUIDE.md"
+        ]
+      }
+    },
+    {
+      "id": "tttg-resume-engine-workspace",
+      "label": "Resume Engine Evaluation Archive",
+      "summary": "Internal evaluation evidence for `$recruiter` resume behavior. This module is not a production builder and not a standalone skill.",
+      "authorityPath": "skills/recruiter/modules/tttg-resume-engine-workspace/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/brandedresume/GUIDE.md",
+        "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",
+        "skills/recruiter/modules/brandedresume/references/example-candidate.json",
+        "skills/recruiter/modules/brandedresume/scripts/build_resume.py",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "a38b366e71e9e77b5779fc8bb940b88aff88ddbc36ab3c548107b8e59c1ca41f",
+      "repositoryGroup": "evaluation",
+      "repositoryStatus": "internal",
+      "workflowGroup": "artifacts",
+      "inputs": [
+        "Internal evaluation request"
+      ],
+      "context": [
+        "Repository artifact evaluation"
+      ],
+      "output": "No production output. Production routes through brandedresume.",
+      "runtime": "Internal evaluation material only",
+      "operations": [
+        {
+          "id": "inspect-authority",
+          "label": "Inspect internal evaluation authority",
+          "stage": "internal",
+          "approval": "none",
+          "output": "No production output; route production work through brandedresume"
+        }
+      ],
+      "executorFeatures": [],
+      "implementation": {
+        "status": "not_applicable",
+        "blocker": "",
+        "evidence": [
+          "skills/recruiter/modules/tttg-resume-engine-workspace/GUIDE.md"
+        ]
+      }
+    },
+    {
+      "id": "vet",
+      "label": "vet",
+      "summary": "Internal recruiter capability for staged candidate vetting. The recruiter front door selects it for source-grounded fit assessment or a package stage. It is not a standalone invocation and stops between stages unless Ja asks for a full package.",
+      "authorityPath": "skills/recruiter/modules/vet/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/ja-candidate-vetting/GUIDE.md",
+        "skills/recruiter/modules/loxo-automation/GUIDE.md",
+        "skills/recruiter/modules/loxo/GUIDE.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-browser-procedures.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-loxo-business-development.md",
+        "skills/recruiter/modules/loxo/references/ARCHIVAL-loxo-workflow.md",
+        "skills/recruiter/modules/loxo/references/gmail-loxo-candidate-reconciliation.md",
+        "skills/recruiter/modules/loxo/references/loxo-candidate-fit-review.md",
+        "skills/recruiter/modules/loxo/references/loxo-linkedin-candidate-vetting.md",
+        "skills/recruiter/modules/loxo/references/loxo-outreach.md",
+        "skills/recruiter/modules/loxo/references/loxo-platform-overview.md",
+        "skills/recruiter/modules/loxo/references/loxo-safe-pipeline-actions.md",
+        "skills/recruiter/modules/loxo/references/prospect-campaign-learning.md",
+        "skills/recruiter/modules/vet/references/sourcing-enrichment.md",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "95e27f730f59b7c206470a01fcb0efd5c4d5af60a33ae443f5264f2197886b32",
+      "repositoryGroup": "daily_core",
+      "repositoryStatus": "active",
+      "workflowGroup": "candidate_work",
+      "inputs": [
+        "Reviewed resume",
+        "Job description for fit and submission modes",
+        "Call notes when available"
+      ],
+      "context": [
+        "Candidate",
+        "Job"
+      ],
+      "output": "Vetting verdict, submission email, parsed resume, or staged full package",
+      "runtime": "Mode-aware grounded vetting and drafting executor",
+      "operations": [
+        {
+          "id": "vet",
+          "label": "Vet candidate",
+          "stage": "analysis",
+          "approval": "none",
+          "output": "Source-grounded fit verdict and gaps only"
+        },
+        {
+          "id": "submission-email",
+          "label": "Draft submission email",
+          "stage": "draft",
+          "approval": "explicit",
+          "output": "Submission email only after fresh confirmation following vetting"
+        },
+        {
+          "id": "parsed-resume",
+          "label": "Draft parsed resume",
+          "stage": "draft",
+          "approval": "explicit",
+          "output": "Parsed resume only after fresh confirmation following the prior mode"
+        },
+        {
+          "id": "full-package",
+          "label": "Create full package",
+          "stage": "draft",
+          "approval": "explicit",
+          "output": "Explicitly requested staged vet, submission, and parsed-resume package"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "vet-candidate",
+          "label": "Vet/screen candidate",
+          "runtime": "local_ai",
+          "mounted": false,
+          "resultKind": "document",
+          "operationId": "vet",
+          "supportingCapabilityIds": [
+            "ja-candidate-vetting"
+          ],
+          "supportingAuthorities": [
+            {
+              "id": "ja-candidate-vetting",
+              "authorityDigest": "69c35f26657a2b951f2a3d66cce873ec0d57263e87d4907321636493a94cd5f3"
+            }
+          ]
+        }
+      ],
+      "implementation": {
+        "status": "interface_only",
+        "blocker": "The main workstation builds a simplified package, but it does not expose or persist the repository's staged vet modes, fresh-confirmation stop gates, or a resolved canonical verdict vocabulary. The recruiter router requires GO/NO-GO/NEEDS VERIFICATION, this guide requires NO or FIT: YES/CONDITIONAL, and ja-candidate-vetting requires Yes/No, so the workstation must not normalize these silently.",
+        "evidence": [
+          "skills/recruiter/modules/vet/GUIDE.md",
+          "workstation/components/workstation/recruiter-workstation.tsx"
+        ]
+      }
+    },
+    {
+      "id": "web-sourcing",
+      "label": "web-sourcing",
+      "summary": "Source candidates (or companies/contacts) off the open web using boolean/X-ray search across LinkedIn, Indeed, GitHub, and other platforms, then scrape and structure the results into a reviewable table and a final CSV. Use this whenever Ja asks to \"find candidates\", \"source\", \"x-ray search\", \"boolean search\", \"find me [role] on LinkedIn\", \"search Indeed for\", \"pull profiles for [role]\", or gives sourcing criteria (title, location, must-haves) and wants a list of people. Also trigger when she says \"scrape LinkedIn/Indeed for X\" or wants candidates found outside Loxo/Apollo. Picks Firecrawl, Playwright (via agent-browser), or Crawlee per site automatically — Ja does not need to name a tool. Tactical and token-efficient by design: capped boolean strings, capped pages per string, no brute-force crawling.",
+      "authorityPath": "skills/recruiter/modules/web-sourcing/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/web-sourcing/references/boolean-patterns.md",
+        "skills/recruiter/modules/web-sourcing/scripts/build_csv.py",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "eebbc5b107534528379d9660eb6765c37bf6b408fee1bd0423fb5b9c89490552",
+      "repositoryGroup": "on_demand",
+      "repositoryStatus": "active",
+      "workflowGroup": "sourcing",
+      "inputs": [
+        "Titles",
+        "Must-have skills",
+        "Location",
+        "Seniority",
+        "Exclusions"
+      ],
+      "context": [
+        "Job",
+        "Client and conflict rules"
+      ],
+      "output": "Reviewable evidence table followed by an approved CSV export",
+      "runtime": "Restricted public web search plus repository CSV builder",
+      "operations": [
+        {
+          "id": "research-review-table",
+          "label": "Research and review source table",
+          "stage": "research",
+          "approval": "none",
+          "output": "Seven-column evidence table for review"
+        },
+        {
+          "id": "export-approved-csv",
+          "label": "Export approved CSV",
+          "stage": "export",
+          "approval": "explicit",
+          "output": "CSV generated only after explicit row approval"
+        }
+      ],
+      "executorFeatures": [],
+      "implementation": {
+        "status": "partial",
+        "blocker": "The seven-column guide and CSV builder are aligned, and the builder accepts canonical profile_url plus compatible aliases for LinkedIn, Indeed, GitHub, and other HTTP profile URLs under synthetic tests. No mounted restricted public-search executor, persisted sourcing run, approval record, or live sourcing outcome exists.",
+        "evidence": [
+          "skills/recruiter/modules/web-sourcing/GUIDE.md",
+          "skills/recruiter/modules/web-sourcing/scripts/build_csv.py",
+          "test/package-contracts.test.mjs"
+        ]
+      }
+    },
+    {
+      "id": "write-up",
+      "label": "write-up",
+      "summary": "Internal recruiter capability for a source-grounded candidate submission bundle. The recruiter front door selects this guide for a full package; it is not a standalone invocation. Gmail output is an unsent draft only when an allowed draft tool exists.",
+      "authorityPath": "skills/recruiter/modules/write-up/GUIDE.md",
+      "relatedPaths": [
+        "docs/knowledge-architecture.md",
+        "docs/templates/branded-resume-contract.md",
+        "docs/templates/presentation-email-contract.md",
+        "docs/templates/submission-data-contract.md",
+        "skills/GLOBAL-RULES.md",
+        "skills/TOOL-CONVENTIONS.md",
+        "skills/capabilities.json",
+        "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/brandedresume/GUIDE.md",
+        "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",
+        "skills/recruiter/modules/brandedresume/references/example-candidate.json",
+        "skills/recruiter/modules/brandedresume/scripts/build_resume.py",
+        "skills/recruiter/modules/legislator/GUIDE.md",
+        "skills/recruiter/modules/legislator/references/tttg-document-structure-rules-v3.md",
+        "skills/recruiter/modules/write-up/assets/submission_email_template.html",
+        "skills/recruiter/references/active-job-template-kit.md",
+        "skills/recruiter/references/call-recording-recovery.md",
+        "skills/recruiter/references/candidate-prep-workspace.md",
+        "skills/recruiter/references/consolidated-legacy-routes.md",
+        "skills/recruiter/references/decision-framework.md",
+        "skills/recruiter/references/jd-screening-guide.md",
+        "skills/recruiter/references/master-matching-prompt.md",
+        "skills/recruiter/references/playbook-principles.md",
+        "skills/recruiter/references/submission-format.md",
+        "skills/recruiter/references/vetting-framework.md",
+        "skills/recruiter/scripts/authority.mjs",
+        "skills/recruiter/scripts/validate-artifact-qa.mjs",
+        "skills/recruiter/templates/candidate-call-submission-template.md",
+        "skills/tracker-manager/GUIDE.md"
+      ],
+      "authorityDigest": "bfba61f224a473fbbc99f11237e1e0e592ce09f430d42a5b436e864d24b5040c",
+      "repositoryGroup": "daily_core",
+      "repositoryStatus": "active",
+      "workflowGroup": "candidate_work",
+      "inputs": [
+        "Reviewed candidate material",
+        "Transcript or call notes",
+        "Job description",
+        "Named submission or MPC destination",
+        "Recipient context"
+      ],
+      "context": [
+        "Candidate",
+        "Job",
+        "Client"
+      ],
+      "output": "One source-grounded submission email draft plus a visually verified branded PDF resume",
+      "runtime": "Grounded package executor, branded resume builder, Gmail draft adapter, artifact storage, and QA",
+      "operations": [
+        {
+          "id": "draft-package",
+          "label": "Draft candidate package",
+          "stage": "draft",
+          "approval": "none",
+          "output": "Persisted source-linked resume, submission, presentation-email, and Loxo-note drafts"
+        },
+        {
+          "id": "release-package",
+          "label": "Release candidate package",
+          "stage": "release",
+          "approval": "preview",
+          "output": "Visually verified branded PDF and reviewed presentation email ready for separately authorized downstream use"
+        }
+      ],
+      "executorFeatures": [
+        {
+          "id": "write-up-candidate",
+          "label": "Write up candidate",
+          "runtime": "deterministic_server",
+          "mounted": true,
+          "resultKind": "submission",
+          "operationId": "draft-package",
+          "supportingCapabilityIds": [
+            "brandedresume"
+          ],
+          "supportingAuthorities": [
+            {
+              "id": "brandedresume",
+              "authorityDigest": "f785876e4100d9083a6ecb443c145c07491cd4a60359f11c76db37fcf8accc97"
+            }
+          ]
+        }
+      ],
+      "implementation": {
+        "status": "partial",
+        "blocker": "A mounted persisted executor now saves source-linked resume, submission, presentation-email, and Loxo-note draft versions through the canonical run boundary. It does not yet resolve the named submission or MPC destination and recipient, build and store the branded PDF, pass human visual QA, create a Gmail draft with the verified attachment, read that draft back, or record complete package evidence.",
+        "evidence": [
+          "test/package-contracts.test.mjs",
+          "workstation/lib/server/capability-executors/write-up.ts",
+          "workstation/lib/server/capability-execution-service.ts",
+          "workstation/test/write-up-executor.test.ts",
+          "workstation/test/capability-execution-service.test.ts"
+        ]
+      }
+    }
+  ],
+  "executors": [
+    {
+      "id": "brand-resume",
+      "primary_capability_id": "brandedresume",
+      "operation_id": "build-branded-resume",
+      "label": "Brand resume",
+      "group": "candidate",
+      "capability_ids": [
+        "brandedresume",
+        "legislator"
+      ],
+      "guide_paths": [
+        "recruiter/modules/brandedresume/GUIDE.md",
+        "recruiter/modules/legislator/GUIDE.md"
+      ],
+      "contract_paths": [
+        "../docs/templates/branded-resume-contract.md"
+      ],
+      "result_kind": "pdf",
+      "runtime": "deterministic_server",
+      "mounted": false,
+      "requirements": [
+        {
+          "id": "resume",
+          "label": "Reviewed resume",
+          "kind": "source",
+          "source_kinds": [
+            "resume"
+          ],
+          "required": true
+        }
+      ],
+      "outside_world": true,
+      "outside_world_note": "The storage and QA adapter exists, but execution is disabled until the conflicting branded-resume and immutable legislator layout authorities are reconciled through the legislator override protocol.",
+      "supporting_capability_ids": [
+        "legislator"
+      ],
+      "supporting_authorities": [
+        {
+          "id": "legislator",
+          "authority_digest": "140577b54acf31b36cc05e7023c9ba80bc286d6ca5d99c550b8991ed890c50ef"
+        }
+      ]
+    },
+    {
+      "id": "write-up-candidate",
+      "primary_capability_id": "write-up",
+      "operation_id": "draft-package",
+      "label": "Write up candidate",
+      "group": "candidate",
+      "capability_ids": [
+        "write-up",
+        "brandedresume"
+      ],
+      "guide_paths": [
+        "recruiter/modules/write-up/GUIDE.md",
+        "recruiter/modules/brandedresume/GUIDE.md"
+      ],
+      "contract_paths": [
+        "../docs/templates/submission-data-contract.md",
+        "../docs/templates/presentation-email-contract.md",
+        "../docs/templates/branded-resume-contract.md"
+      ],
+      "result_kind": "submission",
+      "runtime": "deterministic_server",
+      "mounted": true,
+      "requirements": [
+        {
+          "id": "resume",
+          "label": "Reviewed resume",
+          "kind": "source",
+          "source_kinds": [
+            "resume"
+          ],
+          "required": true
+        },
+        {
+          "id": "call-evidence",
+          "label": "Reviewed call notes or transcript",
+          "kind": "source",
+          "source_kinds": [
+            "call_notes",
+            "transcript"
+          ],
+          "required": true
+        },
+        {
+          "id": "job-description",
+          "label": "Reviewed job description",
+          "kind": "source",
+          "source_kinds": [
+            "job_description"
+          ],
+          "required": true
+        }
+      ],
+      "outside_world": true,
+      "outside_world_note": "Gmail, Loxo, and Tracker actions are not connected. This saves drafts only.",
+      "supporting_capability_ids": [
+        "brandedresume"
+      ],
+      "supporting_authorities": [
+        {
+          "id": "brandedresume",
+          "authority_digest": "f785876e4100d9083a6ecb443c145c07491cd4a60359f11c76db37fcf8accc97"
+        }
+      ]
+    },
+    {
+      "id": "vet-candidate",
+      "primary_capability_id": "vet",
+      "operation_id": "vet",
+      "label": "Vet/screen candidate",
+      "group": "candidate",
+      "capability_ids": [
+        "vet",
+        "ja-candidate-vetting"
+      ],
+      "guide_paths": [
+        "recruiter/modules/vet/GUIDE.md",
+        "recruiter/modules/ja-candidate-vetting/GUIDE.md"
+      ],
+      "result_kind": "document",
+      "runtime": "local_ai",
+      "requirements": [
+        {
+          "id": "resume",
+          "label": "Reviewed resume",
+          "kind": "source",
+          "source_kinds": [
+            "resume"
+          ],
+          "required": true
+        },
+        {
+          "id": "job-description",
+          "label": "Reviewed job description",
+          "kind": "source",
+          "source_kinds": [
+            "job_description"
+          ],
+          "required": true
+        }
+      ],
+      "outside_world": false,
+      "mounted": false,
+      "supporting_capability_ids": [
+        "ja-candidate-vetting"
+      ],
+      "supporting_authorities": [
+        {
+          "id": "ja-candidate-vetting",
+          "authority_digest": "69c35f26657a2b951f2a3d66cce873ec0d57263e87d4907321636493a94cd5f3"
+        }
+      ]
+    },
+    {
+      "id": "defend-candidate",
+      "primary_capability_id": "candidate-defense",
+      "operation_id": "defense-brief",
+      "label": "Defend a borderline candidate",
+      "group": "candidate",
+      "capability_ids": [
+        "candidate-defense"
+      ],
+      "guide_paths": [
+        "recruiter/modules/candidate-defense/GUIDE.md"
+      ],
+      "result_kind": "document",
+      "runtime": "local_ai",
+      "requirements": [
+        {
+          "id": "resume",
+          "label": "Reviewed resume",
+          "kind": "source",
+          "source_kinds": [
+            "resume"
+          ],
+          "required": true
+        },
+        {
+          "id": "job-description",
+          "label": "Reviewed job description",
+          "kind": "source",
+          "source_kinds": [
+            "job_description"
+          ],
+          "required": true
+        },
+        {
+          "id": "call-evidence",
+          "label": "Call notes, if available",
+          "kind": "source",
+          "source_kinds": [
+            "call_notes",
+            "transcript"
+          ],
+          "required": false
+        }
+      ],
+      "outside_world": false,
+      "mounted": false,
+      "supporting_capability_ids": [],
+      "supporting_authorities": []
+    },
+    {
+      "id": "interview-prep-pdf",
+      "primary_capability_id": "interview-prep-material",
+      "operation_id": "build-internal-draft",
+      "label": "Interview prep PDF",
+      "group": "candidate",
+      "capability_ids": [
+        "interview-prep-material"
+      ],
+      "guide_paths": [
+        "recruiter/modules/interview-prep-material/GUIDE.md"
+      ],
+      "contract_paths": [
+        "recruiter/modules/interview-prep-material/references/content-contract.md"
+      ],
+      "result_kind": "pdf",
+      "runtime": "local_ai",
+      "requirements": [
+        {
+          "id": "exact-company-and-role",
+          "label": "Selected exact company and role",
+          "kind": "role",
+          "required": true
+        },
+        {
+          "id": "job-description",
+          "label": "Reviewed current job description",
+          "kind": "source",
+          "source_kinds": [
+            "job_description"
+          ],
+          "required": true
+        },
+        {
+          "id": "confirmed-work-location",
+          "label": "Confirmed work location or remote/hybrid arrangement",
+          "kind": "user_input",
+          "input_keys": [
+            "confirmed_work_location"
+          ],
+          "required": true
+        },
+        {
+          "id": "role-presentation-evidence",
+          "label": "Current evidence that the role may be presented",
+          "kind": "user_input",
+          "input_keys": [
+            "role_presentation_evidence"
+          ],
+          "required": true
+        },
+        {
+          "id": "official-public-sources",
+          "label": "At least two current authoritative company, site, or location sources",
+          "kind": "user_input",
+          "input_keys": [
+            "authoritative_source_1",
+            "authoritative_source_2"
+          ],
+          "required": true
+        },
+        {
+          "id": "approved-brand-assets",
+          "label": "Approved logo and licensed visual assets",
+          "kind": "user_input",
+          "input_keys": [
+            "approved_brand_asset",
+            "asset_license"
+          ],
+          "required": true
+        },
+        {
+          "id": "source-ledger",
+          "label": "Complete claim source ledger",
+          "kind": "user_input",
+          "input_keys": [
+            "source_ledger"
+          ],
+          "required": true
+        },
+        {
+          "id": "asset-ledger",
+          "label": "Complete visual asset ledger",
+          "kind": "user_input",
+          "input_keys": [
+            "asset_ledger"
+          ],
+          "required": true
+        },
+        {
+          "id": "publication-status",
+          "label": "Release status",
+          "kind": "user_input",
+          "input_keys": [
+            "publication_status"
+          ],
+          "allowed_values": [
+            "draft_only",
+            "approved_for_candidate_use"
+          ],
+          "required": true
+        }
+      ],
+      "outside_world": true,
+      "outside_world_note": "This workflow reads current official public company, site, location, and geographic research and consumes approved licensed assets. It creates a local PDF only; it does not send, publish, submit, update an ATS, or contact a candidate.",
+      "server_tool": "build_interview_prep_pdf",
+      "mounted": false,
+      "supporting_capability_ids": [],
+      "supporting_authorities": []
+    },
+    {
+      "id": "reference-check-pdf",
+      "primary_capability_id": "complete-reference-check",
+      "operation_id": "build-reference-check",
+      "label": "Reference check PDF",
+      "group": "candidate",
+      "capability_ids": [
+        "complete-reference-check"
+      ],
+      "guide_paths": [
+        "recruiter/modules/complete-reference-check/GUIDE.md"
+      ],
+      "contract_paths": [
+        "recruiter/modules/complete-reference-check/references/reference-check-standard.md",
+        "recruiter/modules/complete-reference-check/references/template-contract.md"
+      ],
+      "result_kind": "pdf",
+      "runtime": "local_ai",
+      "requirements": [
+        {
+          "id": "reference-evidence",
+          "label": "Reviewed reference transcript or notes",
+          "kind": "source",
+          "source_kinds": [
+            "call_notes",
+            "transcript"
+          ],
+          "required": true
+        },
+        {
+          "id": "reference-details",
+          "label": "Candidate, role, client, referee, completed-by, and date details",
+          "kind": "user_input",
+          "required": true
+        }
+      ],
+      "outside_world": false,
+      "server_tool": "build_reference_check_pdf",
+      "mounted": false,
+      "supporting_capability_ids": [],
+      "supporting_authorities": []
+    },
+    {
+      "id": "offer-letter",
+      "primary_capability_id": "offer-letter",
+      "operation_id": "draft-offer-letter",
+      "label": "Offer letter",
+      "group": "candidate",
+      "capability_ids": [
+        "offer-letter"
+      ],
+      "guide_paths": [
+        "recruiter/modules/offer-letter/GUIDE.md"
+      ],
+      "result_kind": "form",
+      "fields": [
+        "Company Name",
+        "Company Address",
+        "Letter Date",
+        "Candidate Full Name",
+        "Candidate Address",
+        "Job Title",
+        "Start Date",
+        "Base Salary and Pay Frequency",
+        "Employment Type",
+        "Reporting Manager Name",
+        "Reporting Manager Title",
+        "Signing Authority Name",
+        "Signing Authority Title",
+        "Benefits",
+        "Work Location",
+        "Acceptance Deadline",
+        "Contingencies",
+        "Probation Period",
+        "Equity or Stock Options"
+      ],
+      "runtime": "local_ai",
+      "requirements": [
+        {
+          "id": "candidate-full-name",
+          "label": "Candidate full name",
+          "kind": "user_input",
+          "input_keys": [
+            "candidate_full_name"
+          ],
+          "required": true
+        },
+        {
+          "id": "job-title",
+          "label": "Job title",
+          "kind": "user_input",
+          "input_keys": [
+            "job_title"
+          ],
+          "required": true
+        },
+        {
+          "id": "start-date",
+          "label": "Start date",
+          "kind": "user_input",
+          "input_keys": [
+            "start_date"
+          ],
+          "required": true
+        },
+        {
+          "id": "base-salary-and-pay-frequency",
+          "label": "Base salary and pay frequency",
+          "kind": "user_input",
+          "input_keys": [
+            "base_salary",
+            "pay_frequency"
+          ],
+          "required": true
+        },
+        {
+          "id": "employment-type",
+          "label": "Employment type",
+          "kind": "user_input",
+          "input_keys": [
+            "employment_type"
+          ],
+          "required": true
+        },
+        {
+          "id": "reporting-manager-name-and-title",
+          "label": "Reporting manager name and title",
+          "kind": "user_input",
+          "input_keys": [
+            "reporting_manager_name",
+            "reporting_manager_title"
+          ],
+          "required": true
+        },
+        {
+          "id": "company-and-signing-authority",
+          "label": "Company and signing authority name and title",
+          "kind": "user_input",
+          "input_keys": [
+            "company_name",
+            "signing_authority_name",
+            "signing_authority_title"
+          ],
+          "required": true
+        }
+      ],
+      "outside_world": true,
+      "outside_world_note": "This creates an editable draft only. It does not issue or send an offer.",
+      "mounted": false,
+      "supporting_capability_ids": [],
+      "supporting_authorities": []
+    },
+    {
+      "id": "cover-letter",
+      "primary_capability_id": "cover-letter",
+      "operation_id": "draft-cover-letter",
+      "label": "Cover letter",
+      "group": "candidate",
+      "capability_ids": [
+        "cover-letter"
+      ],
+      "guide_paths": [
+        "recruiter/modules/cover-letter/GUIDE.md"
+      ],
+      "result_kind": "document",
+      "runtime": "local_ai",
+      "requirements": [
+        {
+          "id": "resume",
+          "label": "Reviewed resume",
+          "kind": "source",
+          "source_kinds": [
+            "resume"
+          ],
+          "required": true
+        },
+        {
+          "id": "job-description",
+          "label": "Reviewed job description",
+          "kind": "source",
+          "source_kinds": [
+            "job_description"
+          ],
+          "required": true
+        },
+        {
+          "id": "supported-achievements",
+          "label": "Supported achievements to highlight",
+          "kind": "user_input",
+          "input_keys": [
+            "supported_achievements"
+          ],
+          "required": true
+        },
+        {
+          "id": "company-research",
+          "label": "Current sourced company-specific research",
+          "kind": "user_input",
+          "input_keys": [
+            "company_research_source",
+            "company_research_findings"
+          ],
+          "required": true
+        }
+      ],
+      "outside_world": true,
+      "outside_world_note": "This workflow requires current public company research for the company-specific paragraph. It saves an editable draft only and does not submit an application, send email, or contact the company.",
+      "mounted": false,
+      "supporting_capability_ids": [],
+      "supporting_authorities": []
+    },
+    {
+      "id": "source-candidates",
+      "primary_capability_id": "sourcing",
+      "operation_id": "candidate-discovery",
+      "label": "Source candidates",
+      "group": "role",
+      "capability_ids": [
+        "sourcing",
+        "web-sourcing"
+      ],
+      "guide_paths": [
+        "recruiter/modules/sourcing/GUIDE.md",
+        "recruiter/modules/web-sourcing/GUIDE.md"
+      ],
+      "result_kind": "table",
+      "columns": [
+        "Full Name",
+        "Company",
+        "Tenure",
+        "LinkedIn Link",
+        "Contact Info",
+        "Eligibility",
+        "Evidence Status"
+      ],
+      "runtime": "local_ai_web",
+      "requirements": [
+        {
+          "id": "role",
+          "label": "Selected role",
+          "kind": "role",
+          "required": true
+        },
+        {
+          "id": "job-description",
+          "label": "Reviewed job description or sourcing criteria",
+          "kind": "source_or_input",
+          "source_kinds": [
+            "job_description"
+          ],
+          "required": true
+        }
+      ],
+      "outside_world": true,
+      "outside_world_note": "This feature can search the public web through Google only. Shell, files, URL fetch, agents, MCP, and connectors stay disabled. It saves a review table and does not contact anyone.",
+      "mounted": false,
+      "supporting_capability_ids": [
+        "web-sourcing"
+      ],
+      "supporting_authorities": [
+        {
+          "id": "web-sourcing",
+          "authority_digest": "eebbc5b107534528379d9660eb6765c37bf6b408fee1bd0423fb5b9c89490552"
+        }
+      ]
+    },
+    {
+      "id": "screen-applicants",
+      "primary_capability_id": "applicant-screening",
+      "operation_id": "individual-screening",
+      "label": "Screen applicants for this role",
+      "group": "role",
+      "capability_ids": [
+        "applicant-screening"
+      ],
+      "guide_paths": [
+        "recruiter/modules/applicant-screening/GUIDE.md"
+      ],
+      "result_kind": "document",
+      "deliverables": [
+        "Candidate and role identity",
+        "Screened date",
+        "Tier and overall score",
+        "Requirement-match table",
+        "Strengths",
+        "Concerns",
+        "Suggested interview questions",
+        "Recommendation",
+        "Ranked batch comparison when multiple applicants are screened"
+      ],
+      "runtime": "local_ai",
+      "requirements": [
+        {
+          "id": "job-description",
+          "label": "Reviewed job description",
+          "kind": "source",
+          "source_kinds": [
+            "job_description"
+          ],
+          "required": true
+        },
+        {
+          "id": "applicants",
+          "label": "Applicant resumes or profiles",
+          "kind": "user_input",
+          "required": true
+        }
+      ],
+      "outside_world": false,
+      "mounted": false,
+      "supporting_capability_ids": [],
+      "supporting_authorities": []
+    },
+    {
+      "id": "draft-job-posting",
+      "primary_capability_id": "job-loxo",
+      "operation_id": "draft-job-posting",
+      "label": "Draft job posting",
+      "group": "role",
+      "capability_ids": [
+        "job-loxo"
+      ],
+      "guide_paths": [
+        "recruiter/modules/job-loxo/GUIDE.md"
+      ],
+      "result_kind": "document",
+      "runtime": "local_ai",
+      "requirements": [
+        {
+          "id": "role",
+          "label": "Selected role",
+          "kind": "role",
+          "required": true
+        },
+        {
+          "id": "job-description",
+          "label": "Reviewed role details or job description",
+          "kind": "source_or_input",
+          "source_kinds": [
+            "job_description"
+          ],
+          "required": true
+        }
+      ],
+      "outside_world": true,
+      "outside_world_note": "This saves a draft only. It does not create or publish a Loxo job.",
+      "mounted": false,
+      "supporting_capability_ids": [],
+      "supporting_authorities": []
+    },
+    {
+      "id": "loxo-pipeline-review",
+      "primary_capability_id": "loxo",
+      "operation_id": "read-loxo",
+      "label": "Loxo pipeline review",
+      "group": "pipeline",
+      "capability_ids": [
+        "loxo",
+        "loxo-readonly-candidate-dashboard",
+        "loxo-pipeline"
+      ],
+      "guide_paths": [
+        "recruiter/modules/loxo/GUIDE.md",
+        "recruiter/modules/loxo-readonly-candidate-dashboard/GUIDE.md",
+        "recruiter/modules/loxo-pipeline/GUIDE.md"
+      ],
+      "result_kind": "table",
+      "runtime": "loxo_read_adapter",
+      "requirements": [
+        {
+          "id": "loxo",
+          "label": "Connected read-only Loxo adapter",
+          "kind": "adapter",
+          "adapter": "loxo",
+          "required": true
+        }
+      ],
+      "outside_world": false,
+      "mounted": false,
+      "supporting_capability_ids": [
+        "loxo-readonly-candidate-dashboard",
+        "loxo-pipeline"
+      ],
+      "supporting_authorities": [
+        {
+          "id": "loxo-readonly-candidate-dashboard",
+          "authority_digest": "9d813e5b66de9ba3ee56e175ca959fb1249d53742e29ceb99efbf731a6d54650"
+        },
+        {
+          "id": "loxo-pipeline",
+          "authority_digest": "374a474f004609a9071c0a6f2acaadd3c80e4a7ae5c01ffe51bc9b80acc80a7a"
+        }
+      ]
+    },
+    {
+      "id": "tracker-review",
+      "primary_capability_id": "tracker",
+      "operation_id": "read",
+      "label": "Tracker",
+      "group": "pipeline",
+      "capability_ids": [
+        "tracker"
+      ],
+      "guide_paths": [
+        "recruiter/modules/tracker/GUIDE.md",
+        "tracker-manager/GUIDE.md"
+      ],
+      "contract_paths": [
+        "tracker-manager/references/row-contract.md",
+        "tracker-manager/references/contract.json"
+      ],
+      "result_kind": "table",
+      "runtime": "tracker_read_adapter",
+      "requirements": [
+        {
+          "id": "tracker",
+          "label": "Connected read-only Tracker adapter",
+          "kind": "adapter",
+          "adapter": "tracker",
+          "required": true
+        }
+      ],
+      "outside_world": false,
+      "mounted": false,
+      "supporting_capability_ids": [],
+      "supporting_authorities": []
+    },
+    {
+      "id": "linkedin-post",
+      "primary_capability_id": "linkedin-posts",
+      "label": "LinkedIn post",
+      "group": "writing",
+      "capability_ids": [
+        "linkedin-posts",
+        "ja-writer"
+      ],
+      "guide_paths": [
+        "recruiter/modules/linkedin-posts/GUIDE.md",
+        "recruiter/modules/ja-writer/GUIDE.md"
+      ],
+      "result_kind": "document",
+      "runtime": "local_ai",
+      "requirements": [
+        {
+          "id": "post-brief",
+          "label": "Post topic, audience, and facts",
+          "kind": "user_input",
+          "required": true
+        }
+      ],
+      "outside_world": true,
+      "outside_world_note": "This saves copy only. It does not publish to LinkedIn.",
+      "operation_id": "draft-linkedin-package",
+      "mounted": false,
+      "supporting_capability_ids": [
+        "ja-writer"
+      ],
+      "supporting_authorities": [
+        {
+          "id": "ja-writer",
+          "authority_digest": "6f15c981684b71717c12a4d64eb15a0ea3d291e88d763b60e012d69370fe8504"
+        }
+      ]
+    },
+    {
+      "id": "email-in-my-voice",
+      "primary_capability_id": "ja-writer",
+      "label": "Email in my voice",
+      "group": "writing",
+      "capability_ids": [
+        "ja-writer"
+      ],
+      "guide_paths": [
+        "recruiter/modules/ja-writer/GUIDE.md"
+      ],
+      "result_kind": "document",
+      "runtime": "local_ai",
+      "requirements": [
+        {
+          "id": "email-brief",
+          "label": "Recipient context, purpose, and confirmed facts",
+          "kind": "user_input",
+          "required": true
+        }
+      ],
+      "outside_world": true,
+      "outside_world_note": "This saves an editable draft only. Gmail is not connected and nothing is sent.",
+      "operation_id": "draft-in-ja-voice",
+      "mounted": false,
+      "supporting_capability_ids": [],
+      "supporting_authorities": []
+    }
+  ]
+}

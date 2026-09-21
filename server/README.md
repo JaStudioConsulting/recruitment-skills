@@ -4,9 +4,22 @@ Optional hosted-runtime path. Turns the recruiting tools into an MCP server a ho
 (ChatGPT, Codex, Claude) can call, including on a schedule. The skills do NOT need
 this; use it only when you want callable tools or unattended runs.
 
-## What is built (works now)
-- `build_pdf` — builds the branded TTTG resume PDF from candidate data using the
-  bundled builder. No external account. This is the real, working tool.
+## Local artifact builders
+
+- `build_pdf` is a low-level branded-resume draft renderer. It returns
+  `release_ready: false` because the active branded-resume and immutable
+  Legislator authorities conflict. The Workstation deliberately keeps this
+  executor unmounted until that conflict is resolved through the repository's
+  exact override protocol and the final PDF passes human visual QA.
+- `build_reference_check_pdf` invokes the canonical sanitized-DOCX builder and
+  renders that DOCX with LibreOffice. It fails closed when `SOFFICE`, `soffice`,
+  or `libreoffice` is unavailable; it never substitutes a newly drawn PDF.
+- `build_interview_prep_pdf` requires the complete repository payload plus
+  closed, field-complete source and asset ledger records. It rejects free-form
+  filler and checks that every declared authority and used visual is represented.
+  The tool cannot independently prove caller-supplied evidence or permissions,
+  so it returns `release_ready: false` and still requires human source,
+  permission, and page-by-page visual review.
 
 ## What is left for you (needs your accounts, so it stays out of the repo)
 - `find_email`, `send_email` (Gmail), `create_calendar_event` (Calendar),
@@ -58,7 +71,9 @@ The `.app.json` app id for the ChatGPT app is issued by ChatGPT when you registe
 the app. Add it on the ChatGPT side; it is not stored in this repo.
 
 ## Notes
-- `build_pdf` needs Python and, for best fidelity, headless Chrome on the host. It
-  falls back to reportlab and pillow (in requirements) when Chrome is absent.
+- `build_pdf` uses the repository ReportLab renderer and remains a blocked draft,
+  not a compliant released resume.
+- Reference-check PDF rendering additionally requires LibreOffice. Set
+  `SOFFICE` to its executable when it is not on `PATH`.
 - Keep GitHub `main` as the single authority. This server reads the same skills and
   builder from the repo, so there is one source of truth.

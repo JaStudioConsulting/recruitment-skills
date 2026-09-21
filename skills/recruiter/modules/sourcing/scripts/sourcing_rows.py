@@ -103,7 +103,7 @@ EVIDENCE_STATUSES = {"Verified", "Unconfirmed", "Conflicting", "Outdated"}
 ELIGIBILITY_STATUSES = {"Eligible", "Excluded"}
 
 
-def require_statuses_and_url(row: dict[str, Any], index: int) -> None:
+def require_statuses_and_identity(row: dict[str, Any], index: int) -> None:
     eligibility = get_value(row, "eligibility")
     evidence_status = get_value(row, "evidence_status")
     profile_url = get_value(row, "linkedin")
@@ -111,16 +111,16 @@ def require_statuses_and_url(row: dict[str, Any], index: int) -> None:
         raise SystemExit(f"row {index}: Eligibility must be Eligible or Excluded")
     if evidence_status not in EVIDENCE_STATUSES:
         raise SystemExit(f"row {index}: Evidence Status must be Verified, Unconfirmed, Conflicting, or Outdated")
-    parsed = urlparse(profile_url)
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        raise SystemExit(f"row {index}: LinkedIn must be a direct http(s) profile/evidence URL")
+    if profile_url:
+        parsed = urlparse(profile_url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise SystemExit(f"row {index}: LinkedIn must be a direct http(s) profile/evidence URL")
+    elif not get_value(row, "full_name") or not get_value(row, "company"):
+        raise SystemExit(f"row {index}: rows without a profile URL require full name plus company")
 
 
-def dedupe_key(row: dict[str, Any]) -> str:
-    linkedin = normalize_linkedin(get_value(row, "linkedin"))
-    if linkedin:
-        return f"url:{linkedin}"
-    return "person:" + "|".join(
+def person_key(row: dict[str, Any]) -> str:
+    return "|".join(
         [clean_key(get_value(row, "full_name")), clean_key(get_value(row, "company"))]
     )
 
@@ -140,7 +140,8 @@ def split_name(full_name: str) -> tuple[str, str]:
 
 def normalize_rows(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int, int]:
     normalized: list[dict[str, Any]] = []
-    seen: set[str] = set()
+    seen_urls: set[str] = set()
+    seen_people: dict[str, set[str]] = {}
     headers_removed = 0
     duplicates_removed = 0
     for index, row in enumerate(rows, start=1):
@@ -149,12 +150,23 @@ def normalize_rows(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], in
         if is_header_row(row):
             headers_removed += 1
             continue
-        require_statuses_and_url(row, index)
-        key = dedupe_key(row)
-        if key in seen:
+        require_statuses_and_identity(row, index)
+        profile = normalize_linkedin(get_value(row, "linkedin"))
+        person = person_key(row)
+        prior_profiles = seen_people.get(person, set())
+        duplicate = bool(profile and profile in seen_urls)
+        # A URL-less row is a fallback identity. It matches any existing row
+        # for that person; a later URL also matches an earlier URL-less row.
+        # Two different explicit URLs are retained as a possible conflict.
+        duplicate = duplicate or (bool(profile) and "" in prior_profiles)
+        duplicate = duplicate or (not profile and bool(prior_profiles))
+        if duplicate:
             duplicates_removed += 1
             continue
-        seen.add(key)
+        if profile:
+            seen_urls.add(profile)
+        prior_profiles.add(profile)
+        seen_people[person] = prior_profiles
         normalized.append(row)
     return normalized, headers_removed, duplicates_removed
 

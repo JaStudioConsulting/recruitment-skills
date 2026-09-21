@@ -8,13 +8,13 @@ Export only rows Ja has approved. Research and approval happen before file creat
 
 Columns:
 
-`Full Name, Title, Company, Location, LinkedIn, Status, Fit/Priority, Confidence, Evidence, Gaps/Risks, Notes`
+`Full Name, Title, Company, Location, LinkedIn, Eligibility, Evidence Status, Fit/Priority, Confidence, Evidence, Gaps/Risks, Notes`
 
 ### Loxo-ready
 
 Columns:
 
-`First Name, Last Name, Full Name, Title, Company, Location, LinkedIn, Tags, Notes`
+`First Name, Last Name, Full Name, Title, Company, Location, LinkedIn, Eligibility, Evidence Status, Tags, Notes`
 
 Loxo export prepares a file only. Do not import or write to Loxo from this skill.
 

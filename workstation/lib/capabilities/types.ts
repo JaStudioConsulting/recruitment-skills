@@ -25,8 +25,6 @@ export type CapabilityDraft = {
   autofill?: Record<string, string>;
 };
 
-export type CapabilityRunsDocument = Record<string, CapabilityDraft>;
-
 export type CapabilityRunRequest = {
   provider: string;
   model: string;

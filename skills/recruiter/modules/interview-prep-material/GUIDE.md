@@ -31,6 +31,29 @@ If the role may be researched but is not confirmed for candidate presentation, b
 5. Record each external claim in `source-ledger.md` with claim, source, publication date when available, retrieval date, scope, and status.
 6. Record each visual in `asset-ledger.md` with creator, source page, direct asset URL or generated-file path, licence, allowed use, modifications, and rendered caption.
 
+Use one closed record per claim and asset. These exact labels are machine-validated:
+
+```markdown
+## Claim 1
+- Claim: The supported external claim.
+- Source: Exact source identifier also present in authoritative_sources.
+- Publication date: 2026-09-01
+- Retrieval date: 2026-09-20
+- Scope: Exact company, site, location, or role scope supported.
+- Status: supported
+
+## Asset 1
+- Creator: Creator or rights holder.
+- Source page: https://example.com/source-page
+- Direct asset URL or generated-file path: /absolute/path/to/asset.png
+- Licence: Exact licence or permission basis.
+- Allowed use: Candidate-facing recruiting brief.
+- Modifications: Crop only.
+- Rendered caption: Caption shown in the PDF.
+```
+
+Use `unavailable` only for a genuinely unavailable publication date. Claim status is one of `supported`, `partially_supported`, `unverified`, or `contradicted`; candidate-facing approval accepts only `supported`. Every `authoritative_sources` value and every visual path used by the brief must have a matching ledger record.
+
 Candidate-facing release requires `source_control.publication_status` to be `approved_for_candidate_use`. If evidence supports only `draft_only`, use `--allow-draft`; the builder visibly marks every page as an internal draft.
 
 ## Editorial standard

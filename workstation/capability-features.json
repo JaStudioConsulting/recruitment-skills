@@ -1,27 +1,34 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "features": [
     {
       "id": "brand-resume",
+      "primary_capability_id": "brandedresume",
+      "operation_id": "build-branded-resume",
       "label": "Brand resume",
       "group": "candidate",
       "capability_ids": ["brandedresume", "legislator"],
       "guide_paths": ["recruiter/modules/brandedresume/GUIDE.md", "recruiter/modules/legislator/GUIDE.md"],
       "contract_paths": ["../docs/templates/branded-resume-contract.md"],
-      "result_kind": "resume",
-      "runtime": "local_ai",
+      "result_kind": "pdf",
+      "runtime": "deterministic_server",
+      "mounted": false,
       "requirements": [{ "id": "resume", "label": "Reviewed resume", "kind": "source", "source_kinds": ["resume"], "required": true }],
-      "outside_world": false
+      "outside_world": true,
+      "outside_world_note": "The storage and QA adapter exists, but execution is disabled until the conflicting branded-resume and immutable legislator layout authorities are reconciled through the legislator override protocol."
     },
     {
       "id": "write-up-candidate",
+      "primary_capability_id": "write-up",
+      "operation_id": "draft-package",
       "label": "Write up candidate",
       "group": "candidate",
       "capability_ids": ["write-up", "brandedresume"],
       "guide_paths": ["recruiter/modules/write-up/GUIDE.md", "recruiter/modules/brandedresume/GUIDE.md"],
       "contract_paths": ["../docs/templates/submission-data-contract.md", "../docs/templates/presentation-email-contract.md", "../docs/templates/branded-resume-contract.md"],
       "result_kind": "submission",
-      "runtime": "local_ai",
+      "runtime": "deterministic_server",
+      "mounted": true,
       "requirements": [
         { "id": "resume", "label": "Reviewed resume", "kind": "source", "source_kinds": ["resume"], "required": true },
         { "id": "call-evidence", "label": "Reviewed call notes or transcript", "kind": "source", "source_kinds": ["call_notes", "transcript"], "required": true },
@@ -32,6 +39,8 @@
     },
     {
       "id": "vet-candidate",
+      "primary_capability_id": "vet",
+      "operation_id": "vet",
       "label": "Vet/screen candidate",
       "group": "candidate",
       "capability_ids": ["vet", "ja-candidate-vetting"],
@@ -46,6 +55,8 @@
     },
     {
       "id": "defend-candidate",
+      "primary_capability_id": "candidate-defense",
+      "operation_id": "defense-brief",
       "label": "Defend a borderline candidate",
       "group": "candidate",
       "capability_ids": ["candidate-defense"],
@@ -61,6 +72,8 @@
     },
     {
       "id": "interview-prep-pdf",
+      "primary_capability_id": "interview-prep-material",
+      "operation_id": "build-internal-draft",
       "label": "Interview prep PDF",
       "group": "candidate",
       "capability_ids": ["interview-prep-material"],
@@ -69,14 +82,24 @@
       "result_kind": "pdf",
       "runtime": "local_ai",
       "requirements": [
+        { "id": "exact-company-and-role", "label": "Selected exact company and role", "kind": "role", "required": true },
         { "id": "job-description", "label": "Reviewed current job description", "kind": "source", "source_kinds": ["job_description"], "required": true },
-        { "id": "company-evidence", "label": "Current company and location evidence plus approved images", "kind": "user_input", "required": true }
+        { "id": "confirmed-work-location", "label": "Confirmed work location or remote/hybrid arrangement", "kind": "user_input", "input_keys": ["confirmed_work_location"], "required": true },
+        { "id": "role-presentation-evidence", "label": "Current evidence that the role may be presented", "kind": "user_input", "input_keys": ["role_presentation_evidence"], "required": true },
+        { "id": "official-public-sources", "label": "At least two current authoritative company, site, or location sources", "kind": "user_input", "input_keys": ["authoritative_source_1", "authoritative_source_2"], "required": true },
+        { "id": "approved-brand-assets", "label": "Approved logo and licensed visual assets", "kind": "user_input", "input_keys": ["approved_brand_asset", "asset_license"], "required": true },
+        { "id": "source-ledger", "label": "Complete claim source ledger", "kind": "user_input", "input_keys": ["source_ledger"], "required": true },
+        { "id": "asset-ledger", "label": "Complete visual asset ledger", "kind": "user_input", "input_keys": ["asset_ledger"], "required": true },
+        { "id": "publication-status", "label": "Release status", "kind": "user_input", "input_keys": ["publication_status"], "allowed_values": ["draft_only", "approved_for_candidate_use"], "required": true }
       ],
-      "outside_world": false,
+      "outside_world": true,
+      "outside_world_note": "This workflow reads current official public company, site, location, and geographic research and consumes approved licensed assets. It creates a local PDF only; it does not send, publish, submit, update an ATS, or contact a candidate.",
       "server_tool": "build_interview_prep_pdf"
     },
     {
       "id": "reference-check-pdf",
+      "primary_capability_id": "complete-reference-check",
+      "operation_id": "build-reference-check",
       "label": "Reference check PDF",
       "group": "candidate",
       "capability_ids": ["complete-reference-check"],
@@ -93,6 +116,8 @@
     },
     {
       "id": "offer-letter",
+      "primary_capability_id": "offer-letter",
+      "operation_id": "draft-offer-letter",
       "label": "Offer letter",
       "group": "candidate",
       "capability_ids": ["offer-letter"],
@@ -120,12 +145,22 @@
         "Equity or Stock Options"
       ],
       "runtime": "local_ai",
-      "requirements": [{ "id": "offer-details", "label": "Confirmed offer, company, manager, pay, start-date, and signing details", "kind": "user_input", "required": true }],
+      "requirements": [
+        { "id": "candidate-full-name", "label": "Candidate full name", "kind": "user_input", "input_keys": ["candidate_full_name"], "required": true },
+        { "id": "job-title", "label": "Job title", "kind": "user_input", "input_keys": ["job_title"], "required": true },
+        { "id": "start-date", "label": "Start date", "kind": "user_input", "input_keys": ["start_date"], "required": true },
+        { "id": "base-salary-and-pay-frequency", "label": "Base salary and pay frequency", "kind": "user_input", "input_keys": ["base_salary", "pay_frequency"], "required": true },
+        { "id": "employment-type", "label": "Employment type", "kind": "user_input", "input_keys": ["employment_type"], "required": true },
+        { "id": "reporting-manager-name-and-title", "label": "Reporting manager name and title", "kind": "user_input", "input_keys": ["reporting_manager_name", "reporting_manager_title"], "required": true },
+        { "id": "company-and-signing-authority", "label": "Company and signing authority name and title", "kind": "user_input", "input_keys": ["company_name", "signing_authority_name", "signing_authority_title"], "required": true }
+      ],
       "outside_world": true,
       "outside_world_note": "This creates an editable draft only. It does not issue or send an offer."
     },
     {
       "id": "cover-letter",
+      "primary_capability_id": "cover-letter",
+      "operation_id": "draft-cover-letter",
       "label": "Cover letter",
       "group": "candidate",
       "capability_ids": ["cover-letter"],
@@ -134,12 +169,17 @@
       "runtime": "local_ai",
       "requirements": [
         { "id": "resume", "label": "Reviewed resume", "kind": "source", "source_kinds": ["resume"], "required": true },
-        { "id": "job-description", "label": "Reviewed job description", "kind": "source", "source_kinds": ["job_description"], "required": true }
+        { "id": "job-description", "label": "Reviewed job description", "kind": "source", "source_kinds": ["job_description"], "required": true },
+        { "id": "supported-achievements", "label": "Supported achievements to highlight", "kind": "user_input", "input_keys": ["supported_achievements"], "required": true },
+        { "id": "company-research", "label": "Current sourced company-specific research", "kind": "user_input", "input_keys": ["company_research_source", "company_research_findings"], "required": true }
       ],
-      "outside_world": false
+      "outside_world": true,
+      "outside_world_note": "This workflow requires current public company research for the company-specific paragraph. It saves an editable draft only and does not submit an application, send email, or contact the company."
     },
     {
       "id": "source-candidates",
+      "primary_capability_id": "sourcing",
+      "operation_id": "candidate-discovery",
       "label": "Source candidates",
       "group": "role",
       "capability_ids": ["sourcing", "web-sourcing"],
@@ -156,12 +196,14 @@
     },
     {
       "id": "screen-applicants",
+      "primary_capability_id": "applicant-screening",
+      "operation_id": "individual-screening",
       "label": "Screen applicants for this role",
       "group": "role",
       "capability_ids": ["applicant-screening"],
       "guide_paths": ["recruiter/modules/applicant-screening/GUIDE.md"],
-      "result_kind": "table",
-      "columns": ["Rank", "Candidate", "Score", "Tier", "Key Differentiator", "Evidence and Gaps"],
+      "result_kind": "document",
+      "deliverables": ["Candidate and role identity", "Screened date", "Tier and overall score", "Requirement-match table", "Strengths", "Concerns", "Suggested interview questions", "Recommendation", "Ranked batch comparison when multiple applicants are screened"],
       "runtime": "local_ai",
       "requirements": [
         { "id": "job-description", "label": "Reviewed job description", "kind": "source", "source_kinds": ["job_description"], "required": true },
@@ -171,6 +213,8 @@
     },
     {
       "id": "draft-job-posting",
+      "primary_capability_id": "job-loxo",
+      "operation_id": "draft-job-posting",
       "label": "Draft job posting",
       "group": "role",
       "capability_ids": ["job-loxo"],
@@ -186,6 +230,8 @@
     },
     {
       "id": "loxo-pipeline-review",
+      "primary_capability_id": "loxo",
+      "operation_id": "read-loxo",
       "label": "Loxo pipeline review",
       "group": "pipeline",
       "capability_ids": ["loxo", "loxo-readonly-candidate-dashboard", "loxo-pipeline"],
@@ -197,6 +243,8 @@
     },
     {
       "id": "tracker-review",
+      "primary_capability_id": "tracker",
+      "operation_id": "read",
       "label": "Tracker",
       "group": "pipeline",
       "capability_ids": ["tracker"],
@@ -209,6 +257,7 @@
     },
     {
       "id": "linkedin-post",
+      "primary_capability_id": "linkedin-posts",
       "label": "LinkedIn post",
       "group": "writing",
       "capability_ids": ["linkedin-posts", "ja-writer"],
@@ -221,6 +270,7 @@
     },
     {
       "id": "email-in-my-voice",
+      "primary_capability_id": "ja-writer",
       "label": "Email in my voice",
       "group": "writing",
       "capability_ids": ["ja-writer"],

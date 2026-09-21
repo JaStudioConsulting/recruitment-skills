@@ -14,7 +14,7 @@ import {
   valueAtPath,
 } from "../lib/capabilities/manual-artifacts";
 import { createEmptyDraft, fillInAvailable, labelledFieldsText, tableText } from "../lib/capabilities/manual-drafts";
-import { clearAutofillSource, createAutofilledDraft, parseResumeText, stripContactDetails } from "../lib/capabilities/deterministic-autofill";
+import { clearAutofillSource, createAutofilledDraft, parseResumeText, resumeFormFromCase, stripContactDetails } from "../lib/capabilities/deterministic-autofill";
 import { buildManualArtifact } from "../lib/server/manual-artifact";
 import type { CandidateCase } from "../lib/workstation-types";
 
@@ -44,14 +44,26 @@ describe("manual fill-in declarations", () => {
     }
   });
 
-  it("uses the declared offer fields and exact table columns", () => {
+  it("uses the declared offer fields, sourcing columns, and full screening-report shape", () => {
     const offer = createEmptyDraft(FEATURES.find((feature) => feature.id === "offer-letter")!);
     expect(offer.fields?.map((field) => field.label)).toContain("Base Salary and Pay Frequency");
     expect(offer.fields?.map((field) => field.label)).toContain("Signing Authority Title");
     const sourcing = createEmptyDraft(FEATURES.find((feature) => feature.id === "source-candidates")!);
     expect(sourcing.table?.columns).toEqual(["Full Name", "Company", "Tenure", "LinkedIn Link", "Contact Info", "Eligibility", "Evidence Status"]);
-    const screening = createEmptyDraft(FEATURES.find((feature) => feature.id === "screen-applicants")!);
-    expect(screening.table?.columns).toEqual(["Rank", "Candidate", "Score", "Tier", "Key Differentiator", "Evidence and Gaps"]);
+    const screeningFeature = FEATURES.find((feature) => feature.id === "screen-applicants")!;
+    const screening = createEmptyDraft(screeningFeature);
+    expect(screening.document).toBe("");
+    expect(screeningFeature.deliverables).toEqual([
+      "Candidate and role identity",
+      "Screened date",
+      "Tier and overall score",
+      "Requirement-match table",
+      "Strengths",
+      "Concerns",
+      "Suggested interview questions",
+      "Recommendation",
+      "Ranked batch comparison when multiple applicants are screened",
+    ]);
   });
 
   it("formats manual form and table copy text without generating content", () => {
@@ -82,7 +94,45 @@ describe("manual PDF payloads", () => {
     for (const [path] of INTERVIEW_TEXT_FIELDS) payload = setValueAtPath(payload, path, path.endsWith("as_of") ? "2026-09-18" : "Synthetic evidence text");
     payload = setValueAtPath(payload, "brief.source_control.publication_status", "draft_only");
     payload = setValueAtPath(payload, "brief.source_control.authoritative_sources", ["Synthetic source A", "Synthetic source B"]);
+    payload = setValueAtPath(payload, "source_ledger", `# Source ledger
+
+## Claim 1
+- Claim: Synthetic role claim
+- Source: Synthetic source A
+- Publication date: unavailable
+- Retrieval date: 2026-09-18
+- Scope: Synthetic role
+- Status: supported
+
+## Claim 2
+- Claim: Synthetic company claim
+- Source: Synthetic source B
+- Publication date: 2026-09-01
+- Retrieval date: 2026-09-18
+- Scope: Synthetic company
+- Status: supported`);
+    payload = setValueAtPath(payload, "asset_ledger", `# Asset ledger
+
+## Asset 1
+- Creator: Synthetic creator
+- Source page: repository://synthetic
+- Direct asset URL or generated-file path: Synthetic evidence text
+- Licence: Synthetic test licence
+- Allowed use: Deterministic test
+- Modifications: None
+- Rendered caption: Synthetic caption`);
     expect(validateManualArtifactPayload("interview-prep-pdf", payload)).toEqual([]);
+  });
+
+  it("rejects filler interview ledgers before calling the builder", () => {
+    let payload = emptyInterviewPayload();
+    for (const [path] of INTERVIEW_TEXT_FIELDS) payload = setValueAtPath(payload, path, path.endsWith("as_of") ? "2026-09-18" : "a\nb\nc\nd");
+    payload = setValueAtPath(payload, "brief.source_control.publication_status", "approved_for_candidate_use");
+    payload = setValueAtPath(payload, "brief.source_control.authoritative_sources", ["Synthetic source A", "Synthetic source B"]);
+    expect(validateManualArtifactPayload("interview-prep-pdf", payload)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: "source_ledger" }),
+      expect.objectContaining({ path: "asset_ledger" }),
+    ]));
   });
 
   it("refuses invalid manual data before calling the broker", async () => {
@@ -268,15 +318,17 @@ Sample Systems
         { kind: "call_notes", filename: "synthetic-call.txt", lifecycleStatus: "reviewed", parsedText: "Compensation: $100,000\nNotice: Two weeks\nLocation: Hamilton, ON\nCandidate sounded enthusiastic" },
       ],
     } as CandidateCase;
-    const resumeFeature = FEATURES.find((feature) => feature.id === "brand-resume")!;
-    const resumeDraft = createAutofilledDraft(resumeFeature, candidateCase);
-    expect(resumeDraft.resume?.name).toBe("Alex Example");
-    expect(resumeDraft.autofill?.["resume.name"]).toBe("synthetic-resume.txt");
-    const edited = clearAutofillSource(resumeDraft, "resume.name");
-    expect(edited.autofill?.["resume.name"]).toBeUndefined();
-
     const submissionFeature = FEATURES.find((feature) => feature.id === "write-up-candidate")!;
     const submission = createAutofilledDraft(submissionFeature, candidateCase);
+    const resolvedResume = resumeFormFromCase(candidateCase);
+    expect(resolvedResume.form.name).toBe("Alex Example");
+    expect(resolvedResume.sources["resume.name"]).toBe("synthetic-resume.txt");
+    const edited = clearAutofillSource({
+      ...submission,
+      autofill: { ...submission.autofill, ...resolvedResume.sources },
+    }, "resume.name");
+    expect(edited.autofill?.["resume.name"]).toBeUndefined();
+
     expect(submission.submission).toMatchObject({ name: "Alex Example", title: "Maintenance Manager", compensationTarget: "$100,000", startDateNotice: "Two weeks", location: "Hamilton, ON" });
     expect(JSON.stringify(submission)).not.toContain("enthusiastic");
 
@@ -295,5 +347,23 @@ Sample Systems
     const source = createAutofilledDraft(sourceFeature, candidateCase);
     expect(source.table?.rows[0].slice(0, 3)).toEqual(["Alex Example", "Example Components", "Jan-2020 - Present"]);
     expect(source.table?.rows[0].slice(3)).toEqual(["", "", "", ""]);
+  });
+
+  it("uses explicitly labelled workstation notes when no call file exists", () => {
+    const candidateCase = {
+      notes: "Compensation Target: $115,000\nNotice Period: Three weeks\nInterview Availability: Tuesday afternoon\nUnstructured opinion should not become a fact.",
+      sources: [
+        { kind: "resume", filename: "synthetic-resume.txt", lifecycleStatus: "reviewed", parsedText: fixture("synthetic-autofill-resume.txt") },
+        { kind: "job_description", filename: "synthetic-jd.txt", lifecycleStatus: "reviewed", parsedText: "Job Title: Maintenance Manager\nClient: Synthetic Manufacturing" },
+      ],
+    } as CandidateCase;
+    const draft = createAutofilledDraft(FEATURES.find((feature) => feature.id === "write-up-candidate")!, candidateCase);
+    expect(draft.submission).toMatchObject({
+      compensationTarget: "$115,000",
+      startDateNotice: "Three weeks",
+      interviewAvailability: "Tuesday afternoon",
+    });
+    expect(draft.autofill?.["submission.compensationTarget"]).toBe("Workstation notes");
+    expect(JSON.stringify(draft)).not.toContain("Unstructured opinion");
   });
 });
