@@ -25,22 +25,28 @@ import re
 # ------------------------------------------------------------------ contact
 _EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 _URL = re.compile(r"(?:https?://|www\.)\S+|\b(?:[a-z0-9-]+\.)*linkedin\.com/\S*", re.I)
-# North American phone shapes plus explicit international numbers. The latter
-# requires a leading + so dates, money, and other long numeric facts are not
-# mistaken for contact data.
+# North American phone shapes plus common international forms. Keep the
+# no-plus forms deliberately structural: a domestic trunk prefix, an 00 country
+# prefix, or a two-digit country code followed by three groups. This catches
+# real UK-style numbers without treating dates or grouped currency as phones.
 _PHONE = re.compile(
     r"(?<!\d)(?:"
     r"(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}"
     r"|\+\d{1,3}(?:[\s().-]*\d){7,14}"
-    r"|(?:00\d{1,3}|\d{2,4})(?:(?:[.-]|\s+)\d{2,4}){2,4}"
+    r"|00\d{2,3}(?:\s+\d{2,4}){3}"
+    r"|0\d{2,3}\s+\d{3,4}\s+\d{4}"
+    r"|\d{2}\s+\d{2,4}\s+\d{4}\s+\d{4}"
     r")(?!\d)"
 )
 _SPACED_SLASH = re.compile(r"\s/|/\s")
 _COMPENSATION = re.compile(
-    r"\b(?:compensation|salary|wages?|hourly\s+(?:pay\s+)?rate|pay\s+rate|"
-    r"base\s+pay|current\s+pay|currently\s+earns?|currently\s+earning|earnings?)\b",
+    r"(?:\b(?:compensation|salary|wages?|hourly\s+(?:pay\s+)?rate|pay\s+rate|"
+    r"base\s+pay|current\s+pay|currently\s+earns?|currently\s+earning|earnings?|ote)\b"
+    r"|\b(?:seeking|expected|expecting|desired|asking|target(?:ing)?)\b.{0,40}[$€£]\s*\d"
+    r"|[$€£]\s*\d[\d,. ]*(?:\s*(?:/|per\s+)(?:hours?|hrs?|years?|annum)\b|\s+(?:annual(?:ly)?|ote)\b))",
     re.I,
 )
+_EDUCATION_DATE = re.compile(r"\b(?:19|20)\d{2}\b")
 
 CONTACT_KEYS = {"email", "emails", "phone", "phones", "mobile", "cell", "linkedin",
                 "linkedin_url", "contact", "contact_info", "address", "website", "url"}
@@ -285,10 +291,16 @@ def normalize_candidate(raw):
         problems.append("experience is empty. The branded resume requires Professional Experience.")
     if not out["education"]:
         problems.append("education is empty. The branded resume requires Education & Certifications.")
+    for index, item in enumerate(out["education"]):
+        if _EDUCATION_DATE.search(item):
+            problems.append(
+                f"education[{index}] contains a date. Education entries must omit dates; "
+                "remove the date before building."
+            )
     for index, job in enumerate(out["experience"]):
-        for field in ("title", "company", "location", "dates"):
-            if not job.get(field):
-                problems.append(f"experience[{index}].{field} is missing. Confirm it before building.")
+        # Upstream release requires human review. A blank individual header
+        # field therefore means the recruiter chose GUIDE.md's documented
+        # "leave it blank" option; title and company cannot both be blank.
         if not job.get("bullets"):
             problems.append(f"experience[{index}].bullets is empty. Confirm source-backed experience before building.")
 
@@ -352,7 +364,8 @@ SCHEMA_HINT = (
     "education (array of strings like '**Degree** - Institution, City'; no years), "
     "education_heading (optional string, default 'Education & Certifications'), "
     "sections (optional array of {heading, items[]} for any other section the original resume has). "
-    "Every core field is required; every experience entry requires title, company, location, dates, and bullets. "
+    "Every core field is required; each experience entry requires title or company plus bullets. "
+    "Recruiter-approved unknown company, location, or dates may be an empty string. "
     "Never include compensation, email, phone, or links: they are refused or stripped. "
     "No em dashes, en dashes, double hyphens, semicolons, tildes, whitespace around slashes, "
     "or [placeholders]: the builder refuses them."

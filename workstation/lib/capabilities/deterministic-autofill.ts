@@ -9,7 +9,7 @@ import type { CapabilityDraft } from "./types";
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 const URL = /(?:https?:\/\/|www\.)\S+|\b(?:[a-z0-9-]+\.)*linkedin\.com\/\S*/gi;
 const PHONE = /(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}(?!\d)/g;
-const INTERNATIONAL_PHONE = /(?<!\d)(?:\+\d{1,3}(?:[\s().-]*\d){7,14}|(?:00\d{1,3}|\d{2,4})(?:(?:[.-]|\s+)\d{2,4}){2,4})(?!\d)/g;
+const INTERNATIONAL_PHONE = /(?<!\d)(?:\+\d{1,3}(?:[\s().-]*\d){7,14}|00\d{2,3}(?:\s+\d{2,4}){3}|0\d{2,3}\s+\d{3,4}\s+\d{4}|\d{2}\s+\d{2,4}\s+\d{4}\s+\d{4})(?!\d)/g;
 const CONTACT_LABEL = /^\s*(?:e-?mail|phone|mobile|cell|contact(?:\s+no\.?|\s+number)?|linkedin|website|url|address)\s*[:|-]?\s*/i;
 const BULLET = /^\s*(?:[-*•●▪◦]|\d+[.)])\s*/;
 const MONTHS: Record<string, string> = {

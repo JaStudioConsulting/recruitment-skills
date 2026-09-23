@@ -310,6 +310,11 @@ Sample Systems
     expect(parsed.form.name).toBe("Gale Contact");
   });
 
+  it("does not strip grouped money or dotted version dates as phone numbers", () => {
+    const text = "Managed a $120 000 000 capital budget on release 2024.10.15.";
+    expect(stripContactDetails(text)).toBe(text);
+  });
+
   it("preserves a source-separated certifications section", () => {
     const parsed = parseResumeText(`Avery Separate
 Maintenance Manager

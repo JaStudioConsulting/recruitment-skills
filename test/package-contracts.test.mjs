@@ -589,11 +589,19 @@ test("synthetic branded resume artifact QA renders every page and records automa
 
     const compensationInput = path.join(dir, "compensation.json");
     const compensationOutput = path.join(dir, "compensation.pdf");
-    await writeFile(compensationInput, JSON.stringify({ ...data.resume, summary: "Currently earns $120,000." }), "utf8");
+    await writeFile(compensationInput, JSON.stringify({ ...data.resume, summary: "Seeking $120,000 annually." }), "utf8");
     const compensation = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", compensationInput, "--out", compensationOutput, "--engine", "reportlab"], { encoding: "utf8" });
     assert.notEqual(compensation.status, 0, "compensation must fail closed");
     assert.match(compensation.stdout + compensation.stderr, /compensation information/);
     assert.equal(exists(compensationOutput), false);
+
+    const datedEducationInput = path.join(dir, "dated-education.json");
+    const datedEducationOutput = path.join(dir, "dated-education.pdf");
+    await writeFile(datedEducationInput, JSON.stringify({ ...data.resume, education: ["**BSc** - Example University, 2015"] }), "utf8");
+    const datedEducation = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", datedEducationInput, "--out", datedEducationOutput, "--engine", "reportlab"], { encoding: "utf8" });
+    assert.notEqual(datedEducation.status, 0, "education dates must fail closed");
+    assert.match(datedEducation.stdout + datedEducation.stderr, /education\[0\].*contains a date/);
+    assert.equal(exists(datedEducationOutput), false);
 
     const incompleteInput = path.join(dir, "incomplete.json");
     const incompleteOutput = path.join(dir, "incomplete.pdf");

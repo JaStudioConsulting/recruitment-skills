@@ -95,10 +95,13 @@ BANNED = {
     "~": "tilde (~)",
 }
 COMPENSATION = re.compile(
-    r"\b(?:compensation|salary|wages?|hourly\s+(?:pay\s+)?rate|pay\s+rate|"
-    r"base\s+pay|current\s+pay|currently\s+earns?|currently\s+earning|earnings?)\b",
+    r"(?:\b(?:compensation|salary|wages?|hourly\s+(?:pay\s+)?rate|pay\s+rate|"
+    r"base\s+pay|current\s+pay|currently\s+earns?|currently\s+earning|earnings?|ote)\b"
+    r"|\b(?:seeking|expected|expecting|desired|asking|target(?:ing)?)\b.{0,40}[$€£]\s*\d"
+    r"|[$€£]\s*\d[\d,. ]*(?:\s*(?:/|per\s+)(?:hours?|hrs?|years?|annum)\b|\s+(?:annual(?:ly)?|ote)\b))",
     re.I,
 )
+EDUCATION_DATE = re.compile(r"\b(?:19|20)\d{2}\b")
 
 def check_forbidden_content(data):
     offenders = []
@@ -124,6 +127,8 @@ def check_forbidden_content(data):
             scan(f"experience[{i}].bullets[{b}]", bt)
     for i, e in enumerate(data.get("education", [])):
         scan(f"education[{i}]", e)
+        if isinstance(e, str) and EDUCATION_DATE.search(e):
+            offenders.append(f"  education[{i}]: contains a date -> {e[:70]!r}")
     scan("education_heading", data.get("education_heading", ""))
     for i, sec in enumerate(data.get("sections", [])):
         scan(f"sections[{i}].heading", sec.get("heading", ""))
@@ -151,9 +156,10 @@ def check_required_structure(data):
             if not isinstance(job, dict):
                 problems.append(f"  experience[{index}]: must be an object")
                 continue
-            for field in ("title", "company", "location", "dates"):
-                if not isinstance(job.get(field), str) or not job[field].strip():
-                    problems.append(f"  experience[{index}].{field}: missing")
+            title = job.get("title")
+            company = job.get("company")
+            if not any(isinstance(value, str) and value.strip() for value in (title, company)):
+                problems.append(f"  experience[{index}]: requires title or company")
             bullets = job.get("bullets")
             if not isinstance(bullets, list) or not any(isinstance(item, str) and item.strip() for item in bullets):
                 problems.append(f"  experience[{index}].bullets: requires source-backed content")

@@ -149,6 +149,25 @@ class RefuseInsteadOfDropping(unittest.TestCase):
         self.assertIn("summary contains compensation information", joined)
         self.assertIn("experience[0].bullets[0] contains compensation information", joined)
 
+    def test_dollar_only_compensation_phrases_are_refused(self):
+        for phrase in ("Seeking $120,000 annually.", "Expected $60/hour.", "$150,000 OTE."):
+            with self.subTest(phrase=phrase):
+                _, rep = norm(complete_candidate(summary=phrase))
+                self.assertTrue(any("summary contains compensation information" in problem for problem in rep["problems"]))
+
+    def test_ordinary_expectation_language_is_not_compensation(self):
+        _, rep = norm(complete_candidate(summary="Expected to lead the maintenance team."))
+        self.assertEqual(rep["problems"], [])
+
+    def test_education_dates_are_refused_not_silently_removed(self):
+        _, rep = norm(complete_candidate(education=["**BSc** - Example University, 2015"]))
+        self.assertTrue(any("education[0] contains a date" in problem for problem in rep["problems"]))
+
+    def test_recruiter_approved_blank_experience_fields_are_permitted(self):
+        approved = {**JOB, "company": "", "location": "", "dates": ""}
+        _, rep = norm(complete_candidate(experience=[approved]))
+        self.assertEqual(rep["problems"], [])
+
 
 class ContactStripping(unittest.TestCase):
     def test_contact_keys_are_removed(self):
@@ -181,7 +200,7 @@ class ContactStripping(unittest.TestCase):
         self.assertTrue(any("experience[0].bullets[0] contains contact details (phone)" in problem for problem in rep["problems"]))
 
     def test_dates_money_and_gpa_are_not_mistaken_for_contact(self):
-        text = "Managed a $125M program, 2012 - 2016, GPA 3.87/4.00, Jan-2020 - Present, 38 direct reports."
+        text = "Managed a $125M program and $120 000 000 capital budget, version 2024.10.15, 2012 - 2016, GPA 3.87/4.00, Jan-2020 - Present, 38 direct reports."
         self.assertEqual(find_contact(text), [])
 
 
