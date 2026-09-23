@@ -54,7 +54,7 @@ import {
   sourceEvidenceRef,
   sourceIsUsable,
 } from "@/lib/source-intake";
-import { isResumeForm } from "@/lib/resume-form";
+import { hasResumeFormFormat, isResumeForm } from "@/lib/resume-form";
 
 const EMPTY_ASSISTANT: AssistantState = {
   missing: [],
@@ -715,6 +715,11 @@ export async function saveCaseDocument(
   }
   let reviewedResumeSourceRefs: string[] | null = null;
   const origin = metadata.origin ?? "edited";
+  if (kind === "resume" && hasResumeFormFormat(content) && !isResumeForm(content)) {
+    throw new ApiError(422, "Resume form is incomplete or malformed.", {
+      code: "invalid_resume_form",
+    });
+  }
   if (kind === "resume" && isResumeForm(content) && content.reviewed === true) {
     if (metadata.sourceRefs === undefined) {
       throw new ApiError(

@@ -128,6 +128,27 @@ afterEach(async () => {
 });
 
 describe("case repository atomic persistence", () => {
+  it("rejects a malformed reviewed resume form without persisting it", async () => {
+    await expect(saveCaseDocument(
+      "user-1",
+      "case-1",
+      "resume",
+      1,
+      { format: "tttg-resume-form-v1", reviewed: true, name: "Avery North" } as never,
+      { origin: "edited", sourceRefs: [] },
+    )).rejects.toMatchObject({
+      name: "ApiError",
+      status: 422,
+      details: { code: "invalid_resume_form" },
+    });
+
+    expect((await getCandidateCase("user-1", "case-1")).documents.resume.revision).toBe(1);
+    expect((await listDocumentVersions("user-1", "case-1", "resume"))).toHaveLength(1);
+    expect((await database.prepare(
+      "SELECT COUNT(*) AS count FROM case_activity WHERE event_type = 'document_saved'",
+    ).first<{ count: number }>())?.count).toBe(0);
+  });
+
   it("accepts an exact reviewed resume source snapshot and rejects stale or spoofed refs", async () => {
     await insertSource("user-1", candidateSource({
       kind: "resume",

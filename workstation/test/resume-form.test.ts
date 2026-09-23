@@ -76,4 +76,19 @@ describe("TTTG resume form", () => {
     expect(toResumeForm(saved)).toEqual(filled());
     expect(saved.format).toBe(RESUME_FORM_FORMAT);
   });
+
+  it("rejects malformed discriminator-only forms while keeping them recoverable in the editor", () => {
+    const malformed = { format: RESUME_FORM_FORMAT, reviewed: true, name: "Sample Person" };
+    expect(isResumeForm(malformed)).toBe(false);
+    expect(isResumeForm({ ...filled(), jobs: "not-an-array" })).toBe(false);
+    expect(isResumeForm({ ...filled(), sections: "not-an-array" })).toBe(false);
+    expect(isResumeForm({ ...filled(), jobs: [{ ...filled().jobs[0], bullets: 7 }] })).toBe(false);
+    expect(isResumeForm({ ...filled(), sections: [{ heading: "Licenses", items: false }] })).toBe(false);
+    expect(toResumeForm(malformed)).toEqual({
+      ...emptyResumeForm(),
+      reviewed: true,
+      name: "Sample Person",
+      jobs: [],
+    });
+  });
 });
