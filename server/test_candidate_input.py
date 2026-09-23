@@ -96,6 +96,18 @@ class RefuseInsteadOfDropping(unittest.TestCase):
         _, rep = norm({"name": "Sample Person", "skills": ["A", "B", "C"], "experience": [JOB]})
         self.assertTrue(any("Core Skills count is odd (3)" in problem for problem in rep["problems"]))
 
+    def test_forbidden_semicolon_and_tilde_are_refused_with_field_paths(self):
+        _, rep = norm({
+            "name": "Sample Person",
+            "summary": "Led maintenance; reduced downtime ~10%.",
+            "experience": [{**JOB, "bullets": ["Maintained equipment; improved uptime ~5%."]}],
+        })
+        joined = " ".join(rep["problems"])
+        self.assertIn("summary contains a forbidden semicolon", joined)
+        self.assertIn("summary contains a forbidden tilde", joined)
+        self.assertIn("experience[0].bullets[0] contains a forbidden semicolon", joined)
+        self.assertIn("experience[0].bullets[0] contains a forbidden tilde", joined)
+
 
 class ContactStripping(unittest.TestCase):
     def test_contact_keys_are_removed(self):

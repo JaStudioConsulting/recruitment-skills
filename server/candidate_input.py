@@ -30,6 +30,10 @@ _PHONE = re.compile(r"(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}(
 
 CONTACT_KEYS = {"email", "emails", "phone", "phones", "mobile", "cell", "linkedin",
                 "linkedin_url", "contact", "contact_info", "address", "website", "url"}
+FORBIDDEN_PUNCTUATION = (
+    ("—", "em dash"), ("–", "en dash"), ("--", "double hyphen"),
+    (";", "semicolon"), ("~", "tilde"),
+)
 
 
 def find_contact(text):
@@ -274,6 +278,12 @@ def normalize_candidate(raw):
             if kinds:
                 problems.append(f"{path} contains contact details ({', '.join(kinds)}). "
                                 "The resume never carries contact info. Rewrite that text without it.")
+            for token, label in FORBIDDEN_PUNCTUATION:
+                if token in value:
+                    problems.append(
+                        f"{path} contains a forbidden {label} ({token}). "
+                        "Rewrite that text before building."
+                    )
         elif isinstance(value, list):
             for i, v in enumerate(value):
                 scan(v, f"{path}[{i}]")
@@ -300,5 +310,6 @@ SCHEMA_HINT = (
     "education_heading (optional string, default 'Education & Certifications'), "
     "sections (optional array of {heading, items[]} for any other section the original resume has). "
     "Never include email, phone, or links: they are stripped. "
-    "No em dashes, en dashes, double hyphens, semicolons, or [placeholders]: the builder refuses them."
+    "No em dashes, en dashes, double hyphens, semicolons, tildes, or [placeholders]: "
+    "the builder refuses them."
 )

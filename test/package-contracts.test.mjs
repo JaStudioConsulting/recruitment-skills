@@ -545,7 +545,7 @@ test("synthetic branded resume artifact QA renders every page and records automa
     for (const name of renderedPages) assert.ok(statSync(path.join(dir, name)).size > 0, name);
     const text = spawnSync("pdftotext", [output, "-"], { encoding: "utf8" }).stdout;
     assert.doesNotMatch(text, /\[[^\]]*(?:confirm|tbd|todo|xxx|placeholder|insert|add)[^\]]*\]/i);
-    assert.doesNotMatch(text, /—|–|--/);
+    assert.doesNotMatch(text, /—|–|--|;|~/);
     assert.equal((await readFile(output)).includes(Buffer.from("/URI")), false, "PDF must not contain hyperlinks");
     const pageQa = { schema_version: 1, artifact: output, pages, rendered_pages: renderedPages.length, automated_checks: { no_placeholders: true, no_long_dashes: true, no_hyperlinks: true, rendered_images_nonzero: true }, human_visual_inspection: "required", human_visual_inspection_complete: false, verified_by: "synthetic-harness" };
     assert.equal(pageQa.schema_version, 1);
@@ -573,5 +573,17 @@ test("synthetic branded resume artifact QA renders every page and records automa
     assert.notEqual(odd.status, 0, "odd Core Skills must fail closed");
     assert.match(odd.stdout + odd.stderr, /Core Skills count is odd/);
     assert.equal(exists(oddOutput), false);
+
+    const forbiddenInput = path.join(dir, "forbidden-punctuation.json");
+    const forbiddenOutput = path.join(dir, "forbidden-punctuation.pdf");
+    await writeFile(forbiddenInput, JSON.stringify({
+      ...data.resume,
+      summary: "Synthetic supervisor; reduced downtime ~10%.",
+    }), "utf8");
+    const forbidden = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", forbiddenInput, "--out", forbiddenOutput, "--engine", "reportlab"], { encoding: "utf8" });
+    assert.notEqual(forbidden.status, 0, "semicolons and tildes must fail closed");
+    assert.match(forbidden.stdout + forbidden.stderr, /semicolon \(;\)/);
+    assert.match(forbidden.stdout + forbidden.stderr, /tilde \(~\)/);
+    assert.equal(exists(forbiddenOutput), false);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });

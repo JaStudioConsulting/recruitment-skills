@@ -85,9 +85,15 @@ def find_chrome():
             return p
     return None
 
-BANNED = {"—": "em dash (—)", "–": "en dash (–)", "--": "double hyphen (--)"}
+BANNED = {
+    "—": "em dash (—)",
+    "–": "en dash (–)",
+    "--": "double hyphen (--)",
+    ";": "semicolon (;)",
+    "~": "tilde (~)",
+}
 
-def check_dashes(data):
+def check_banned_punctuation(data):
     offenders = []
     def scan(label, text):
         if not isinstance(text, str):
@@ -395,9 +401,9 @@ def main():
 
     data = json.load(open(args.data, encoding="utf-8"))
 
-    offenders = check_dashes(data)
+    offenders = check_banned_punctuation(data)
     if offenders:
-        print("ABORT: banned long-dash characters found. Fix these fields and rerun:\n"
+        print("ABORT: forbidden punctuation found. Fix these fields and rerun:\n"
               + "\n".join(offenders))
         sys.exit(2)
 
@@ -436,22 +442,25 @@ def main():
             import fitz
             pdf = fitz.open(staged)
             alltext = "".join(p.get_text() for p in pdf)
-            dash = [nm for ch, nm in BANNED.items() if ch in alltext]
+            forbidden = [nm for ch, nm in BANNED.items() if ch in alltext]
             links = sum(1 for p in pdf for _ in p.links())
-            if dash or links:
-                sys.exit(f"ERROR: PDF verification failed: long_dashes={dash or 'none'} hyperlinks={links}")
+            if forbidden or links:
+                sys.exit(f"ERROR: PDF verification failed: forbidden_punctuation={forbidden or 'none'} hyperlinks={links}")
             pages = pdf.page_count
             if args.preview:
                 pdf[0].get_pixmap(dpi=110).save(args.preview)
             pdf.close()
         except ImportError:
             pages = "unverified"
-            dash = "unverified"
+            forbidden = "unverified"
             links = "unverified"
 
         os.replace(staged, out)
         print(f"OK [{engine}]: {out}")
-        print(f"   pages={pages}  bytes={os.path.getsize(out)} long_dashes={dash or 'none'} hyperlinks={links}")
+        print(
+            f"   pages={pages}  bytes={os.path.getsize(out)} "
+            f"forbidden_punctuation={forbidden or 'none'} hyperlinks={links}"
+        )
         if args.preview:
             print(f"   preview={args.preview}")
 

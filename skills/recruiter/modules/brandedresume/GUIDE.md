@@ -80,7 +80,7 @@ Refine the raw input into a polished, client-ready resume rather than copying it
 
 ## House style rules (enforced by the builder)
 
-- **No em dashes, en dashes, or double hyphens anywhere.** Reword with commas, "and", or restructure. Regular hyphens in compound words (cost-reduction) and the date format (`Dec-2025 - Present`) are fine. The builder aborts if it finds a long dash, so keep the source data clean.
+- **No em dashes, en dashes, double hyphens, semicolons, or tildes anywhere.** Reword with commas, "and", or restructure. Regular hyphens in compound words (cost-reduction) and the date format (`Dec-2025 - Present`) are fine. The builder aborts if it finds forbidden punctuation, so keep the source data clean.
 - **No hyperlinks** in the resume.
 - **Logo centered** at the top; **black text only**, Arial throughout; clean and print-ready.
 - **Emphasis:** wrap text in `**...**` to bold it inside experience bullets, Education & Certifications entries, and any additional `sections[]` item. The builder renders it as real bold in both engines. Use it for the bullet proof point and the credential, nowhere else.
@@ -114,7 +114,7 @@ The logo lives at `assets/tttg_logo.png`. To rebrand for a different company, re
 
 ## Done conditions
 
-- Builder output reports expected page count and no long dashes or hyperlinks.
+- Builder output reports expected page count and no forbidden punctuation or hyperlinks.
 - Every page was rendered and inspected, with recorded PASS/FAIL for clipping, overlap,
   orphaned headings/bullets, logo placement, privacy/contact removal, and page breaks.
 - The canonical `skills/recruiter/scripts/validate-artifact-qa.mjs` validator passes successfully
