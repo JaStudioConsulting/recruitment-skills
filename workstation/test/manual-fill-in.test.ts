@@ -303,7 +303,7 @@ Sample Systems
   });
 
   it("strips contact details from a synthetic resume before any field is filled", () => {
-    const text = `Gale Contact\nMaintenance Lead\nEmail: gale@example.invalid\nContact No.: 416-555-0100\nInternational: +44 20 7946 0958\nhttps://linkedin.com/in/gale-contact\nSUMMARY\nMaintenance leader. Call 647-555-0101.\nSKILLS\nPlanning`;
+    const text = `Gale Contact\nMaintenance Lead\nEmail: gale@example.invalid\nContact No.: 416-555-0100\nInternational: +44 20 7946 0958\nAlternate: 020 7946 0958\nDial prefix: 0044 20 7946 0958\nCountry code: 44 20 7946 0958\nhttps://linkedin.com/in/gale-contact\nSUMMARY\nMaintenance leader. Call 647-555-0101.\nSKILLS\nPlanning`;
     const parsed = parseResumeText(text, "contact-layout.txt");
     expect(JSON.stringify(parsed.form)).not.toMatch(/example\.invalid|555-010|7946 0958|linkedin\.com/i);
     expect(stripContactDetails(text)).not.toMatch(/example\.invalid|555-010|7946 0958|linkedin\.com/i);

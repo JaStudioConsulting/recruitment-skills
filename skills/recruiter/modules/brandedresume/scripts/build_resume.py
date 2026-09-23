@@ -51,6 +51,7 @@ House rules enforced here (so a client never sees a slip):
     offending fields so the text gets fixed, not silently mangled. Regular
     hyphens in compound words (cost-reduction), slash-separated text without
     spaces (CNC/manual), and the date format (Dec-2025 - Present) are fine.
+  - NO compensation information anywhere in the rendered resume.
   - Logo centered at the top; exactly one title line under the name.
   - No hyperlinks are ever added.
 """
@@ -93,8 +94,13 @@ BANNED = {
     ";": "semicolon (;)",
     "~": "tilde (~)",
 }
+COMPENSATION = re.compile(
+    r"\b(?:compensation|salary|wages?|hourly\s+(?:pay\s+)?rate|pay\s+rate|"
+    r"base\s+pay|current\s+pay|currently\s+earns?|currently\s+earning|earnings?)\b",
+    re.I,
+)
 
-def check_banned_punctuation(data):
+def check_forbidden_content(data):
     offenders = []
     def scan(label, text):
         if not isinstance(text, str):
@@ -104,6 +110,8 @@ def check_banned_punctuation(data):
                 offenders.append(f"  {label}: contains {nm} -> {text[:70]!r}")
         if re.search(r"\s/|/\s", text):
             offenders.append(f"  {label}: contains whitespace around slash (/) -> {text[:70]!r}")
+        if COMPENSATION.search(text):
+            offenders.append(f"  {label}: contains compensation information -> {text[:70]!r}")
     scan("name", data.get("name", ""))
     scan("headline", data.get("headline", ""))
     scan("summary", data.get("summary", ""))
@@ -122,6 +130,37 @@ def check_banned_punctuation(data):
         for j, it in enumerate(sec.get("items", [])):
             scan(f"sections[{i}].items[{j}]", it)
     return offenders
+
+def check_required_structure(data):
+    problems = []
+    for field, label in (
+        ("name", "candidate name"),
+        ("headline", "one exact current title"),
+        ("summary", "profile summary"),
+    ):
+        if not isinstance(data.get(field), str) or not data[field].strip():
+            problems.append(f"  {field}: missing {label}")
+    skills = data.get("skills")
+    if not isinstance(skills, list) or not any(isinstance(item, str) and item.strip() for item in skills):
+        problems.append("  skills: requires an even, nonzero Core Skills list")
+    experience = data.get("experience")
+    if not isinstance(experience, list) or not experience:
+        problems.append("  experience: requires at least one Professional Experience entry")
+    else:
+        for index, job in enumerate(experience):
+            if not isinstance(job, dict):
+                problems.append(f"  experience[{index}]: must be an object")
+                continue
+            for field in ("title", "company", "location", "dates"):
+                if not isinstance(job.get(field), str) or not job[field].strip():
+                    problems.append(f"  experience[{index}].{field}: missing")
+            bullets = job.get("bullets")
+            if not isinstance(bullets, list) or not any(isinstance(item, str) and item.strip() for item in bullets):
+                problems.append(f"  experience[{index}].bullets: requires source-backed content")
+    education = data.get("education")
+    if not isinstance(education, list) or not any(isinstance(item, str) and item.strip() for item in education):
+        problems.append("  education: requires Education & Certifications content")
+    return problems
 
 def check_placeholders(data):
     """A finished resume must never show a fill-in marker to a client. If any field
@@ -404,7 +443,12 @@ def main():
 
     data = json.load(open(args.data, encoding="utf-8"))
 
-    offenders = check_banned_punctuation(data)
+    structure = check_required_structure(data)
+    if structure:
+        print("ABORT: required branded-resume structure is incomplete.\n" + "\n".join(structure))
+        sys.exit(2)
+
+    offenders = check_forbidden_content(data)
     if offenders:
         print("ABORT: forbidden punctuation found. Fix these fields and rerun:\n"
               + "\n".join(offenders))

@@ -32,9 +32,15 @@ _PHONE = re.compile(
     r"(?<!\d)(?:"
     r"(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}"
     r"|\+\d{1,3}(?:[\s().-]*\d){7,14}"
+    r"|(?:00\d{1,3}|\d{2,4})(?:(?:[.-]|\s+)\d{2,4}){2,4}"
     r")(?!\d)"
 )
 _SPACED_SLASH = re.compile(r"\s/|/\s")
+_COMPENSATION = re.compile(
+    r"\b(?:compensation|salary|wages?|hourly\s+(?:pay\s+)?rate|pay\s+rate|"
+    r"base\s+pay|current\s+pay|currently\s+earns?|currently\s+earning|earnings?)\b",
+    re.I,
+)
 
 CONTACT_KEYS = {"email", "emails", "phone", "phones", "mobile", "cell", "linkedin",
                 "linkedin_url", "contact", "contact_info", "address", "website", "url"}
@@ -267,6 +273,25 @@ def normalize_candidate(raw):
             "Add or remove one source-backed skill before building."
         )
 
+    for field, label in (
+        ("headline", "one exact current title"),
+        ("summary", "a profile summary"),
+    ):
+        if not out.get(field):
+            problems.append(f"{field} is missing. The branded resume requires {label}.")
+    if not out["skills"]:
+        problems.append("skills is empty. The branded resume requires an even, nonzero Core Skills list.")
+    if not out["experience"]:
+        problems.append("experience is empty. The branded resume requires Professional Experience.")
+    if not out["education"]:
+        problems.append("education is empty. The branded resume requires Education & Certifications.")
+    for index, job in enumerate(out["experience"]):
+        for field in ("title", "company", "location", "dates"):
+            if not job.get(field):
+                problems.append(f"experience[{index}].{field} is missing. Confirm it before building.")
+        if not job.get("bullets"):
+            problems.append(f"experience[{index}].bullets is empty. Confirm source-backed experience before building.")
+
     # Bold markers only render in bullets, education and section items.
     unbold = lambda v: re.sub(r"\*\*(.+?)\*\*", r"\1", v) if isinstance(v, str) else v
     for key in ("name", "headline", "summary", "education_heading"):
@@ -286,6 +311,11 @@ def normalize_candidate(raw):
             if kinds:
                 problems.append(f"{path} contains contact details ({', '.join(kinds)}). "
                                 "The resume never carries contact info. Rewrite that text without it.")
+            if _COMPENSATION.search(value):
+                problems.append(
+                    f"{path} contains compensation information. "
+                    "Compensation belongs in the submission, never the resume."
+                )
             for token, label in FORBIDDEN_PUNCTUATION:
                 if token in value:
                     problems.append(
@@ -322,7 +352,8 @@ SCHEMA_HINT = (
     "education (array of strings like '**Degree** - Institution, City'; no years), "
     "education_heading (optional string, default 'Education & Certifications'), "
     "sections (optional array of {heading, items[]} for any other section the original resume has). "
-    "Never include email, phone, or links: they are stripped. "
+    "Every core field is required; every experience entry requires title, company, location, dates, and bullets. "
+    "Never include compensation, email, phone, or links: they are refused or stripped. "
     "No em dashes, en dashes, double hyphens, semicolons, tildes, whitespace around slashes, "
     "or [placeholders]: the builder refuses them."
 )

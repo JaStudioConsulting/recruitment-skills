@@ -17,9 +17,22 @@ def norm(raw):
     return normalize_candidate(raw)
 
 
+def complete_candidate(**overrides):
+    candidate = {
+        "name": "Sample Person",
+        "headline": "CNC Machinist",
+        "summary": "Manufacturing specialist with source-backed maintenance experience.",
+        "skills": ["CNC Machining", "Blueprint Reading"],
+        "experience": [JOB],
+        "education": ["**Diploma** - Example College"],
+    }
+    candidate.update(overrides)
+    return candidate
+
+
 class ShapeNormalization(unittest.TestCase):
     def test_skills_string_splits_on_commas_not_characters(self):
-        out, rep = norm({"name": "Sample Person", "skills": "Welding, MIG, TIG, Blueprint Reading", "experience": [JOB]})
+        out, rep = norm(complete_candidate(skills="Welding, MIG, TIG, Blueprint Reading"))
         self.assertEqual(out["skills"], ["Welding", "MIG", "TIG", "Blueprint Reading"])
         self.assertEqual(rep["problems"], [])
 
@@ -29,9 +42,9 @@ class ShapeNormalization(unittest.TestCase):
         self.assertEqual(out["experience"][0]["bullets"], ["Ran the press brake.", "Held tight tolerances."])
 
     def test_role_employer_aliases_keep_the_job(self):
-        out, rep = norm({"name": "Sample Person", "experience": [
-            {"role": "Lead Hand", "employer": "Example Co", "start": "Jan-2020", "end": "Mar-2022",
-             "responsibilities": ["Led a crew of **8**."]}]})
+        out, rep = norm(complete_candidate(experience=[
+            {"role": "Lead Hand", "employer": "Example Co", "location": "Hamilton, ON",
+             "start": "Jan-2020", "end": "Mar-2022", "responsibilities": ["Led a crew of **8**."]}]))
         job = out["experience"][0]
         self.assertEqual((job["title"], job["company"], job["dates"]), ("Lead Hand", "Example Co", "Jan-2020 - Mar-2022"))
         self.assertEqual(job["bullets"], ["Led a crew of **8**."])
@@ -42,13 +55,13 @@ class ShapeNormalization(unittest.TestCase):
         self.assertEqual(out["experience"][0]["dates"], "May-2022 - Present")
 
     def test_structured_education_becomes_bold_credential_without_year(self):
-        out, rep = norm({"name": "Sample Person", "education": [
-            {"degree": "Diploma, Mechanical Technology", "school": "Example College", "location": "Toronto, ON", "year": "2015"}]})
+        out, rep = norm(complete_candidate(education=[
+            {"degree": "Diploma, Mechanical Technology", "school": "Example College", "location": "Toronto, ON", "year": "2015"}]))
         self.assertEqual(out["education"], ["**Diploma, Mechanical Technology** - Example College, Toronto, ON"])
         self.assertEqual(rep["problems"], [])
 
     def test_extra_resume_sections_are_kept_not_dropped(self):
-        out, rep = norm({"name": "Sample Person", "certifications": ["309A Industrial Electrician"], "languages": "English, Punjabi"})
+        out, rep = norm(complete_candidate(certifications=["309A Industrial Electrician"], languages="English, Punjabi"))
         headings = [s["heading"] for s in out["sections"]]
         self.assertIn("Certifications", headings)
         self.assertIn("Languages", headings)
@@ -59,7 +72,11 @@ class ShapeNormalization(unittest.TestCase):
         self.assertEqual(out["sections"][0]["items"], ["English"])
 
     def test_top_level_aliases(self):
-        out, rep = norm({"full_name": "Sample Person", "objective": "Short summary.", "work_history": [JOB]})
+        out, rep = norm({
+            "full_name": "Sample Person", "title": "CNC Machinist", "objective": "Short summary.",
+            "core_skills": ["CNC Machining", "Blueprint Reading"], "work_history": [JOB],
+            "education": ["**Diploma** - Example College"],
+        })
         self.assertEqual(out["name"], "Sample Person")
         self.assertEqual(out["summary"], "Short summary.")
         self.assertEqual(len(out["experience"]), 1)
@@ -88,9 +105,14 @@ class RefuseInsteadOfDropping(unittest.TestCase):
         self.assertIn("name is missing.", rep["problems"])
 
     def test_clean_candidate_has_no_problems(self):
-        _, rep = norm({"name": "Sample Person", "headline": "Welder", "summary": "S.",
-                       "skills": ["A", "B"], "experience": [JOB], "education": ["**Diploma** - Example College"]})
+        _, rep = norm(complete_candidate())
         self.assertEqual(rep["problems"], [])
+
+    def test_required_branded_resume_structure_is_refused(self):
+        _, rep = norm({"name": "Sample Person", "summary": "Source-backed summary."})
+        joined = " ".join(rep["problems"])
+        for field in ("headline", "skills", "experience", "education"):
+            self.assertIn(field, joined)
 
     def test_odd_skill_count_is_refused(self):
         _, rep = norm({"name": "Sample Person", "skills": ["A", "B", "C"], "experience": [JOB]})
@@ -118,11 +140,20 @@ class RefuseInsteadOfDropping(unittest.TestCase):
         self.assertIn("summary contains forbidden whitespace around a slash", joined)
         self.assertIn("experience[0].location contains forbidden whitespace around a slash", joined)
 
+    def test_compensation_is_refused_with_field_paths(self):
+        _, rep = norm(complete_candidate(
+            summary="Currently earns $120,000.",
+            experience=[{**JOB, "bullets": ["Current salary is $120,000."]}],
+        ))
+        joined = " ".join(rep["problems"])
+        self.assertIn("summary contains compensation information", joined)
+        self.assertIn("experience[0].bullets[0] contains compensation information", joined)
+
 
 class ContactStripping(unittest.TestCase):
     def test_contact_keys_are_removed(self):
-        out, rep = norm({"name": "Sample Person", "email": "sample@example.com", "phone": "555-555-0100",
-                         "linkedin": "https://www.linkedin.com/in/sample", "experience": [JOB]})
+        out, rep = norm(complete_candidate(email="sample@example.com", phone="555-555-0100",
+                                           linkedin="https://www.linkedin.com/in/sample"))
         for key in ("email", "phone", "linkedin"):
             self.assertNotIn(key, out)
         self.assertEqual(rep["problems"], [])
@@ -140,7 +171,9 @@ class ContactStripping(unittest.TestCase):
         self.assertEqual(find_contact("Toronto, ON contact no.555-555-0100"), ["phone"])
 
     def test_international_phone_is_detected(self):
-        self.assertEqual(find_contact("London contact +44 20 7946 0958"), ["phone"])
+        for number in ("+44 20 7946 0958", "020 7946 0958", "0044 20 7946 0958", "44 20 7946 0958"):
+            with self.subTest(number=number):
+                self.assertEqual(find_contact(f"London contact {number}"), ["phone"])
 
     def test_international_phone_inside_nested_text_is_refused(self):
         raw = {"name": "Sample Person", "experience": [dict(JOB, bullets=["Contact +44 20 7946 0958."])]}

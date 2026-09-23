@@ -586,5 +586,22 @@ test("synthetic branded resume artifact QA renders every page and records automa
     assert.match(forbidden.stdout + forbidden.stderr, /tilde \(~\)/);
     assert.match(forbidden.stdout + forbidden.stderr, /whitespace around slash/);
     assert.equal(exists(forbiddenOutput), false);
+
+    const compensationInput = path.join(dir, "compensation.json");
+    const compensationOutput = path.join(dir, "compensation.pdf");
+    await writeFile(compensationInput, JSON.stringify({ ...data.resume, summary: "Currently earns $120,000." }), "utf8");
+    const compensation = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", compensationInput, "--out", compensationOutput, "--engine", "reportlab"], { encoding: "utf8" });
+    assert.notEqual(compensation.status, 0, "compensation must fail closed");
+    assert.match(compensation.stdout + compensation.stderr, /compensation information/);
+    assert.equal(exists(compensationOutput), false);
+
+    const incompleteInput = path.join(dir, "incomplete.json");
+    const incompleteOutput = path.join(dir, "incomplete.pdf");
+    await writeFile(incompleteInput, JSON.stringify({ name: "Synthetic Person", summary: "Source-backed summary." }), "utf8");
+    const incomplete = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", incompleteInput, "--out", incompleteOutput, "--engine", "reportlab"], { encoding: "utf8" });
+    assert.notEqual(incomplete.status, 0, "incomplete canonical structure must fail closed");
+    assert.match(incomplete.stdout + incomplete.stderr, /required branded-resume structure is incomplete/);
+    assert.match(incomplete.stdout + incomplete.stderr, /headline|skills|experience|education/);
+    assert.equal(exists(incompleteOutput), false);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
