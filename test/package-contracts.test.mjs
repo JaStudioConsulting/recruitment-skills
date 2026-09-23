@@ -251,14 +251,20 @@ test("hosted builder runtime and resolved dependencies are pinned and attested",
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line && !line.startsWith("#"));
+  const serverRequirements = (await readFile(path.join(root, "server/requirements.txt"), "utf8"))
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"));
   assert.ok(requirements.every((line) => /^[a-z0-9][a-z0-9._-]*==[^=]+$/i.test(line)));
   assert.deepEqual(requirements, lock);
+  assert.deepEqual(serverRequirements, lock);
 
   const render = await readFile(path.join(root, "render.yaml"), "utf8");
   assert.match(render, /buildCommand:\s*pip install -r requirements\.lock/);
   const server = await readFile(path.join(root, "server/server.py"), "utf8");
   assert.match(server, /"\.python-version"/);
   assert.match(server, /"requirements\.lock"/);
+  assert.match(server, /"server\/requirements\.txt"/);
 });
 
 test("sourcing and web-sourcing CLIs export exact synthetic contracts", async () => {

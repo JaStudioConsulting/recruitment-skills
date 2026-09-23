@@ -17,6 +17,7 @@
         "requirements.lock",
         "requirements.txt",
         "render.yaml",
+        "server/requirements.txt",
         "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",
         "skills/recruiter/modules/brandedresume/scripts/build_resume.py"
       ],

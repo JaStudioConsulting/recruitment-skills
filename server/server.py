@@ -64,6 +64,7 @@ BUILDER_AUTHORITY_PATHS = (
     "render.yaml",
     "requirements.lock",
     "requirements.txt",
+    "server/requirements.txt",
     "server/candidate_input.py",
     "server/server.py",
     "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",

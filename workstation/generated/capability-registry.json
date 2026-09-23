@@ -2316,6 +2316,7 @@
         "requirements.lock",
         "requirements.txt",
         "render.yaml",
+        "server/requirements.txt",
         "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",
         "skills/recruiter/modules/brandedresume/scripts/build_resume.py"
       ],
@@ -2351,7 +2352,7 @@
       "supporting_capability_ids": [
         "legislator"
       ],
-      "builder_digest": "481add03fa5e75421b77b5167ab990c2fcb96d1c12555a55e9a68acd53cfb894",
+      "builder_digest": "d54600ef522e80c0dfbf18e6d5a7f8f5538558dc245d972569a2d78f194bde88",
       "supporting_authorities": [
         {
           "id": "legislator",
