@@ -77,7 +77,13 @@ import {
   type SourceReviewRequirement,
   type SubmissionDocument,
 } from "@/lib/workstation-types";
-import { jobIdentitiesMatch, proposePastedSource, type UploadedSourceProposal } from "@/lib/source-intake";
+import {
+  jobIdentitiesMatch,
+  proposePastedSource,
+  sourceEvidenceRef,
+  sourceIsUsable,
+  type UploadedSourceProposal,
+} from "@/lib/source-intake";
 
 type User = { id: string; displayName: string };
 type CreationMode = "role" | "candidate" | null;
@@ -237,11 +243,17 @@ export function editSessionForCurrentDocument(
   const current = candidateCase.documents[kind];
   const lineage = versions.find((version) => version.kind === kind && version.revision === current.revision);
   if (!lineage) return null;
+  const sourceRefs = kind === "resume"
+    ? candidateCase.sources
+      .filter((source) => source.kind === "resume" && sourceIsUsable(source))
+      .map(sourceEvidenceRef)
+      .sort()
+    : [...lineage.sourceRefs];
   return {
     caseId: candidateCase.id,
     kind,
     expectedRevision: current.revision,
-    sourceRefs: [...lineage.sourceRefs],
+    sourceRefs,
     capabilityRunId: lineage.capabilityRunId,
   };
 }

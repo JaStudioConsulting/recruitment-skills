@@ -87,7 +87,16 @@ export type SubmissionDocument = {
   vacation: string; location: string; workStatus: string; interviewAvailability: string;
   startDateNotice: string; reasonForLeaving: string; profileSummary: string;
 };
-export type CaseDocument = { kind: StoredDocumentKind; revision: number; content: OutputData | string | SubmissionDocument | ResumeFormDocument | Record<string, unknown>; updatedAt: string };
+export type CaseDocument = {
+  kind: StoredDocumentKind;
+  revision: number;
+  content: OutputData | string | SubmissionDocument | ResumeFormDocument | Record<string, unknown>;
+  updatedAt: string;
+  /** Immutable lineage for the current revision; absent only on legacy/default snapshots. */
+  sourceRefs?: string[];
+  capabilityRunId?: string | null;
+  origin?: "generated" | "edited";
+};
 export type DocumentVersion = {
   kind: StoredDocumentKind;
   revision: number;

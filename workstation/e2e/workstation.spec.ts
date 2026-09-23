@@ -299,7 +299,7 @@ test("persists a source-grounded draft and explicit human edit across reload", a
   await expect(page.locator("article.output-preview")).toContainText("One hundred twenty thousand dollars");
 
   await page.getByRole("tab", { name: "Resume", exact: true }).click();
-  const resumePreview = page.getByLabel("TTTG branded resume preview");
+  const resumePreview = page.getByLabel("Unpaginated TTTG branded resume layout preview");
   await expect(resumePreview.getByRole("img", { name: "Top Tier Talent Group" })).toBeVisible();
   await expect(resumePreview).toContainText("Summary");
   await page.getByRole("button", { name: "Edit", exact: true }).click();
@@ -352,7 +352,7 @@ test("persists a source-grounded draft and explicit human edit across reload", a
   await expect(page.getByRole("menuitem", { name: "Current · v3" })).toBeVisible();
   await page.keyboard.press("Escape");
   await page.getByRole("tab", { name: "Resume", exact: true }).click();
-  await expect(page.getByLabel("TTTG branded resume preview")).toContainText(SAVED_RESUME_SUMMARY);
+  await expect(page.getByLabel("Unpaginated TTTG branded resume layout preview")).toContainText(SAVED_RESUME_SUMMARY);
   await page.getByRole("button", { name: "Output history" }).click();
   await expect(page.getByRole("menuitem", { name: "Current · v3" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "v2 · generated" })).toBeVisible();

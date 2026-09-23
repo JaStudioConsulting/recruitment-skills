@@ -215,6 +215,10 @@ export async function executeArtifactCapabilityWithDependencies(
       filename: built.filename,
       kind: input.run.capabilityId,
       executorId: definition.executorId,
+      expectedDocument: {
+        kind: "resume",
+        revision: input.candidateCase.documents.resume.revision,
+      },
       source: {
         downloadUrl: absoluteDownloadUrl(built.downloadUrl, endpoint),
         evidence: {

@@ -180,6 +180,24 @@ export function sourceIsUsable(source: { parsedText: string | null; lifecycleSta
     (source.classificationMethod === "explicit" || source.classificationMethod === "filename" || source.classificationMethod === "content");
 }
 
+export function sourceEvidenceRef(source: {
+  id: string;
+  sha256: string;
+  kind: string;
+  lifecycleStatus: string;
+  reviewStatus: string;
+  classificationMethod: string | null;
+}) {
+  return [
+    source.id,
+    source.sha256,
+    source.kind,
+    source.lifecycleStatus,
+    source.reviewStatus,
+    source.classificationMethod ?? "unknown",
+  ].join(":");
+}
+
 function cleanHeadingLine(line: string) {
   return line.trim().replace(/^#{1,6}\s+/, "").replace(/^[-*•]\s+/, "").trim();
 }

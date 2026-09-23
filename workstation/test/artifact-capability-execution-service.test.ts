@@ -31,6 +31,7 @@ function context() {
   const reviewedResume: CaseDocument = {
     kind: "resume",
     revision: 2,
+    sourceRefs: ["resume-source:sha-resume:resume:reviewed:reviewed:manual"],
     content: {
       ...emptyResumeForm(),
       reviewed: true,

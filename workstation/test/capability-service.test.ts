@@ -51,6 +51,7 @@ function caseContext() {
       resume: {
         kind: "resume",
         revision: 2,
+        sourceRefs: ["resume:sha-resume:resume:reviewed:reviewed:manual"],
         content: {
           ...emptyResumeForm(),
           reviewed: true,

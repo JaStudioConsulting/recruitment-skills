@@ -282,11 +282,24 @@ describe("canonical workflow UI execution contract", () => {
 
   it("marks only an explicitly saved resume form as reviewed for PDF export", async () => {
     const current = candidateCase();
+    current.sources = [{
+      id: "resume",
+      kind: "resume",
+      filename: "resume.txt",
+      contentType: "text/plain",
+      sizeBytes: 100,
+      sha256: "sha-resume",
+      captureTime: "2026-09-20T00:00:00.000Z",
+      lifecycleStatus: "reviewed",
+      reviewStatus: "reviewed",
+      parsedText: "Synthetic Candidate resume",
+      classificationMethod: "explicit",
+    }];
     const versions: DocumentVersion[] = [{
       kind: "resume",
       revision: 1,
       content: current.documents.resume.content,
-      sourceRefs: ["resume:sha-resume"],
+      sourceRefs: ["resume:sha-resume:resume:reviewed:reviewed:explicit"],
       capabilityRunId: "run-write-up-1",
       origin: "generated",
       createdAt: "2026-09-20T00:00:00.000Z",
@@ -310,7 +323,7 @@ describe("canonical workflow UI execution contract", () => {
 
     expect(saveDocument).toHaveBeenCalledWith("case-1", "resume", expect.objectContaining({
       origin: "edited",
-      sourceRefs: ["resume:sha-resume"],
+      sourceRefs: ["resume:sha-resume:resume:reviewed:reviewed:explicit"],
       capabilityRunId: "run-write-up-1",
       content: expect.objectContaining({ reviewed: true, summary: "Source-backed summary." }),
     }));

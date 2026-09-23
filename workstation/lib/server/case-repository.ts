@@ -51,7 +51,10 @@ import type { UpdateCaseInput } from "@/lib/contracts/workstation";
 import {
   jobIdentitiesMatch,
   normalizedJobIdentityKey,
+  sourceEvidenceRef,
+  sourceIsUsable,
 } from "@/lib/source-intake";
+import { isResumeForm } from "@/lib/resume-form";
 
 const EMPTY_ASSISTANT: AssistantState = {
   missing: [],
@@ -134,6 +137,51 @@ function sourceRecord(row: SourceRecordRow): CaseSource {
   };
 }
 
+async function activeUsableResumeSourceRefs(caseId: string): Promise<string[]> {
+  const rows = await getDb()
+    .select()
+    .from(caseSources)
+    .where(and(
+      eq(caseSources.caseId, caseId),
+      eq(caseSources.contextStatus, "active"),
+    ));
+  return rows
+    .map(sourceRecord)
+    .filter((source) => source.kind === "resume" && sourceIsUsable(source))
+    .map(sourceEvidenceRef)
+    .sort();
+}
+
+function activeUsableResumeSourceRefsJson(caseId: string) {
+  return sql<string>`(
+    SELECT COALESCE(json_group_array(source_ref), '[]')
+    FROM (
+      SELECT
+        ${caseSources.id} || ':' ||
+        ${caseSources.sha256} || ':' ||
+        ${caseSources.kind} || ':' ||
+        ${caseSources.lifecycleStatus} || ':' ||
+        ${caseSources.reviewStatus} || ':' ||
+        COALESCE(${caseSources.classificationMethod}, 'unknown') AS source_ref
+      FROM ${caseSources}
+      WHERE ${and(
+        eq(caseSources.caseId, caseId),
+        eq(caseSources.contextStatus, "active"),
+        eq(caseSources.kind, "resume"),
+        sql`trim(COALESCE(${caseSources.parsedText}, '')) <> ''`,
+        sql`(
+          ${caseSources.lifecycleStatus} = 'reviewed' OR
+          (
+            ${caseSources.lifecycleStatus} = 'classified' AND
+            ${caseSources.classificationMethod} IN ('explicit', 'filename', 'content')
+          )
+        )`,
+      )}
+      ORDER BY source_ref
+    )
+  )`;
+}
+
 function jobSourceRecord(row: typeof roleSources.$inferSelect): JobSource {
   return {
     ...sourceRecord(row),
@@ -145,6 +193,11 @@ function jobSourceRecord(row: typeof roleSources.$inferSelect): JobSource {
 function documentRecord(
   row: typeof caseDocuments.$inferSelect,
   knownKind?: StoredDocumentKind,
+  lineage?: {
+    sourceRefs: string[];
+    capabilityRunId: string | null;
+    origin: "generated" | "edited";
+  },
 ): CaseDocument {
   const kind = knownKind ?? (isStoredDocumentKind(row.kind) ? row.kind : null);
   if (!kind) throw new Error(`Unsupported case document kind: ${row.kind}`);
@@ -153,12 +206,26 @@ function documentRecord(
     revision: row.revision,
     content: parseJson(row.contentJson, defaultDocumentContent(kind)),
     updatedAt: row.updatedAt,
+    ...(lineage ?? {}),
   };
 }
 
-function documentMap(rows: Array<typeof caseDocuments.$inferSelect>) {
+function documentMap(
+  rows: Array<typeof caseDocuments.$inferSelect>,
+  versions: Array<typeof caseDocumentVersions.$inferSelect>,
+) {
+  const lineageByRevision = new Map(versions.map((version) => [
+    `${version.kind}:${version.revision}`,
+    {
+      sourceRefs: parseJson<string[]>(version.sourceRefsJson, []).sort(),
+      capabilityRunId: version.capabilityRunId,
+      origin: version.origin === "generated" ? "generated" as const : "edited" as const,
+    },
+  ]));
   return completeStoredDocuments(rows.flatMap((row) => {
-    return isStoredDocumentKind(row.kind) ? [documentRecord(row, row.kind)] : [];
+    return isStoredDocumentKind(row.kind)
+      ? [documentRecord(row, row.kind, lineageByRevision.get(`${row.kind}:${row.revision}`))]
+      : [];
   }));
 }
 
@@ -239,8 +306,9 @@ export async function getCandidateCase(
 ): Promise<CandidateCase> {
   const db = getDb();
   const row = await assertOwnedCase(userId, caseId);
-  const [documents, sources] = await Promise.all([
+  const [documents, documentVersions, sources] = await Promise.all([
     db.select().from(caseDocuments).where(eq(caseDocuments.caseId, caseId)),
+    db.select().from(caseDocumentVersions).where(eq(caseDocumentVersions.caseId, caseId)),
     db
       .select()
       .from(caseSources)
@@ -264,7 +332,7 @@ export async function getCandidateCase(
     facts: parseJson<CandidateFact[]>(row.factsJson, []),
     assistant: parseJson<AssistantState>(row.assistantJson, EMPTY_ASSISTANT),
     externalRefs: parseJson<Record<string, string>>(row.externalRefsJson, {}),
-    documents: documentMap(documents),
+    documents: documentMap(documents, documentVersions),
     sources: sources.map(sourceRecord),
     updatedAt: row.updatedAt,
   };
@@ -645,6 +713,18 @@ export async function saveCaseDocument(
       currentRevision: currentDocumentState?.revision ?? null,
     });
   }
+  let reviewedResumeSourceRefs: string[] | null = null;
+  const origin = metadata.origin ?? "edited";
+  if (kind === "resume" && isResumeForm(content) && content.reviewed === true) {
+    if (metadata.sourceRefs === undefined) {
+      throw new ApiError(
+        409,
+        "Reviewed resume saves require the source snapshot shown in the editor. Reload, verify, and save again.",
+        { code: "resume_source_snapshot_required" },
+      );
+    }
+    reviewedResumeSourceRefs = Array.from(new Set(metadata.sourceRefs)).sort();
+  }
   let contentJson: string;
   try {
     contentJson = JSON.stringify(content);
@@ -679,13 +759,15 @@ export async function saveCaseDocument(
     existingCapabilityRunId = existingVersion?.capabilityRunId ?? null;
   }
   const sourceRefs = resolveDocumentSourceRefs(
-    metadata.sourceRefs,
+    reviewedResumeSourceRefs ?? metadata.sourceRefs,
     existingSourceRefs,
   );
+  const reviewedResumeSourcesStillCurrent = reviewedResumeSourceRefs
+    ? sql`${activeUsableResumeSourceRefsJson(caseId)} = ${JSON.stringify(reviewedResumeSourceRefs)}`
+    : undefined;
   const capabilityRunId = metadata.capabilityRunId === undefined
     ? existingCapabilityRunId
     : metadata.capabilityRunId;
-  const origin = metadata.origin ?? "edited";
   const clearSubmissionReviewRequirements = kind === "submission" && origin === "edited";
   if (capabilityRunId) {
     const [ownedRun] = await db
@@ -770,7 +852,7 @@ export async function saveCaseDocument(
         currentRevision: null,
       });
     }
-    return documentRecord(created, kind);
+    return documentRecord(created, kind, { sourceRefs, capabilityRunId, origin });
   }
 
   const nextRevision = expectedRevision + 1;
@@ -786,6 +868,7 @@ export async function saveCaseDocument(
         eq(caseDocuments.caseId, caseId),
         eq(caseDocuments.kind, kind),
         eq(caseDocuments.revision, expectedRevision),
+        reviewedResumeSourcesStillCurrent,
       )).returning(),
       // Every current snapshot has a matching immutable version. A stale or
       // concurrent writer therefore collides here and rolls the whole batch
@@ -794,7 +877,16 @@ export async function saveCaseDocument(
         caseId,
         kind,
         revision: nextRevision,
-        contentJson,
+        // D1 batch statements are one transaction, but a zero-row conditional
+        // UPDATE does not abort the following statements. The NOT NULL guard
+        // makes a changed resume-source snapshot fail the whole batch instead
+        // of leaving an orphaned immutable version.
+        contentJson: reviewedResumeSourceRefs
+          ? sql<string>`CASE
+              WHEN ${reviewedResumeSourcesStillCurrent} THEN ${contentJson}
+              ELSE NULL
+            END`
+          : contentJson,
         sourceRefsJson: JSON.stringify(sourceRefs),
         capabilityRunId,
         origin,
@@ -832,6 +924,16 @@ export async function saveCaseDocument(
         currentRevision: current?.revision ?? null,
       });
     }
+    if (reviewedResumeSourceRefs) {
+      const currentSourceRefs = await activeUsableResumeSourceRefs(caseId);
+      if (JSON.stringify(currentSourceRefs) !== JSON.stringify(reviewedResumeSourceRefs)) {
+        throw new ApiError(
+          409,
+          "Resume sources changed while this form was being reviewed. Reload, verify, and save again.",
+          { code: "resume_sources_changed" },
+        );
+      }
+    }
     throw error;
   }
   if (!updated) {
@@ -844,7 +946,7 @@ export async function saveCaseDocument(
       currentRevision: current?.revision ?? null,
     });
   }
-  return documentRecord(updated, kind);
+  return documentRecord(updated, kind, { sourceRefs, capabilityRunId, origin });
 }
 
 export async function listDocumentVersions(

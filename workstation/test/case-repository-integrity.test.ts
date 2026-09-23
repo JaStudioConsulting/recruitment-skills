@@ -11,7 +11,9 @@ const workerBindings = vi.hoisted(() => ({
 vi.mock("cloudflare:workers", () => workerBindings);
 
 import { defaultDocumentContent } from "../lib/document-model";
+import { emptyResumeForm } from "../lib/resume-form";
 import { prepareCapability } from "../lib/server/capability-service";
+import { createCaseArtifact } from "../lib/server/capability-run-repository";
 import {
   getCandidateCase,
   getCapabilityCaseContext,
@@ -126,6 +128,127 @@ afterEach(async () => {
 });
 
 describe("case repository atomic persistence", () => {
+  it("accepts an exact reviewed resume source snapshot and rejects stale or spoofed refs", async () => {
+    await insertSource("user-1", candidateSource({
+      kind: "resume",
+      filename: "Avery North Resume.txt",
+      parsedText: "Avery North\nMaintenance Supervisor\nProfessional Experience\nAtlas Components",
+      classificationMethod: "explicit",
+    }));
+    const authoritativeRef = `source-1:${"a".repeat(64)}:resume:classified:unreviewed:explicit`;
+    const form = {
+      ...emptyResumeForm(),
+      reviewed: true,
+      name: "Avery North",
+      summary: "Source-grounded maintenance leader.",
+    };
+
+    const saved = await saveCaseDocument(
+      "user-1",
+      "case-1",
+      "resume",
+      1,
+      form,
+      { origin: "generated", sourceRefs: [authoritativeRef] },
+    );
+
+    expect(saved.sourceRefs).toEqual([authoritativeRef]);
+    expect((await getCandidateCase("user-1", "case-1")).documents.resume.sourceRefs)
+      .toEqual([authoritativeRef]);
+    expect((await listDocumentVersions("user-1", "case-1", "resume"))[0].sourceRefs)
+      .toEqual([authoritativeRef]);
+
+    await expect(saveCaseDocument(
+      "user-1",
+      "case-1",
+      "resume",
+      2,
+      { ...form, summary: "A stale editor must not approve a changed source set." },
+      { origin: "edited", sourceRefs: ["spoofed:stale:resume:ref"] },
+    )).rejects.toThrow("Resume sources changed while this form was being reviewed");
+
+    const current = await getCandidateCase("user-1", "case-1");
+    expect(current.documents.resume.revision).toBe(2);
+    expect((await listDocumentVersions("user-1", "case-1", "resume")).map((version) => version.revision))
+      .toEqual([2, 1]);
+  });
+
+  it("atomically refuses a branded PDF artifact when its resume source snapshot changed", async () => {
+    await insertSource("user-1", candidateSource({
+      kind: "resume",
+      filename: "Avery North Resume.txt",
+      parsedText: "Avery North\nMaintenance Supervisor\nProfessional Experience\nAtlas Components",
+      classificationMethod: "explicit",
+    }));
+    const preparedRef = `source-1:${"a".repeat(64)}:resume:classified:unreviewed:explicit`;
+    await database.prepare(
+      `INSERT INTO capability_runs
+        (id, case_id, role_id, candidate_id, capability_id, executor_id,
+         supporting_authority_ids_json, authority_digest, source_refs_json,
+         input_snapshot_hash, input_json, output_kind, implementation_status,
+         provider, model, prepared_at, status, created_by)
+       VALUES (?, 'case-1', 'role-1', 'candidate-1', 'brandedresume', 'brand-resume',
+         '[]', ?, ?, ?, '{}', 'pdf', 'partial', 'workstation', 'brand-resume-v1',
+         '2026-09-23T12:00:00.000Z', 'running', 'user-1')`,
+    ).bind("run-stale-resume", "a".repeat(64), JSON.stringify([preparedRef]), "b".repeat(64)).run();
+    await database.prepare(
+      "UPDATE case_sources SET sha256 = ? WHERE id = 'source-1'",
+    ).bind("c".repeat(64)).run();
+
+    await expect(createCaseArtifact("user-1", {
+      id: "artifact-stale-resume",
+      caseId: "case-1",
+      runId: "run-stale-resume",
+      kind: "brandedresume",
+      filename: "Avery North Resume.pdf",
+      contentType: "application/pdf",
+      storageKey: "cases/case-1/artifacts/artifact-stale-resume/resume.pdf",
+      sha256: "d".repeat(64),
+      sizeBytes: 1234,
+      expectedDocument: { kind: "resume", revision: 1 },
+    })).rejects.toThrow("resume or its active sources changed");
+  });
+
+  it("atomically persists a branded PDF artifact when its resume document and source snapshot match", async () => {
+    await insertSource("user-1", candidateSource({
+      kind: "resume",
+      filename: "Avery North Resume.txt",
+      parsedText: "Avery North\nMaintenance Supervisor\nProfessional Experience\nAtlas Components",
+      classificationMethod: "explicit",
+    }));
+    const preparedRef = `source-1:${"a".repeat(64)}:resume:classified:unreviewed:explicit`;
+    await database.prepare(
+      `INSERT INTO capability_runs
+        (id, case_id, role_id, candidate_id, capability_id, executor_id,
+         supporting_authority_ids_json, authority_digest, source_refs_json,
+         input_snapshot_hash, input_json, output_kind, implementation_status,
+         provider, model, prepared_at, status, created_by)
+       VALUES (?, 'case-1', 'role-1', 'candidate-1', 'brandedresume', 'brand-resume',
+         '[]', ?, ?, ?, '{}', 'pdf', 'partial', 'workstation', 'brand-resume-v1',
+         '2026-09-23T12:00:00.000Z', 'running', 'user-1')`,
+    ).bind("run-current-resume", "a".repeat(64), JSON.stringify([preparedRef]), "b".repeat(64)).run();
+
+    const artifact = await createCaseArtifact("user-1", {
+      id: "artifact-current-resume",
+      caseId: "case-1",
+      runId: "run-current-resume",
+      kind: "brandedresume",
+      filename: "Avery North Resume.pdf",
+      contentType: "application/pdf",
+      storageKey: "cases/case-1/artifacts/artifact-current-resume/resume.pdf",
+      sha256: "d".repeat(64),
+      sizeBytes: 1234,
+      expectedDocument: { kind: "resume", revision: 1 },
+    });
+
+    expect(artifact.id).toBe("artifact-current-resume");
+    expect(artifact.runId).toBe("run-current-resume");
+    expect(artifact.visualQaStatus).toBe("pending");
+    expect((await database.prepare(
+      "SELECT COUNT(*) AS count FROM case_artifacts WHERE run_id = ?",
+    ).bind("run-current-resume").first<{ count: number }>())?.count).toBe(1);
+  });
+
   it("rolls back a candidate source row when its activity write fails, then retries cleanly", async () => {
     const before = await database.prepare(
       "SELECT updated_at FROM candidate_cases WHERE id = 'case-1'",

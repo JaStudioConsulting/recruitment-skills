@@ -206,6 +206,7 @@ describe("canonical PDF capability executor adapters", () => {
       filename: "Synthetic Resume.pdf",
       kind: "brandedresume",
       executorId: "brand-resume",
+      expectedDocument: { kind: "resume", revision: 2 },
       source: {
         downloadUrl: "https://builder.example/files/resume.pdf",
         evidence: {

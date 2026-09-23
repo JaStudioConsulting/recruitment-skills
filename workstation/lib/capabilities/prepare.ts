@@ -1,6 +1,6 @@
 import { sha256 } from "../orchestration/stable-hash";
 import { isResumeForm, resumeFormHasContent } from "../resume-form";
-import { sourceIsUsable } from "../source-intake";
+import { sourceEvidenceRef, sourceIsUsable } from "../source-intake";
 import type { CandidateCase, CandidateRecord, ConnectorCapability, RoleRecord } from "../workstation-types";
 import { featureByPrimaryCapability, type FeatureDefinition, type FeatureRequirement } from "./catalog";
 import { capabilityById, type CapabilityRegistryItem, type ImplementationStatus } from "./registry";
@@ -80,6 +80,26 @@ const DEFAULT_PREPARATION_DEPENDENCIES: CapabilityPreparationDependencies = {
   featureByPrimaryCapability,
 };
 
+function activeResumeSourceRefs(context: CapabilityPreparationContext) {
+  return context.candidateCase.sources
+    .filter((source) => source.kind === "resume" && sourceIsUsable(source))
+    .map(sourceEvidenceRef)
+    .sort();
+}
+
+function reviewedResumeSourcesChanged(context: CapabilityPreparationContext) {
+  const resume = context.candidateCase.documents.resume;
+  if (!isResumeForm(resume?.content) || resume.content.reviewed !== true || !resumeFormHasContent(resume.content)) {
+    return false;
+  }
+  const activeRefs = activeResumeSourceRefs(context);
+  const reviewedRefs = [...(resume.sourceRefs ?? [])].sort();
+  return activeRefs.length > 0 && (
+    activeRefs.length !== reviewedRefs.length ||
+    activeRefs.some((sourceRef, index) => sourceRef !== reviewedRefs[index])
+  );
+}
+
 function requirementState(
   requirement: FeatureRequirement,
   context: CapabilityPreparationContext,
@@ -100,7 +120,14 @@ function requirementState(
   }
   if (requirement.kind === "reviewed_resume_document") {
     const resume = context.candidateCase.documents.resume?.content;
-    return isResumeForm(resume) && resume.reviewed === true && resumeFormHasContent(resume);
+    if (!isResumeForm(resume)) return false;
+    const currentResumeSourceRefs = activeResumeSourceRefs(context);
+    const reviewedSourceRefs = [...(context.candidateCase.documents.resume?.sourceRefs ?? [])].sort();
+    return resume.reviewed === true &&
+      resumeFormHasContent(resume) &&
+      currentResumeSourceRefs.length > 0 &&
+      reviewedSourceRefs.length === currentResumeSourceRefs.length &&
+      reviewedSourceRefs.every((sourceRef, index) => sourceRef === currentResumeSourceRefs[index]);
   }
   const sourcePresent = context.candidateCase.sources.some(
     (source) => sourceIsUsable(source) && requirement.source_kinds?.includes(source.kind),
@@ -127,6 +154,7 @@ function hardBlocker(
   missingRequirements: PreparedRequirement[],
   availableExecutorIds: readonly string[],
   sourceReviewReason: string,
+  resumeSourcesChanged: boolean,
 ) {
   if (capability.implementation.status === "blocked" || capability.implementation.status === "interface_only") {
     return capability.implementation.blocker;
@@ -138,6 +166,9 @@ function hardBlocker(
   }
   if (sourceReviewReason) {
     return `Human review required before this workflow can run: ${sourceReviewReason} Open Generated > Submission, choose Edit, verify the retained fields, and Save.`;
+  }
+  if (resumeSourcesChanged && missingRequirements.some((requirement) => requirement.kind === "reviewed_resume_document")) {
+    return "Resume sources changed after this form was reviewed. Open Generated > Resume, choose Edit, verify the current source content, and Save again.";
   }
   if (missingRequirements.some((requirement) => requirement.kind === "adapter")) {
     return capability.implementation.blocker || `Missing required adapter: ${missingRequirements.map((item) => item.label).join(", ")}.`;
@@ -167,14 +198,7 @@ export async function prepareCapabilityFromContext(
   const allowedKinds = new Set(requirements.flatMap((requirement) => requirement.source_kinds ?? []));
   const sourceRefs = context.candidateCase.sources
     .filter((source) => sourceIsUsable(source) && allowedKinds.has(source.kind))
-    .map((source) => [
-      source.id,
-      source.sha256,
-      source.kind,
-      source.lifecycleStatus,
-      source.reviewStatus,
-      source.classificationMethod ?? "unknown",
-    ].join(":"));
+    .map(sourceEvidenceRef);
   const hasUsableCallSource = context.candidateCase.sources.some(
     (source) => sourceIsUsable(source) &&
       (source.kind === "call_notes" || source.kind === "transcript"),
@@ -189,6 +213,7 @@ export async function prepareCapabilityFromContext(
     missingRequirements,
     context.availableExecutorIds,
     context.candidateCase.assistant.reviewRequired?.[0]?.reason ?? "",
+    reviewedResumeSourcesChanged(context),
   );
   const preparedAt = options.now ?? new Date().toISOString();
   const inputSnapshotHash = await sha256({

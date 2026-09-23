@@ -186,6 +186,7 @@ describe("canonical capability preparation", () => {
     input.candidateCase.documents.resume = {
       ...input.candidateCase.documents.resume,
       revision: 2,
+      sourceRefs: ["resume:sha-resume:resume:classified:unreviewed:content"],
       content: {
         ...emptyResumeForm(),
         reviewed: true,
@@ -209,6 +210,7 @@ describe("canonical capability preparation", () => {
     editedInput.candidateCase.documents.resume = {
       ...editedInput.candidateCase.documents.resume,
       revision: 2,
+      sourceRefs: ["resume:sha-resume:resume:classified:unreviewed:content"],
       content: {
         ...emptyResumeForm(),
         reviewed: true,
@@ -233,6 +235,35 @@ describe("canonical capability preparation", () => {
     expect(internalMpc.canExecute).toBe(true);
     expect(internalMpc.missing).toEqual([]);
     expect(internalMpc.inputSnapshotHash).not.toBe(brandedResume.inputSnapshotHash);
+
+    const replacedSource = context();
+    replacedSource.availableExecutorIds = [...replacedSource.availableExecutorIds, "brand-resume"];
+    replacedSource.candidateCase.documents.resume = input.candidateCase.documents.resume;
+    replacedSource.candidateCase.sources = replacedSource.candidateCase.sources.map((item) => item.id === "resume"
+      ? { ...item, sha256: "sha-replacement-resume" }
+      : item);
+    const staleReview = await prepareCapabilityFromContext("brandedresume", replacedSource, {
+      extraInput: "",
+      provider: "manual",
+      model: "none",
+    });
+    expect(staleReview.canExecute).toBe(false);
+    expect(staleReview.missing).toEqual(["Human-reviewed editable resume"]);
+    expect(staleReview.blocker).toContain("Resume sources changed after this form was reviewed");
+
+    const legacyReview = context();
+    legacyReview.availableExecutorIds = [...legacyReview.availableExecutorIds, "brand-resume"];
+    legacyReview.candidateCase.documents.resume = {
+      ...input.candidateCase.documents.resume,
+      sourceRefs: undefined,
+    };
+    const missingLegacyProvenance = await prepareCapabilityFromContext("brandedresume", legacyReview, {
+      extraInput: "",
+      provider: "manual",
+      model: "none",
+    });
+    expect(missingLegacyProvenance.canExecute).toBe(false);
+    expect(missingLegacyProvenance.blocker).toContain("Resume sources changed after this form was reviewed");
   });
 
   it("uses versioned typed Workstation notes as call evidence when no call file exists", async () => {
