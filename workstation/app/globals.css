@@ -504,7 +504,7 @@ button, select, label { -webkit-tap-highlight-color: transparent; }
 .unknowns { padding: 11px 13px; border: 1px solid #e6cf9c; border-radius: 7px; background: var(--gold-soft); color: #5c430c; font-size: 12px; }
 .unknowns ul { margin: 5px 0 0; padding-left: 18px; }
 .dialog-fields { display: grid; gap: 14px; padding: 8px 0; }
-.paste-source-textarea { min-height: 220px; resize: vertical; }
+.paste-source-textarea { min-height: 160px; max-height: 38vh; resize: vertical; field-sizing: normal; overflow-y: auto; }
 .paste-detection { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: #f8faf9; }
 .paste-detection > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .paste-detection strong { color: #31433b; font-size: 12px; }
