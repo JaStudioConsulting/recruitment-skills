@@ -211,7 +211,7 @@ const RESUME_LAYOUTS = [
       summary: "Reliability leader with multi-site manufacturing experience.",
       skills: ["Asset reliability", "Shutdown planning", "Team development"],
       jobs: [
-        { title: "Maintenance Director", company: "Northwind Foods", location: "Toronto / Mississauga, ON", dates: "2026 - Present", bullets: ["Leads site maintenance strategy."] },
+        { title: "Maintenance Director", company: "Northwind Foods", location: "Toronto/Mississauga, ON", dates: "2026 - Present", bullets: ["Leads site maintenance strategy."] },
         { title: "Reliability Manager", company: "Orchard Test Products", location: "Hamilton, ON", dates: "Oct-2016 - 2026", bullets: ["Managed reliability programs."] },
         { title: "Maintenance Planner", company: "Prairie Components", location: "London, ON", dates: "Jan-2012 - Mar-2016", bullets: ["Planned preventive work."] },
       ],
@@ -303,11 +303,29 @@ Sample Systems
   });
 
   it("strips contact details from a synthetic resume before any field is filled", () => {
-    const text = `Gale Contact\nMaintenance Lead\nEmail: gale@example.invalid\nContact No.: 416-555-0100\nhttps://linkedin.com/in/gale-contact\nSUMMARY\nMaintenance leader. Call 647-555-0101.\nSKILLS\nPlanning`;
+    const text = `Gale Contact\nMaintenance Lead\nEmail: gale@example.invalid\nContact No.: 416-555-0100\nInternational: +44 20 7946 0958\nhttps://linkedin.com/in/gale-contact\nSUMMARY\nMaintenance leader. Call 647-555-0101.\nSKILLS\nPlanning`;
     const parsed = parseResumeText(text, "contact-layout.txt");
-    expect(JSON.stringify(parsed.form)).not.toMatch(/example\.invalid|555-010|linkedin\.com/i);
-    expect(stripContactDetails(text)).not.toMatch(/example\.invalid|555-010|linkedin\.com/i);
+    expect(JSON.stringify(parsed.form)).not.toMatch(/example\.invalid|555-010|7946 0958|linkedin\.com/i);
+    expect(stripContactDetails(text)).not.toMatch(/example\.invalid|555-010|7946 0958|linkedin\.com/i);
     expect(parsed.form.name).toBe("Gale Contact");
+  });
+
+  it("preserves a source-separated certifications section", () => {
+    const parsed = parseResumeText(`Avery Separate
+Maintenance Manager
+SUMMARY
+Maintenance leader.
+EDUCATION
+Diploma, Mechanical Technology - Example College
+CERTIFICATIONS
+CMRP - Synthetic Institute`, "separate-certifications.txt");
+    expect(parsed.form.educationHeading).toBe("EDUCATION");
+    expect(parsed.form.education).toBe("Diploma, Mechanical Technology - Example College");
+    expect(parsed.form.sections).toEqual([{ heading: "CERTIFICATIONS", items: "CMRP - Synthetic Institute" }]);
+    expect(parsed.sources).toMatchObject({
+      "resume.sections.0.heading": "separate-certifications.txt",
+      "resume.sections.0.items": "separate-certifications.txt",
+    });
   });
 
   it("pre-fills resume, JD, and only explicitly labelled call facts with provenance", () => {

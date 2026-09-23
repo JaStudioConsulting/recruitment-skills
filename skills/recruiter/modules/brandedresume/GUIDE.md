@@ -80,7 +80,7 @@ Refine the raw input into a polished, client-ready resume rather than copying it
 
 ## House style rules (enforced by the builder)
 
-- **No em dashes, en dashes, double hyphens, semicolons, or tildes anywhere.** Reword with commas, "and", or restructure. Regular hyphens in compound words (cost-reduction) and the date format (`Dec-2025 - Present`) are fine. The builder aborts if it finds forbidden punctuation, so keep the source data clean.
+- **No em dashes, en dashes, double hyphens, semicolons, tildes, or whitespace around slashes anywhere.** Reword with commas, "and", or restructure. Regular hyphens in compound words (cost-reduction), slash-separated text without spaces (`CNC/manual`), and the date format (`Dec-2025 - Present`) are fine. The builder aborts if it finds forbidden punctuation, so keep the source data clean.
 - **No hyperlinks** in the resume.
 - **Logo centered** at the top; **black text only**, Arial throughout; clean and print-ready.
 - **Emphasis:** wrap text in `**...**` to bold it inside experience bullets, Education & Certifications entries, and any additional `sections[]` item. The builder renders it as real bold in both engines. Use it for the bullet proof point and the credential, nowhere else.

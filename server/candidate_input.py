@@ -25,8 +25,16 @@ import re
 # ------------------------------------------------------------------ contact
 _EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 _URL = re.compile(r"(?:https?://|www\.)\S+|\b(?:[a-z0-9-]+\.)*linkedin\.com/\S*", re.I)
-# North American phone shapes: (555) 555-0100, 555-555-0100, +1 555 555 0100.
-_PHONE = re.compile(r"(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}(?!\d)")
+# North American phone shapes plus explicit international numbers. The latter
+# requires a leading + so dates, money, and other long numeric facts are not
+# mistaken for contact data.
+_PHONE = re.compile(
+    r"(?<!\d)(?:"
+    r"(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}"
+    r"|\+\d{1,3}(?:[\s().-]*\d){7,14}"
+    r")(?!\d)"
+)
+_SPACED_SLASH = re.compile(r"\s/|/\s")
 
 CONTACT_KEYS = {"email", "emails", "phone", "phones", "mobile", "cell", "linkedin",
                 "linkedin_url", "contact", "contact_info", "address", "website", "url"}
@@ -284,6 +292,11 @@ def normalize_candidate(raw):
                         f"{path} contains a forbidden {label} ({token}). "
                         "Rewrite that text before building."
                     )
+            if _SPACED_SLASH.search(value):
+                problems.append(
+                    f"{path} contains forbidden whitespace around a slash (/). "
+                    "Remove the whitespace before building."
+                )
         elif isinstance(value, list):
             for i, v in enumerate(value):
                 scan(v, f"{path}[{i}]")
@@ -310,6 +323,6 @@ SCHEMA_HINT = (
     "education_heading (optional string, default 'Education & Certifications'), "
     "sections (optional array of {heading, items[]} for any other section the original resume has). "
     "Never include email, phone, or links: they are stripped. "
-    "No em dashes, en dashes, double hyphens, semicolons, tildes, or [placeholders]: "
-    "the builder refuses them."
+    "No em dashes, en dashes, double hyphens, semicolons, tildes, whitespace around slashes, "
+    "or [placeholders]: the builder refuses them."
 )

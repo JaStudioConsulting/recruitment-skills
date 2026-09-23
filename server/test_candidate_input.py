@@ -108,6 +108,16 @@ class RefuseInsteadOfDropping(unittest.TestCase):
         self.assertIn("experience[0].bullets[0] contains a forbidden semicolon", joined)
         self.assertIn("experience[0].bullets[0] contains a forbidden tilde", joined)
 
+    def test_whitespace_around_slashes_is_refused_with_field_path(self):
+        _, rep = norm({
+            "name": "Sample Person",
+            "summary": "CNC / manual machining.",
+            "experience": [{**JOB, "location": "Hamilton / Burlington, ON"}],
+        })
+        joined = " ".join(rep["problems"])
+        self.assertIn("summary contains forbidden whitespace around a slash", joined)
+        self.assertIn("experience[0].location contains forbidden whitespace around a slash", joined)
+
 
 class ContactStripping(unittest.TestCase):
     def test_contact_keys_are_removed(self):
@@ -128,6 +138,14 @@ class ContactStripping(unittest.TestCase):
 
     def test_labelled_phone_is_detected(self):
         self.assertEqual(find_contact("Toronto, ON contact no.555-555-0100"), ["phone"])
+
+    def test_international_phone_is_detected(self):
+        self.assertEqual(find_contact("London contact +44 20 7946 0958"), ["phone"])
+
+    def test_international_phone_inside_nested_text_is_refused(self):
+        raw = {"name": "Sample Person", "experience": [dict(JOB, bullets=["Contact +44 20 7946 0958."])]}
+        _, rep = norm(raw)
+        self.assertTrue(any("experience[0].bullets[0] contains contact details (phone)" in problem for problem in rep["problems"]))
 
     def test_dates_money_and_gpa_are_not_mistaken_for_contact(self):
         text = "Managed a $125M program, 2012 - 2016, GPA 3.87/4.00, Jan-2020 - Present, 38 direct reports."

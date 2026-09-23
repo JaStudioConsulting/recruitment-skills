@@ -578,12 +578,13 @@ test("synthetic branded resume artifact QA renders every page and records automa
     const forbiddenOutput = path.join(dir, "forbidden-punctuation.pdf");
     await writeFile(forbiddenInput, JSON.stringify({
       ...data.resume,
-      summary: "Synthetic supervisor; reduced downtime ~10%.",
+      summary: "Synthetic supervisor; reduced downtime ~10% with CNC / manual equipment.",
     }), "utf8");
     const forbidden = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", forbiddenInput, "--out", forbiddenOutput, "--engine", "reportlab"], { encoding: "utf8" });
     assert.notEqual(forbidden.status, 0, "semicolons and tildes must fail closed");
     assert.match(forbidden.stdout + forbidden.stderr, /semicolon \(;\)/);
     assert.match(forbidden.stdout + forbidden.stderr, /tilde \(~\)/);
+    assert.match(forbidden.stdout + forbidden.stderr, /whitespace around slash/);
     assert.equal(exists(forbiddenOutput), false);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });

@@ -46,10 +46,11 @@ entries, and section items to render it bold (for example "downtime **22%**" or
 never the whole line. Both engines render it. Text without ** is unchanged.
 
 House rules enforced here (so a client never sees a slip):
-  - NO em dashes / en dashes / double hyphens anywhere in the text. The script
-    aborts and lists the offending fields so the text gets fixed, not silently
-    mangled. Regular hyphens in compound words (cost-reduction) and the date
-    format (Dec-2025 - Present) are fine.
+  - NO em dashes, en dashes, double hyphens, semicolons, tildes, or whitespace
+    around slashes anywhere in the text. The script aborts and lists the
+    offending fields so the text gets fixed, not silently mangled. Regular
+    hyphens in compound words (cost-reduction), slash-separated text without
+    spaces (CNC/manual), and the date format (Dec-2025 - Present) are fine.
   - Logo centered at the top; exactly one title line under the name.
   - No hyperlinks are ever added.
 """
@@ -101,6 +102,8 @@ def check_banned_punctuation(data):
         for ch, nm in BANNED.items():
             if ch in text:
                 offenders.append(f"  {label}: contains {nm} -> {text[:70]!r}")
+        if re.search(r"\s/|/\s", text):
+            offenders.append(f"  {label}: contains whitespace around slash (/) -> {text[:70]!r}")
     scan("name", data.get("name", ""))
     scan("headline", data.get("headline", ""))
     scan("summary", data.get("summary", ""))
