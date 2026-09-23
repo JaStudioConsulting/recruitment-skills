@@ -1,6 +1,12 @@
 import { and, desc, eq, exists, ne, notExists, sql } from "drizzle-orm";
 
-import { capabilityRuns, caseArtifacts, caseDocuments, caseSources } from "../../db/schema";
+import {
+  capabilityRuns,
+  caseArtifacts,
+  caseDocuments,
+  caseDocumentVersions,
+  caseSources,
+} from "../../db/schema";
 import type { PreparedCapability } from "../capabilities/prepare";
 
 export const CAPABILITY_RUN_STATUSES = [
@@ -599,33 +605,42 @@ export async function createCaseArtifact(
       )
     : undefined;
   const resumeSourcesStillMatch = input.expectedDocument?.kind === "resume"
-    ? sql`${capabilityRuns.sourceRefsJson} = (
-        SELECT COALESCE(json_group_array(source_ref), '[]')
-        FROM (
-          SELECT
-            ${caseSources.id} || ':' ||
-            ${caseSources.sha256} || ':' ||
-            ${caseSources.kind} || ':' ||
-            ${caseSources.lifecycleStatus} || ':' ||
-            ${caseSources.reviewStatus} || ':' ||
-            COALESCE(${caseSources.classificationMethod}, 'unknown') AS source_ref
-          FROM ${caseSources}
-          WHERE ${and(
-            eq(caseSources.caseId, input.caseId),
-            eq(caseSources.contextStatus, "active"),
-            eq(caseSources.kind, "resume"),
-            sql`trim(COALESCE(${caseSources.parsedText}, '')) <> ''`,
-            sql`(
-              ${caseSources.lifecycleStatus} = 'reviewed' OR
-              (
-                ${caseSources.lifecycleStatus} = 'classified' AND
-                ${caseSources.classificationMethod} IN ('explicit', 'filename', 'content')
+    ? exists(
+        db.select({ revision: caseDocumentVersions.revision })
+          .from(caseDocumentVersions)
+          .where(and(
+            eq(caseDocumentVersions.caseId, input.caseId),
+            eq(caseDocumentVersions.kind, input.expectedDocument.kind),
+            eq(caseDocumentVersions.revision, input.expectedDocument.revision),
+            sql`${caseDocumentVersions.sourceRefsJson} = (
+              SELECT COALESCE(json_group_array(source_ref), '[]')
+              FROM (
+                SELECT
+                  ${caseSources.id} || ':' ||
+                  ${caseSources.sha256} || ':' ||
+                  ${caseSources.kind} || ':' ||
+                  ${caseSources.lifecycleStatus} || ':' ||
+                  ${caseSources.reviewStatus} || ':' ||
+                  COALESCE(${caseSources.classificationMethod}, 'unknown') AS source_ref
+                FROM ${caseSources}
+                WHERE ${and(
+                  eq(caseSources.caseId, input.caseId),
+                  eq(caseSources.contextStatus, "active"),
+                  eq(caseSources.kind, "resume"),
+                  sql`trim(COALESCE(${caseSources.parsedText}, '')) <> ''`,
+                  sql`(
+                    ${caseSources.lifecycleStatus} = 'reviewed' OR
+                    (
+                      ${caseSources.lifecycleStatus} = 'classified' AND
+                      ${caseSources.classificationMethod} IN ('explicit', 'filename', 'content')
+                    )
+                  )`,
+                )}
+                ORDER BY source_ref
               )
             )`,
-          )}
-          ORDER BY source_ref
-        )
-      )`
+          )),
+      )
     : undefined;
   const [created] = await db
     .insert(caseArtifacts)

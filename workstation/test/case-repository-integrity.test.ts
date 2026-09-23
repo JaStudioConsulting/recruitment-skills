@@ -237,7 +237,29 @@ describe("case repository atomic persistence", () => {
       .toEqual([2, 1]);
   });
 
-  it("atomically refuses a branded PDF artifact when its resume source snapshot changed", async () => {
+  it.each([
+    ["hash changes", async () => {
+      await database.prepare("UPDATE case_sources SET sha256 = ? WHERE id = 'source-1'")
+        .bind("c".repeat(64)).run();
+    }],
+    ["a resume source is added", async () => {
+      await insertSource("user-1", candidateSource({
+        id: "source-added",
+        filename: "Added Resume.txt",
+        sha256: "e".repeat(64),
+        storageKey: "cases/case-1/sources/source-added",
+        kind: "resume",
+        parsedText: "Added resume evidence",
+        classificationMethod: "explicit",
+      }));
+    }],
+    ["the resume source is removed", async () => {
+      await database.prepare("UPDATE case_sources SET context_status = 'superseded' WHERE id = 'source-1'").run();
+    }],
+    ["the resume source is reclassified", async () => {
+      await database.prepare("UPDATE case_sources SET kind = 'call_notes' WHERE id = 'source-1'").run();
+    }],
+  ] as const)("atomically refuses a branded PDF artifact when %s", async (_label, mutateSource) => {
     await insertSource("user-1", candidateSource({
       kind: "resume",
       filename: "Avery North Resume.txt",
@@ -245,6 +267,9 @@ describe("case repository atomic persistence", () => {
       classificationMethod: "explicit",
     }));
     const preparedRef = `source-1:${"a".repeat(64)}:resume:classified:unreviewed:explicit`;
+    await database.prepare(
+      "UPDATE case_document_versions SET source_refs_json = ? WHERE case_id = 'case-1' AND kind = 'resume' AND revision = 1",
+    ).bind(JSON.stringify([preparedRef])).run();
     await database.prepare(
       `INSERT INTO capability_runs
         (id, case_id, role_id, candidate_id, capability_id, executor_id,
@@ -254,10 +279,12 @@ describe("case repository atomic persistence", () => {
        VALUES (?, 'case-1', 'role-1', 'candidate-1', 'brandedresume', 'brand-resume',
          '[]', ?, ?, ?, '{}', 'pdf', 'partial', 'workstation', 'brand-resume-v1',
          '2026-09-23T12:00:00.000Z', 'running', 'user-1')`,
-    ).bind("run-stale-resume", "a".repeat(64), JSON.stringify([preparedRef]), "b".repeat(64)).run();
-    await database.prepare(
-      "UPDATE case_sources SET sha256 = ? WHERE id = 'source-1'",
-    ).bind("c".repeat(64)).run();
+    ).bind("run-stale-resume", "a".repeat(64), JSON.stringify([
+      `call-source:${"b".repeat(64)}:transcript:reviewed:reviewed:manual`,
+      `job-source:${"c".repeat(64)}:job_description:reviewed:reviewed:manual`,
+      preparedRef,
+    ]), "b".repeat(64)).run();
+    await mutateSource();
 
     await expect(createCaseArtifact("user-1", {
       id: "artifact-stale-resume",
@@ -273,14 +300,34 @@ describe("case repository atomic persistence", () => {
     })).rejects.toThrow("resume or its active sources changed");
   });
 
-  it("atomically persists a branded PDF artifact when its resume document and source snapshot match", async () => {
+  it("atomically persists a branded PDF artifact with full run lineage when exact resume-version lineage matches regardless of insertion order", async () => {
+    await insertSource("user-1", candidateSource({
+      id: "source-2",
+      kind: "resume",
+      filename: "Avery North Resume Supplement.txt",
+      parsedText: "Avery North\nAdditional Professional Experience",
+      classificationMethod: "explicit",
+      sha256: "e".repeat(64),
+      storageKey: "cases/case-1/sources/source-2",
+    }));
     await insertSource("user-1", candidateSource({
       kind: "resume",
       filename: "Avery North Resume.txt",
       parsedText: "Avery North\nMaintenance Supervisor\nProfessional Experience\nAtlas Components",
       classificationMethod: "explicit",
     }));
-    const preparedRef = `source-1:${"a".repeat(64)}:resume:classified:unreviewed:explicit`;
+    const preparedRefs = [
+      `source-1:${"a".repeat(64)}:resume:classified:unreviewed:explicit`,
+      `source-2:${"e".repeat(64)}:resume:classified:unreviewed:explicit`,
+    ];
+    await database.prepare(
+      "UPDATE case_document_versions SET source_refs_json = ? WHERE case_id = 'case-1' AND kind = 'resume' AND revision = 1",
+    ).bind(JSON.stringify(preparedRefs)).run();
+    const completeGroundedRefs = [
+      `call-source:${"b".repeat(64)}:transcript:reviewed:reviewed:manual`,
+      `job-source:${"c".repeat(64)}:job_description:reviewed:reviewed:manual`,
+      ...preparedRefs,
+    ];
     await database.prepare(
       `INSERT INTO capability_runs
         (id, case_id, role_id, candidate_id, capability_id, executor_id,
@@ -290,7 +337,7 @@ describe("case repository atomic persistence", () => {
        VALUES (?, 'case-1', 'role-1', 'candidate-1', 'brandedresume', 'brand-resume',
          '[]', ?, ?, ?, '{}', 'pdf', 'partial', 'workstation', 'brand-resume-v1',
          '2026-09-23T12:00:00.000Z', 'running', 'user-1')`,
-    ).bind("run-current-resume", "a".repeat(64), JSON.stringify([preparedRef]), "b".repeat(64)).run();
+    ).bind("run-current-resume", "a".repeat(64), JSON.stringify(completeGroundedRefs), "b".repeat(64)).run();
 
     const artifact = await createCaseArtifact("user-1", {
       id: "artifact-current-resume",
