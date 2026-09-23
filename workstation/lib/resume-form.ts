@@ -22,6 +22,8 @@ export type ResumeFormSection = { heading: string; items: string };
 
 export type ResumeFormDocument = {
   format: typeof RESUME_FORM_FORMAT;
+  /** Set only by an explicit human save in the editable resume canvas. */
+  reviewed: boolean;
   name: string;
   headline: string;
   summary: string;
@@ -38,6 +40,7 @@ export const EMPTY_SECTION: ResumeFormSection = { heading: "", items: "" };
 export function emptyResumeForm(): ResumeFormDocument {
   return {
     format: RESUME_FORM_FORMAT,
+    reviewed: false,
     name: "",
     headline: "",
     summary: "",
@@ -63,6 +66,7 @@ export function toResumeForm(value: unknown): ResumeFormDocument {
   const sections = Array.isArray(value.sections) ? value.sections : [];
   return {
     format: RESUME_FORM_FORMAT,
+    reviewed: value.reviewed === true,
     name: text(value.name),
     headline: text(value.headline),
     summary: text(value.summary),

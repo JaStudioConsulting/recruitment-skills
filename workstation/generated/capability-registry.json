@@ -113,7 +113,7 @@
     "skills/tracker-manager/scripts/tracker.mjs",
     "tests/fixtures/synthetic-candidate-dashboard.json"
   ],
-  "repositoryAuthorityDigest": "f4ba347334840eb3ab619cf20419ddc6e311b3b03d23f1445d80cdbbec371d5d",
+  "repositoryAuthorityDigest": "3897d1673c323d3bf3c28d77d251cabde04873e4a5ccd9508a42dd8daf806ae5",
   "policies": [
     "skills/GLOBAL-RULES.md",
     "skills/TOOL-CONVENTIONS.md"
@@ -237,7 +237,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "f785876e4100d9083a6ecb443c145c07491cd4a60359f11c76db37fcf8accc97",
+      "authorityDigest": "9b516bf46b58efabd1e7ff0184c853bcd6b7583d2353f911e046f6c3a7c255e9",
       "repositoryGroup": "daily_core",
       "repositoryStatus": "active",
       "workflowGroup": "candidate_work",
@@ -272,7 +272,7 @@
           "id": "brand-resume",
           "label": "Brand resume",
           "runtime": "deterministic_server",
-          "mounted": false,
+          "mounted": true,
           "resultKind": "pdf",
           "operationId": "build-branded-resume",
           "supportingCapabilityIds": [
@@ -281,14 +281,14 @@
           "supportingAuthorities": [
             {
               "id": "legislator",
-              "authorityDigest": "140577b54acf31b36cc05e7023c9ba80bc286d6ca5d99c550b8991ed890c50ef"
+              "authorityDigest": "9b516bf46b58efabd1e7ff0184c853bcd6b7583d2353f911e046f6c3a7c255e9"
             }
           ]
         }
       ],
       "implementation": {
-        "status": "blocked",
-        "blocker": "Execution is disabled because the active authorities conflict and no exact legislator override exists. The branded-resume guide and builder require Letter, Arial, a centered logo, and black styling, while the immutable legislator rulebook requires A4, Noto Sans, a left-positioned logo, a 24pt charcoal name, and 2px heading rules. Global Rules also ban the education em dash that the legislator rulebook requires. In addition, the hosted builder does not attest its repository commit or builder digest, the Workstation does not collect named submission versus MPC mode, and authority preflight for unresolved employer, date, location, degree, metric, and role-specific fit gaps is not connected. The artifact store and visual-QA lifecycle are implemented and tested, but they cannot make a noncompliant build executable.",
+        "status": "partial",
+        "blocker": "The canonical A layout is the sole active branded resume design. Its mounted executor consumes only a human-reviewed saved resume form, supports named_submission or internal_mpc, requires the hosted ReportLab runtime to attest the canonical repository builder and deployment digest, persists the exact PDF, and requires page-by-page human visual QA. External-client blind MPC remains unavailable, and authority preflight for unresolved employer, date, location, degree, metric, and role-specific fit gaps is not fully connected.",
         "evidence": [
           "skills/recruiter/modules/brandedresume/scripts/build_resume.py",
           "test/package-contracts.test.mjs",
@@ -798,7 +798,7 @@
     {
       "id": "legislator",
       "label": "legislator",
-      "summary": "Enforce immutable TTTG Document Structure & Rules v3.0 PRO for the TTTG resume builder. Use when creating, editing, reviewing, refactoring, or validating resume layout/UI logic, print/PDF output, MPC mode behavior, section formatting, and branded visual rules. Use whenever strict compliance is required and any rule changes must only occur after explicit manual user confirmation in chat.",
+      "summary": "Supporting compliance policy for the single canonical TTTG branded resume design. The retired A4 and Noto Sans alternative is not a production authority.",
       "authorityPath": "skills/recruiter/modules/legislator/GUIDE.md",
       "relatedPaths": [
         "docs/knowledge-architecture.md",
@@ -809,6 +809,10 @@
         "skills/TOOL-CONVENTIONS.md",
         "skills/capabilities.json",
         "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/brandedresume/GUIDE.md",
+        "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",
+        "skills/recruiter/modules/brandedresume/references/example-candidate.json",
+        "skills/recruiter/modules/brandedresume/scripts/build_resume.py",
         "skills/recruiter/modules/legislator/references/tttg-document-structure-rules-v3.md",
         "skills/recruiter/references/active-job-template-kit.md",
         "skills/recruiter/references/call-recording-recovery.md",
@@ -825,7 +829,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "140577b54acf31b36cc05e7023c9ba80bc286d6ca5d99c550b8991ed890c50ef",
+      "authorityDigest": "9b516bf46b58efabd1e7ff0184c853bcd6b7583d2353f911e046f6c3a7c255e9",
       "repositoryGroup": "supporting",
       "repositoryStatus": "active",
       "workflowGroup": "artifacts",
@@ -851,7 +855,7 @@
       "executorFeatures": [],
       "implementation": {
         "status": "interface_only",
-        "blocker": "The policy is indexed, but the workstation has no mounted compliance-check executor or persisted checklist. The current branded-resume guide and builder also conflict with the immutable rulebook, so Legislator cannot truthfully be claimed as consumed until that conflict is resolved by the exact override protocol or implementation alignment.",
+        "blocker": "The policy now enforces the canonical A branded resume design and retires the former alternative. The workstation still has no mounted compliance-check executor or persisted top-to-bottom checklist, so this supporting policy remains interface-only as a standalone workflow.",
         "evidence": [
           "skills/recruiter/modules/legislator/GUIDE.md"
         ]
@@ -1900,7 +1904,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "ff6737a7c203b3277c3434371700da07fef5b185905d72b3800ea5df4382cf94",
+      "authorityDigest": "eabfecd876c5f18761f8eda4d71a769b964df4c050af4845518b2060119506e0",
       "repositoryGroup": "compatibility",
       "repositoryStatus": "legacy",
       "workflowGroup": "candidate_work",
@@ -1964,7 +1968,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "a38b366e71e9e77b5779fc8bb940b88aff88ddbc36ab3c548107b8e59c1ca41f",
+      "authorityDigest": "7ce72174424c8e047334fe879b41a81fc601401732f309260b11c9e0bb12427d",
       "repositoryGroup": "evaluation",
       "repositoryStatus": "internal",
       "workflowGroup": "artifacts",
@@ -2221,7 +2225,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "bfba61f224a473fbbc99f11237e1e0e592ce09f430d42a5b436e864d24b5040c",
+      "authorityDigest": "2195ed70de9509829de3a0207345fb663a7ed2500c4a6a8df7788b836b780660",
       "repositoryGroup": "daily_core",
       "repositoryStatus": "active",
       "workflowGroup": "candidate_work",
@@ -2269,7 +2273,7 @@
           "supportingAuthorities": [
             {
               "id": "brandedresume",
-              "authorityDigest": "f785876e4100d9083a6ecb443c145c07491cd4a60359f11c76db37fcf8accc97"
+              "authorityDigest": "9b516bf46b58efabd1e7ff0184c853bcd6b7583d2353f911e046f6c3a7c255e9"
             }
           ]
         }
@@ -2305,29 +2309,51 @@
       "contract_paths": [
         "../docs/templates/branded-resume-contract.md"
       ],
+      "builder_paths": [
+        "server/candidate_input.py",
+        "server/server.py",
+        "requirements.txt",
+        "render.yaml",
+        "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",
+        "skills/recruiter/modules/brandedresume/scripts/build_resume.py"
+      ],
       "result_kind": "pdf",
       "runtime": "deterministic_server",
-      "mounted": false,
+      "mounted": true,
       "requirements": [
         {
           "id": "resume",
-          "label": "Reviewed resume",
-          "kind": "source",
+          "label": "Human-reviewed editable resume",
+          "kind": "reviewed_resume_document",
           "source_kinds": [
             "resume"
           ],
           "required": true
+        },
+        {
+          "id": "resume-mode",
+          "label": "Presentation mode",
+          "kind": "user_input",
+          "input_keys": [
+            "resume_mode"
+          ],
+          "allowed_values": [
+            "named_submission",
+            "internal_mpc"
+          ],
+          "required": false
         }
       ],
       "outside_world": true,
-      "outside_world_note": "The storage and QA adapter exists, but execution is disabled until the conflicting branded-resume and immutable legislator layout authorities are reconciled through the legislator override protocol.",
+      "outside_world_note": "The mounted executor consumes named_submission or internal_mpc, requires the hosted builder to attest the canonical repository builder digest, persists the exact PDF, and holds completion for page-by-page visual QA. External-client blind MPC is not available.",
       "supporting_capability_ids": [
         "legislator"
       ],
+      "builder_digest": "1d0f76cea8e204db6652046f6733e2b560980bcc6d2da558fc2bb75c8b67b3b9",
       "supporting_authorities": [
         {
           "id": "legislator",
-          "authority_digest": "140577b54acf31b36cc05e7023c9ba80bc286d6ca5d99c550b8991ed890c50ef"
+          "authority_digest": "9b516bf46b58efabd1e7ff0184c853bcd6b7583d2353f911e046f6c3a7c255e9"
         }
       ]
     },
@@ -2391,7 +2417,7 @@
       "supporting_authorities": [
         {
           "id": "brandedresume",
-          "authority_digest": "f785876e4100d9083a6ecb443c145c07491cd4a60359f11c76db37fcf8accc97"
+          "authority_digest": "9b516bf46b58efabd1e7ff0184c853bcd6b7583d2353f911e046f6c3a7c255e9"
         }
       ]
     },

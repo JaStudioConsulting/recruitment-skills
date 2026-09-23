@@ -7,6 +7,7 @@ import {
   type CapabilityServiceDependencies,
 } from "../lib/server/capability-service";
 import type { CapabilityRunRecord } from "../lib/server/capability-run-repository";
+import { emptyResumeForm } from "../lib/resume-form";
 import type {
   CandidateCase,
   CandidateRecord,
@@ -32,6 +33,7 @@ function source(id: string, kind: SourceKind): CaseSource {
 }
 
 function caseContext() {
+  const updatedAt = "2026-09-20T00:00:00.000Z";
   const candidateCase = {
     id: "case-1",
     roleId: "role-1",
@@ -45,13 +47,30 @@ function caseContext() {
     facts: [],
     assistant: { missing: [], askNext: [], fitConcern: "", nextAction: "" },
     externalRefs: {},
-    documents: {} as CandidateCase["documents"],
+    documents: {
+      resume: {
+        kind: "resume",
+        revision: 2,
+        content: {
+          ...emptyResumeForm(),
+          reviewed: true,
+          name: "Synthetic Candidate",
+          headline: "Maintenance Supervisor",
+          summary: "Reviewed source-grounded summary.",
+        },
+        updatedAt,
+      },
+      write_up: { kind: "write_up", revision: 1, content: "", updatedAt },
+      submission: { kind: "submission", revision: 1, content: "", updatedAt },
+      email: { kind: "email", revision: 1, content: "", updatedAt },
+      loxo_update: { kind: "loxo_update", revision: 1, content: "", updatedAt },
+    },
     sources: [
       source("resume", "resume"),
       source("call", "transcript"),
       source("jd", "job_description"),
     ],
-    updatedAt: "2026-09-20T00:00:00.000Z",
+    updatedAt,
   } satisfies CandidateCase;
   const role = {
     id: "role-1",
@@ -113,7 +132,7 @@ describe("capability preparation service", () => {
     });
   });
 
-  it("refuses to prepare branded-resume while its active authorities conflict", async () => {
+  it("prepares the mounted canonical A branded-resume executor", async () => {
     const created = { id: "run-pdf-1", status: "prepared" } as CapabilityRunRecord;
     const createCapabilityRun = vi.fn<CapabilityServiceDependencies["createCapabilityRun"]>(
       async () => created,
@@ -129,15 +148,27 @@ describe("capability preparation service", () => {
       },
     );
 
-    expect(response.run).toBeNull();
+    expect(response.run).toBe(created);
     expect(response.preparation).toMatchObject({
       capabilityId: "brandedresume",
       executorId: "brand-resume",
       outputKind: "pdf",
-      canExecute: false,
+      canExecute: true,
     });
-    expect(response.preparation.blocker).toMatch(/active authorities conflict/);
-    expect(response.preparation.blocker).toMatch(/legislator override/);
-    expect(createCapabilityRun).not.toHaveBeenCalled();
+    expect(response.preparation.blocker).toBe("");
+    expect(createCapabilityRun).toHaveBeenCalledOnce();
+    expect(createCapabilityRun.mock.calls[0][1]).toMatchObject({
+      caseId: "case-1",
+      prepared: {
+        capabilityId: "brandedresume",
+        executorId: "brand-resume",
+        implementationStatus: "partial",
+      },
+      input: {
+        extraInput: "",
+        provider: "workstation",
+        model: "brand-resume-v1",
+      },
+    });
   });
 });

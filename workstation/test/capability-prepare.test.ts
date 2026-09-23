@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { featureByPrimaryCapability } from "../lib/capabilities/catalog";
 import { prepareCapabilityFromContext } from "../lib/capabilities/prepare";
 import { capabilityById } from "../lib/capabilities/registry";
+import { emptyResumeForm } from "../lib/resume-form";
 import type { CandidateCase, CandidateRecord, ConnectorCapability, RoleRecord, SourceKind } from "../lib/workstation-types";
 
 function source(id: string, kind: SourceKind, lifecycleStatus: "classified" | "parsed" = "classified") {
@@ -171,9 +172,27 @@ describe("canonical capability preparation", () => {
     expect(tracker.blocker).toContain("no live Gmail or Sheets adapter");
   });
 
-  it("binds reviewed resume edits into a blocked branded-resume snapshot", async () => {
+  it("binds reviewed resume edits and optional mode into an executable branded-resume snapshot", async () => {
     const input = context();
     input.availableExecutorIds = [...input.availableExecutorIds, "brand-resume"];
+    const unreviewed = await prepareCapabilityFromContext("brandedresume", input, {
+      extraInput: "",
+      provider: "manual",
+      model: "none",
+    });
+    expect(unreviewed.canExecute).toBe(false);
+    expect(unreviewed.missing).toEqual(["Human-reviewed editable resume"]);
+
+    input.candidateCase.documents.resume = {
+      ...input.candidateCase.documents.resume,
+      revision: 2,
+      content: {
+        ...emptyResumeForm(),
+        reviewed: true,
+        name: "Synthetic Candidate",
+        summary: "Human-reviewed source-grounded summary.",
+      },
+    };
     const brandedResume = await prepareCapabilityFromContext("brandedresume", input, {
       extraInput: "",
       provider: "manual",
@@ -182,15 +201,20 @@ describe("canonical capability preparation", () => {
 
     expect(brandedResume.executorId).toBe("brand-resume");
     expect(brandedResume.outputKind).toBe("pdf");
-    expect(brandedResume.canExecute).toBe(false);
-    expect(brandedResume.blocker).toMatch(/active authorities conflict/);
+    expect(brandedResume.canExecute).toBe(true);
+    expect(brandedResume.blocker).toBe("");
 
     const editedInput = context();
     editedInput.availableExecutorIds = [...editedInput.availableExecutorIds, "brand-resume"];
     editedInput.candidateCase.documents.resume = {
       ...editedInput.candidateCase.documents.resume,
       revision: 2,
-      content: { format: "tttg-resume-form-v1", name: "Human reviewed name" },
+      content: {
+        ...emptyResumeForm(),
+        reviewed: true,
+        name: "Human reviewed name",
+        summary: "Human-reviewed source-grounded summary.",
+      },
     };
     const afterEdit = await prepareCapabilityFromContext("brandedresume", editedInput, {
       extraInput: "",
@@ -199,6 +223,16 @@ describe("canonical capability preparation", () => {
       now: brandedResume.preparedAt,
     });
     expect(afterEdit.inputSnapshotHash).not.toBe(brandedResume.inputSnapshotHash);
+
+    const internalMpc = await prepareCapabilityFromContext("brandedresume", input, {
+      extraInput: JSON.stringify({ resume_mode: "internal_mpc" }),
+      provider: "manual",
+      model: "none",
+      now: brandedResume.preparedAt,
+    });
+    expect(internalMpc.canExecute).toBe(true);
+    expect(internalMpc.missing).toEqual([]);
+    expect(internalMpc.inputSnapshotHash).not.toBe(brandedResume.inputSnapshotHash);
   });
 
   it("uses versioned typed Workstation notes as call evidence when no call file exists", async () => {

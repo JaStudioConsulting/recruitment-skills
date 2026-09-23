@@ -1,61 +1,72 @@
-# TTTG Document Structure & Rules (v3.0 PRO)
+# TTTG Document Structure and Rules, canonical branded resume
 
-This reference is the immutable rulebook for the TTTG resume tool. Apply it exactly.
+This reference records the single production design implemented by `skills/recruiter/modules/brandedresume/scripts/build_resume.py`.
 
-## 1. The Canvas & Paper
+The former A4, Noto Sans, left-logo alternative is retired. Do not expose it as a selectable design and do not use it for production output.
 
-- Dimensions: A4 format. Width is strictly `210mm`, minimum height is `297mm`.
-- Padding: `1.5cm` on all sides.
-- Background: Pure white (`#ffffff`).
-- Base Font: Sans-serif (inherited from Noto Sans import).
+## 1. Canvas and paper
 
-## 2. The Identity Header (Top Block)
+- Paper: US Letter.
+- Margins: `1.6cm` top and bottom, `1.7cm` left and right.
+- Background: pure white.
+- Base font: Arial, with Helvetica as the compatible fallback.
+- Base text: black, `10.5pt`, with approximately `1.34` line height.
 
-- Logo: Fixed absolute position at `1.5cm` from the top and `1.5cm` from the left.
-- Spacing: Starts `1.2cm` down from the top margin. Has `40px` space below it before the summary starts.
-- Name (Line 1): Size `24pt`, Charcoal color (`#2c2e33`), centered, tight letter spacing (`-1px`).
-- MPC Logic: If MPC mode is ON, this displays the candidate title in ALL CAPS instead of their name.
-- Title (Line 2): Size `14pt`, bold, dark gray (`#444`), centered, with a `5px` top/bottom margin.
-- MPC Logic: Hide title completely when MPC mode is ON.
-- Location (Line 3): Size `10pt`, italic, muted slate color (`#64748b`), centered.
+## 2. Identity header
 
-## 3. Universal Section Headings
+- Logo: centered at the top, `235px` wide in the Chrome renderer, with `10px` below it.
+- Name: bold, left aligned, `17pt` by default.
+- Title: one exact current title, bold, left aligned, `11.5pt`.
+- Named submission: show the confirmed candidate name and real employer names.
+- Internal MPC: show the confirmed candidate name and real employer names.
+- External blind MPC: show the candidate title in the name position, omit the candidate name, and replace employer names with confirmed industry descriptions.
+- Do not print email, phone number, LinkedIn URL, website, or other contact details.
 
-Every section header (Summary, Skills, Experience, Education) follows this exact CSS:
+## 3. Section headings
 
-- Size: `11pt`
-- Text Transform: `UPPERCASE`
-- Letter Spacing: `1px`
-- Border: `2px solid black` on the bottom
-- Padding/Margin: `3px` padding on bottom, `12px` margin below the line
+Every section heading uses:
 
-## 4. Professional Summary
+- `11pt` bold text.
+- Uppercase text.
+- `0.4px` letter spacing.
+- A `1.2px` solid black bottom rule.
+- Compact spacing matching the bundled builder.
 
-- Body Text: Size `11pt`, justified alignment, line height `1.5`.
-- Spacing: `25px` margin below the paragraph.
+## 4. Professional summary
 
-## 5. Core Skills
+- Use `10.5pt` black text.
+- Use justified alignment.
+- Keep the summary concise and source grounded.
 
-- Layout: 2-column grid (`1fr 1fr`).
-- Spacing: `8px` gap between columns/rows, `25px` margin below the entire section.
-- Items: Size `11pt`, preceded by a bold bullet point (`<b>•</b>`).
+## 5. Core skills
 
-## 6. Professional Experience
+- Use an even number of source-supported skills.
+- Use a borderless two-column grid.
+- Use a standard bullet for each item.
+- Never add a filler skill to balance the grid.
 
-- Block Spacing: `22px` margin below each separate role.
-- Line 1 (Role & Dates): Size `11pt`, bold. Role at far left, dates at far right.
-- Line 2 (Company):
-- Normal Mode: normal weight, italic, slate color (`#475569`). Show actual company.
-- MPC Mode: bold, italic, dark blue (`#1e3a8a`). Show anonymous company description.
-- Spacing: `4px` top/bottom margin.
-- Line 3+ (Bullets): Size `11pt`, justified text, indented `18px` from the left, `6px` space between each bullet.
+## 6. Professional experience
 
-## 7. Education & Certifications
+- Order experience most recent first.
+- Line 1 shows the bold job title on the left and dates on the right.
+- Line 2 shows the italic company on the left and location on the right.
+- Keep same-company roles in one timeline entry.
+- Use justified achievement bullets.
+- Bold only the supported proof point inside a bullet.
+- Keep headings with at least the first bullet across page breaks.
 
-- Education Items: Size `11pt`, `6px` bottom margin. Credential name is bold, followed by an em-dash (`—`), then institution name.
-- Certification Items: Size `11pt`, `4px` bottom margin. Preceded by a bold bullet point (`<b>•</b>`).
+## 7. Education, certifications, and additional sections
 
-## 8. Functional Rules
+- Education contains the credential and institution without dates.
+- Bold the credential only.
+- Use a regular hyphen between the credential and institution.
+- Preserve separate Certifications, Licenses, Awards, Languages, Projects, and other source sections when the original resume separates them.
+- Never merge or drop source sections without explicit user direction.
 
-- Gmail Subject Line: `[MPC - ]New Candidate Submission - [Name] - [Title] - [Location].`
-- Print/PDF Engine: Inject custom CSS that perfectly mimics the `210mm` A4 layout into a print window to prevent margins from breaking.
+## 8. Functional and release rules
+
+- Use the bundled branded resume builder for PDF output.
+- Refuse unresolved placeholders, long dashes, double hyphens, hyperlinks, contact details, and an odd number of skills.
+- Persist the exact produced PDF before the temporary hosted link expires.
+- Treat the PDF as incomplete until every page has recorded human visual QA for clipping, overlap, orphaning, bullets, logo placement, privacy, and page breaks.
+- A second visual design is not part of the production interface.

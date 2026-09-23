@@ -13,11 +13,15 @@ const CANDIDATE = {
   headline: "CNC Machinist",
   experience: [{ title: "CNC Machinist", company: "Example Fabrication", dates: "Jan-2020 - Present", bullets: ["Cut scrap **22%**."] }],
 };
+const BUILDER_DIGEST = "d".repeat(64);
 
 function rpc(tool: Record<string, unknown>, asText = false) {
+  const attested = tool.ok === true && tool.builder_digest === undefined
+    ? { ...tool, builder_digest: BUILDER_DIGEST }
+    : tool;
   return asText
-    ? { jsonrpc: "2.0", id: 1, result: { content: [{ type: "text", text: JSON.stringify(tool) }] } }
-    : { jsonrpc: "2.0", id: 1, result: { structuredContent: tool } };
+    ? { jsonrpc: "2.0", id: 1, result: { content: [{ type: "text", text: JSON.stringify(attested) }] } }
+    : { jsonrpc: "2.0", id: 1, result: { structuredContent: attested } };
 }
 
 function fakeFetch(status: number, body: unknown, seen: { url?: string; init?: RequestInit } = {}) {
@@ -41,6 +45,7 @@ describe("resume builder bridge", () => {
       expiresInSeconds: 3600,
       contactRemoved: ["email"],
       notes: [],
+      builderDigest: BUILDER_DIGEST,
     });
   });
 
@@ -109,6 +114,10 @@ describe("resume builder bridge", () => {
     expect(parseBuilderPayload(rpc({ ok: true, filename: "x.pdf" })).status).toBe("unavailable");
     expect(parseBuilderPayload(null).status).toBe("unavailable");
     expect(parseBuilderPayload({ jsonrpc: "2.0", id: 1, error: { message: "boom" } }).status).toBe("unavailable");
+  });
+
+  it("refuses an unattested builder result", () => {
+    expect(parseBuilderPayload(rpc({ ok: true, filename: "x.pdf", download_url: "https://builder.example/files/x.pdf", builder_digest: "missing" })).status).toBe("unavailable");
   });
 
   it("validates the request shape", () => {

@@ -238,7 +238,7 @@ function sectionHeadingKind(lines: string[], index: number, activeKind: HeadingK
 
 export function parseResumeText(text: string, filename: string): ParsedResume {
   const lines = cleanLines(text);
-  const form: ResumeFormDocument = { format: "tttg-resume-form-v1", name: "", headline: "", summary: "", skills: "", jobs: [], educationHeading: "", education: "", sections: [] };
+  const form: ResumeFormDocument = { format: "tttg-resume-form-v1", reviewed: false, name: "", headline: "", summary: "", skills: "", jobs: [], educationHeading: "", education: "", sections: [] };
   const sources: Record<string, string> = {};
   let cursor = 0;
   if (lines[0] && looksLikeName(lines[0])) { form.name = lines[0]; sources["resume.name"] = filename; cursor = 1; }

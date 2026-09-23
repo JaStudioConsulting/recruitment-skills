@@ -8,9 +8,8 @@ path. The skills themselves do not need this server; it exists only when you wan
 tools callable on a schedule or from the ChatGPT app.
 
 What is real here:
-  - build_pdf: low-level branded-resume draft renderer. Current repository
-    authorities conflict, so its result is never release-ready by itself and the
-    Workstation deliberately does not mount it.
+  - build_pdf: canonical A-layout branded-resume renderer. Its result remains a
+    draft until the Workstation records page-by-page human visual QA.
   - build_reference_check_pdf: uses the canonical sanitized DOCX template and a
     verified LibreOffice renderer when that runtime is installed.
   - build_interview_prep_pdf: builds only from the complete repository payload
@@ -32,6 +31,7 @@ Deploy: host this behind HTTPS, put the public URL and your OAuth client id into
 real secrets in this repo; supply them as environment variables in the deploy.
 """
 import base64
+import hashlib
 import hmac
 import json
 import os
@@ -59,6 +59,28 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILDER = os.path.join(
     REPO_ROOT, "skills", "recruiter", "modules", "brandedresume", "scripts", "build_resume.py"
 )
+BUILDER_AUTHORITY_PATHS = (
+    "render.yaml",
+    "requirements.txt",
+    "server/candidate_input.py",
+    "server/server.py",
+    "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",
+    "skills/recruiter/modules/brandedresume/scripts/build_resume.py",
+)
+
+
+def _builder_authority_digest() -> str:
+    digest = hashlib.sha256()
+    for relative in sorted(BUILDER_AUTHORITY_PATHS):
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        with open(os.path.join(REPO_ROOT, relative), "rb") as authority_file:
+            digest.update(authority_file.read())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+BUILDER_AUTHORITY_DIGEST = _builder_authority_digest()
 DASHBOARD_HTML = os.path.join(REPO_ROOT, "ui", "candidate-dashboard.html")
 DASHBOARD_URI = "ui://tttg/candidate-dashboard"
 
@@ -138,10 +160,8 @@ def candidate_dashboard_component() -> str:
 @mcp.tool(
     title="Build branded resume PDF",
     description=(
-        "Render a Top Tier Talent Group branded resume draft from structured candidate "
-        "data. The active branded-resume and legislator authorities conflict, so this "
-        "low-level result is not release-ready and still requires authority resolution "
-        "plus page-by-page visual review. "
+        "Render a Top Tier Talent Group A-layout branded resume from structured candidate "
+        "data. The returned PDF still requires page-by-page human visual review before release. "
         + SCHEMA_HINT
         + " If the result has ok=false, fix every listed problem and call again."
     ),
@@ -191,8 +211,9 @@ def build_pdf(candidate: dict, filename: str | None = None) -> dict:
         "download_url": f"{PUBLIC_BASE}/files/{token}.pdf" if PUBLIC_BASE else f"/files/{token}.pdf",
         "bytes": size,
         "release_ready": False,
-        "authority_status": "blocked",
-        "message": f"Branded resume draft built: {out_name}. It is not release-ready while the active layout authorities conflict.",
+        "authority_status": "resolved",
+        "builder_digest": BUILDER_AUTHORITY_DIGEST,
+        "message": f"Branded resume draft built: {out_name}. Complete page-by-page visual QA before release.",
         "builder_output": (result.stdout or "").strip()[-400:],
         "contact_removed": report["stripped"],
         "notes": report["notes"],

@@ -11,6 +11,7 @@ import type {
   CaseArtifactRecord,
 } from "../lib/server/capability-run-repository";
 import type { CandidateCase, CaseDocument, CaseSource } from "../lib/workstation-types";
+import { featureById } from "../lib/capabilities/catalog";
 
 function run(input: {
   capabilityId: string;
@@ -86,6 +87,7 @@ function candidateCase(): CandidateCase {
     documents: {
       resume: document("resume", {
         format: "tttg-resume-form-v1",
+        reviewed: true,
         name: "Synthetic Candidate",
         headline: "Maintenance Supervisor",
         summary: "Synthetic source-grounded summary.",
@@ -134,6 +136,8 @@ function persistedArtifact(kind: string): CaseArtifactRecord {
 }
 
 function dependencies() {
+  const builderDigest = featureById("brand-resume")?.builder_digest;
+  if (!builderDigest) throw new Error("Synthetic test requires the generated branded-resume builder digest.");
   const callResumeBuilder = vi.fn<ArtifactCapabilityExecutorDependencies["callResumeBuilder"]>(async () => ({
     status: "built" as const,
     filename: "Synthetic Resume.pdf",
@@ -141,6 +145,7 @@ function dependencies() {
     expiresInSeconds: 3600,
     contactRemoved: ["email"],
     notes: ["synthetic builder note"],
+    builderDigest,
   }));
   const buildManualArtifact = vi.fn<ArtifactCapabilityExecutorDependencies["buildManualArtifact"]>(async () => ({
     status: "built" as const,
@@ -157,7 +162,7 @@ function dependencies() {
     endpoint: "https://builder.example/mcp",
     token: "synthetic-token",
   };
-  return { value, callResumeBuilder, buildManualArtifact, persistCaseArtifact };
+  return { value, callResumeBuilder, buildManualArtifact, persistCaseArtifact, builderDigest };
 }
 
 describe("canonical PDF capability executor adapters", () => {
@@ -210,6 +215,9 @@ describe("canonical PDF capability executor adapters", () => {
           expiresInSeconds: 3600,
           contactRemoved: ["email"],
           notes: ["synthetic builder note"],
+          builderDigest: deps.builderDigest,
+          resumeMode: "named_submission",
+          resumeDocumentRevision: 2,
         },
       },
     });
@@ -225,6 +233,61 @@ describe("canonical PDF capability executor adapters", () => {
       },
       canonicalIncomplete: { visualQaPassed: false },
     });
+  });
+
+  it("passes the selected internal MPC mode to the attested builder", async () => {
+    const deps = dependencies();
+    await executeArtifactCapabilityWithDependencies({
+      userId: "user-1",
+      caseId: "case-1",
+      run: run({ capabilityId: "brandedresume", executorId: "brand-resume", extraInput: JSON.stringify({ resume_mode: "internal_mpc" }) }),
+      candidateCase: candidateCase(),
+    }, deps.value);
+
+    expect(deps.callResumeBuilder).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: "internal_mpc" }),
+      expect.any(Object),
+    );
+  });
+
+  it("rejects a hosted builder whose digest differs from the repository", async () => {
+    const deps = dependencies();
+    deps.callResumeBuilder.mockResolvedValue({
+      status: "built",
+      filename: "Synthetic Resume.pdf",
+      downloadUrl: "/files/resume.pdf",
+      expiresInSeconds: 3600,
+      contactRemoved: [],
+      notes: [],
+      builderDigest: "f".repeat(64),
+    });
+
+    await expect(executeArtifactCapabilityWithDependencies({
+      userId: "user-1",
+      caseId: "case-1",
+      run: run({ capabilityId: "brandedresume", executorId: "brand-resume" }),
+      candidateCase: candidateCase(),
+    }, deps.value)).rejects.toThrow("does not match the canonical repository builder");
+    expect(deps.persistCaseArtifact).not.toHaveBeenCalled();
+  });
+
+  it("refuses an unreviewed editable resume before calling or persisting the builder", async () => {
+    const deps = dependencies();
+    const unreviewedCase = candidateCase();
+    unreviewedCase.documents.resume.content = {
+      ...(unreviewedCase.documents.resume.content as Record<string, unknown>),
+      reviewed: false,
+    };
+
+    await expect(executeArtifactCapabilityWithDependencies({
+      userId: "user-1",
+      caseId: "case-1",
+      run: run({ capabilityId: "brandedresume", executorId: "brand-resume" }),
+      candidateCase: unreviewedCase,
+    }, deps.value)).rejects.toThrow("compare the form with the original resume");
+
+    expect(deps.callResumeBuilder).not.toHaveBeenCalled();
+    expect(deps.persistCaseArtifact).not.toHaveBeenCalled();
   });
 
   it("never persists when the branded-resume builder refuses the input", async () => {

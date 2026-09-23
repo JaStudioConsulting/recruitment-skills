@@ -9,6 +9,7 @@ import {
   loadCapabilityRunsForCase,
   mergePersistedDocuments,
   reviewCaseArtifactAndRefresh,
+  resumeDraftForEdit,
   saveEditedOutput,
 } from "../components/workstation/recruiter-workstation";
 import {
@@ -62,6 +63,48 @@ function candidateCase(): CandidateCase {
 }
 
 describe("canonical workflow UI execution contract", () => {
+  it("preserves saved resume forms and safely recovers legacy resume text for editing", () => {
+    const current = candidateCase();
+    const savedForm = {
+      format: "tttg-resume-form-v1" as const,
+      reviewed: false,
+      name: "Synthetic Candidate",
+      headline: "Maintenance Leader",
+      summary: "Source-backed summary.",
+      skills: "Preventive maintenance",
+      jobs: [],
+      educationHeading: "Education",
+      education: "Synthetic College",
+      sections: [],
+    };
+    current.documents.resume.content = savedForm;
+    expect(resumeDraftForEdit(current)).toEqual(savedForm);
+
+    current.documents.resume.content = { time: 0, version: "2.31.0", blocks: [] };
+    current.sources = [{
+      id: "source-resume",
+      kind: "resume",
+      filename: "synthetic-resume.txt",
+      contentType: "text/plain",
+      sizeBytes: 160,
+      sha256: "sha-synthetic-resume",
+      captureTime: "2026-09-23T00:00:00.000Z",
+      lifecycleStatus: "reviewed",
+      reviewStatus: "reviewed",
+      parsedText: "Synthetic Candidate\nMaintenance Leader\n\nProfessional Summary\nSource-backed summary.\n\nCore Competencies\nPreventive maintenance",
+      classificationMethod: "explicit",
+    }];
+    expect(resumeDraftForEdit(current)).toMatchObject({
+      name: "Synthetic Candidate",
+      headline: "Maintenance Leader",
+      summary: "Source-backed summary.",
+      skills: "Preventive maintenance",
+    });
+
+    current.sources = [];
+    expect(resumeDraftForEdit(current)).toBeNull();
+  });
+
   it("refuses to replace the visible case when candidate intake finishes in a changed context", () => {
     const originating = { roleId: "role-1", caseId: "case-1" };
 
@@ -126,7 +169,11 @@ describe("canonical workflow UI execution contract", () => {
     });
     expect(mountedExecutorFor(interfaceOnly)).toBeUndefined();
     expect(mountedExecutorFor(capabilityById("loxo")!)).toBeUndefined();
-    expect(mountedExecutorFor(capabilityById("brandedresume")!)).toBeUndefined();
+    expect(mountedExecutorFor(capabilityById("brandedresume")!)).toMatchObject({
+      id: "brand-resume",
+      mounted: true,
+      operationId: "build-branded-resume",
+    });
     expect(mountedExecutorFor({
       ...interfaceOnly,
       executorFeatures: [{ ...interfaceOnly.executorFeatures[0], mounted: true }],
@@ -185,6 +232,16 @@ describe("canonical workflow UI execution contract", () => {
     expect(workstationSource).not.toContain('extraInput: ""');
   });
 
+  it("exposes the optional branded-resume presentation mode without making it a build gate", () => {
+    expect(capabilityInputFields(capabilityById("brandedresume")!)).toEqual([{
+      key: "resume_mode",
+      label: "Presentation mode",
+      required: false,
+      allowedValues: ["named_submission", "internal_mpc"],
+      multiline: false,
+    }]);
+  });
+
   it("keeps output read-only until Edit, exposes Cancel, and clears the local draft on cancel", () => {
     expect(workstationSource).not.toContain('className="output-version-row"');
     expect(workstationSource).toContain("effectiveRevision === document.revision");
@@ -221,6 +278,42 @@ describe("canonical workflow UI execution contract", () => {
       sourceRefs: ["resume:sha-resume", "call:sha-call", "jd:sha-jd"],
       capabilityRunId: "run-canonical-1",
     });
+  });
+
+  it("marks only an explicitly saved resume form as reviewed for PDF export", async () => {
+    const current = candidateCase();
+    const versions: DocumentVersion[] = [{
+      kind: "resume",
+      revision: 1,
+      content: current.documents.resume.content,
+      sourceRefs: ["resume:sha-resume"],
+      capabilityRunId: "run-write-up-1",
+      origin: "generated",
+      createdAt: "2026-09-20T00:00:00.000Z",
+    }];
+    const session = editSessionForCurrentDocument(current, "resume", versions)!;
+    const saveDocument = vi.fn(async () => document("resume", 2));
+    const draft = {
+      format: "tttg-resume-form-v1" as const,
+      reviewed: false,
+      name: "Synthetic Candidate",
+      headline: "Maintenance Leader",
+      summary: "Source-backed summary.",
+      skills: "Preventive maintenance",
+      jobs: [],
+      educationHeading: "",
+      education: "",
+      sections: [],
+    };
+
+    await saveEditedOutput(saveDocument, session, draft);
+
+    expect(saveDocument).toHaveBeenCalledWith("case-1", "resume", expect.objectContaining({
+      origin: "edited",
+      sourceRefs: ["resume:sha-resume"],
+      capabilityRunId: "run-write-up-1",
+      content: expect.objectContaining({ reviewed: true, summary: "Source-backed summary." }),
+    }));
   });
 
   it("reloads saved run history by active case and summarizes evidence without raw values", async () => {

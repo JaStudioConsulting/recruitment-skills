@@ -134,6 +134,7 @@ function draftResult(): WriteUpDraftReady {
     bundle: {
       resume: {
         format: "tttg-resume-form-v1",
+        reviewed: false,
         name: "Synthetic Candidate",
         headline: "Maintenance Supervisor",
         summary: "",

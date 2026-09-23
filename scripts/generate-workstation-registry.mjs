@@ -222,6 +222,24 @@ function validateFeatureRequirements(feature) {
   }
 }
 
+function featureBuilderPaths(root, feature) {
+  if (feature.builder_paths === undefined) return [];
+  if (!Array.isArray(feature.builder_paths) || feature.builder_paths.length === 0) {
+    throw new Error(`Builder authority paths must be a non-empty array for ${feature.id}`);
+  }
+  return feature.builder_paths.map((builderPath) => {
+    if (typeof builderPath !== "string" || !builderPath.trim() || path.isAbsolute(builderPath)) {
+      throw new Error(`Invalid builder authority path for ${feature.id}: ${String(builderPath)}`);
+    }
+    const absolute = path.resolve(root, builderPath);
+    const relative = relativePath(root, absolute);
+    if (!relative || relative !== builderPath.split(path.sep).join("/") || !existsSync(absolute) || !statSync(absolute).isFile()) {
+      throw new Error(`Missing builder authority path for ${feature.id}: ${builderPath}`);
+    }
+    return relative;
+  });
+}
+
 export function compileWorkstationRegistry(root) {
   const manifest = readJson(path.join(root, "skills/capabilities.json"));
   const overlay = readJson(path.join(root, "workstation/capability-implementation.json"));
@@ -252,12 +270,19 @@ export function compileWorkstationRegistry(root) {
     }
     validateFeatureRequirements(feature);
   }
-  const executors = featureCatalog.features.map((feature) => ({
-    ...feature,
-    operation_id: feature.operation_id ?? operationsByCapabilityId.get(feature.primary_capability_id)[0].id,
-    mounted: feature.mounted === true,
-    supporting_capability_ids: feature.capability_ids.filter((id) => id !== feature.primary_capability_id),
-  }));
+  const executors = featureCatalog.features.map((feature) => {
+    const builderPaths = featureBuilderPaths(root, feature);
+    return {
+      ...feature,
+      operation_id: feature.operation_id ?? operationsByCapabilityId.get(feature.primary_capability_id)[0].id,
+      mounted: feature.mounted === true,
+      supporting_capability_ids: feature.capability_ids.filter((id) => id !== feature.primary_capability_id),
+      ...(builderPaths.length ? {
+        builder_paths: builderPaths,
+        builder_digest: authorityDigest(root, builderPaths),
+      } : {}),
+    };
+  });
   const frontDoor = declaredSkillPath(root, manifest.front_door.path, "recruiter front door");
   const policies = manifest.policies.map((item) => declaredSkillPath(root, item, "recruiter policy"));
   const topLevelSkills = topLevelSkillPaths(root);

@@ -1,5 +1,4 @@
 import { featureById } from "@/lib/capabilities/catalog";
-import { parseResumeText } from "@/lib/capabilities/deterministic-autofill";
 import {
   isResumeForm,
   resumeFormHasContent,
@@ -19,7 +18,6 @@ import type {
   CapabilityRunRecord,
   CaseArtifactRecord,
 } from "@/lib/server/capability-run-repository";
-import { sourceIsUsable } from "@/lib/source-intake";
 import type { CandidateCase } from "@/lib/workstation-types";
 import {
   artifactExecutorDefinition,
@@ -114,20 +112,23 @@ function parsedManualPayload(run: CapabilityRunRecord): Record<string, unknown> 
 
 function brandedResumeCandidate(candidateCase: CandidateCase): Record<string, unknown> {
   const stored = candidateCase.documents.resume?.content;
-  if (isResumeForm(stored) && resumeFormHasContent(stored)) {
+  if (isResumeForm(stored) && stored.reviewed === true && resumeFormHasContent(stored)) {
     return resumeFormToCandidate(stored);
   }
-
-  const source = candidateCase.sources.find(
-    (item) => item.kind === "resume" && sourceIsUsable(item) && Boolean(item.parsedText?.trim()),
+  throw new ApiError(
+    409,
+    "Open Generated > Resume > Edit, compare the form with the original resume, and Save changes before preparing the branded PDF.",
   );
-  if (!source?.parsedText) {
-    throw new ApiError(
-      409,
-      "Branded resume execution requires a saved resume form or a parsed reviewed resume source.",
-    );
+}
+
+function brandedResumeMode(run: CapabilityRunRecord): "named_submission" | "internal_mpc" {
+  if (!run.input.extraInput.trim()) return "named_submission";
+  try {
+    const parsed = JSON.parse(run.input.extraInput) as { resume_mode?: unknown };
+    return parsed.resume_mode === "internal_mpc" ? "internal_mpc" : "named_submission";
+  } catch {
+    return "named_submission";
   }
-  return resumeFormToCandidate(parseResumeText(source.parsedText, source.filename).form);
 }
 
 type BuilderFailure = Exclude<
@@ -190,14 +191,23 @@ export async function executeArtifactCapabilityWithDependencies(
 
   if (definition.executorId === "brand-resume") {
     const endpoint = dependencies.endpoint?.trim() || DEFAULT_RESUME_BUILDER_URL;
+    const feature = featureById(definition.executorId);
+    const expectedBuilderDigest = feature?.builder_digest;
+    if (!expectedBuilderDigest) {
+      throw new ApiError(503, "The canonical branded-resume builder digest is missing.");
+    }
+    const mode = brandedResumeMode(input.run);
     const built = await dependencies.callResumeBuilder({
-      mode: "named_submission",
+      mode,
       candidate: brandedResumeCandidate(input.candidateCase),
     }, {
       endpoint,
       token: dependencies.token,
     });
     if (built.status !== "built") return builderFailure(built);
+    if (built.builderDigest !== expectedBuilderDigest) {
+      throw new ApiError(409, "The hosted resume builder does not match the canonical repository builder. Nothing was saved.");
+    }
     const artifact = await dependencies.persistCaseArtifact({
       userId: input.userId,
       caseId: input.caseId,
@@ -214,6 +224,9 @@ export async function executeArtifactCapabilityWithDependencies(
           expiresInSeconds: built.expiresInSeconds,
           contactRemoved: built.contactRemoved,
           notes: built.notes,
+          builderDigest: built.builderDigest,
+          resumeMode: mode,
+          resumeDocumentRevision: input.candidateCase.documents.resume.revision,
         },
       },
     });

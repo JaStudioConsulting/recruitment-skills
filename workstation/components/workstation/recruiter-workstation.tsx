@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { HandwritingCanvas } from "@/components/workstation/handwriting-canvas";
-import { ResumeFormEditor } from "@/components/workstation/resume-form";
+import { ResumeFormEditor, ResumeFormPreview } from "@/components/workstation/resume-form";
 import { WorkflowBrowser, type WorkflowExecutionFeedback } from "@/components/workstation/workflow-browser";
 import {
   Dialog,
@@ -59,7 +59,8 @@ import type {
   CaseArtifactSummary,
 } from "@/lib/artifact-browser";
 import { mergeCandidateCaseSnapshots } from "@/lib/case-merge";
-import { toResumeForm } from "@/lib/resume-form";
+import { resumeFormFromCase } from "@/lib/capabilities/deterministic-autofill";
+import { isResumeForm, resumeFormHasContent, toResumeForm } from "@/lib/resume-form";
 import type { CapabilityExecutionResponse } from "@/lib/server/capability-execution-service";
 import type { CapabilityRunRecord } from "@/lib/server/capability-run-repository";
 import {
@@ -287,13 +288,23 @@ export function saveEditedOutput(
   session: OutputEditSession,
   content: CaseDocument["content"],
 ) {
+  const savedContent = session.kind === "resume" && isResumeForm(content)
+    ? { ...toResumeForm(content), reviewed: true }
+    : content;
   return saveDocument(session.caseId, session.kind, {
     expectedRevision: session.expectedRevision,
-    content,
+    content: savedContent,
     origin: "edited",
     sourceRefs: [...session.sourceRefs],
     capabilityRunId: session.capabilityRunId,
   });
+}
+
+export function resumeDraftForEdit(candidateCase: CandidateCase) {
+  const stored = candidateCase.documents.resume.content;
+  if (isResumeForm(stored)) return toResumeForm(stored);
+  const recovered = resumeFormFromCase(candidateCase).form;
+  return resumeFormHasContent(recovered) ? recovered : null;
 }
 
 export function loadCapabilityRunsForCase(
@@ -1216,7 +1227,14 @@ export function RecruiterWorkstation({ user }: { user: User }) {
         setActionMessage("Edit mode was not opened because the current output provenance could not be loaded.");
         return;
       }
-      setOutputDraft(current.documents[editKind].content);
+      const editableContent = editKind === "resume"
+        ? resumeDraftForEdit(current)
+        : current.documents[editKind].content;
+      if (editableContent === null) {
+        setActionMessage("This legacy resume cannot be edited safely because no reviewed resume source is available. Add or review the original resume first.");
+        return;
+      }
+      setOutputDraft(editableContent);
       setOutputEditSession(session);
     } finally {
       setOutputEditBusy(false);
@@ -1704,7 +1722,7 @@ function GeneratedOutputPanel({
       {kind === "email" || kind === "loxo_update" ? <Textarea value={typeof draft === "string" ? draft : ""} onChange={(event) => onDraftChange(event.target.value)} aria-label={`Edit ${kind}`} /> : null}
       <div className="output-edit-actions"><Button variant="outline" disabled={editBusy} onClick={onCancel}>Cancel</Button><Button disabled={editBusy} onClick={onSave}>{editBusy ? <LoaderCircle className="spin" size={16} /> : null}Save changes</Button></div>
     </div> : <article className="output-preview">
-      {kind === "resume" ? <><h2>{resume.name || "Resume draft"}</h2>{resume.headline ? <h3>{resume.headline}</h3> : null}{resume.summary ? <section><h4>Professional Summary</h4><p>{resume.summary}</p></section> : null}{resume.skills ? <section><h4>Core Competencies &amp; Skills</h4><p className="preserve-lines">{resume.skills}</p></section> : null}{resume.jobs.length ? <section><h4>Professional Experience</h4>{resume.jobs.map((job, index) => <div key={index} className="preview-job"><strong>{job.title}</strong><span>{[job.company, job.location, job.dates].filter(Boolean).join(" · ")}</span><p className="preserve-lines">{job.bullets}</p></div>)}</section> : null}</> : null}
+      {kind === "resume" ? <ResumeFormPreview value={resume} /> : null}
       {kind === "submission" ? <><h2>Candidate submission</h2><dl>{Object.entries(submission).filter(([, value]) => value.trim()).map(([key, value]) => <div key={key}><dt>{key.replace(/([A-Z])/g, " $1")}</dt><dd>{value}</dd></div>)}</dl>{missing.length ? <aside className="needs-confirmation"><strong>Needs confirmation</strong><ul>{missing.map((item) => <li key={item}>{item}</li>)}</ul></aside> : null}</> : null}
       {kind === "email" ? <pre>{typeof content === "string" && content.trim() ? content : "No source-backed content yet."}</pre> : null}
       {kind === "loxo_update" ? <><h2>Loxo update bullets</h2><pre>{typeof content === "string" && content.trim() ? content : "No source-backed content yet."}</pre></> : null}

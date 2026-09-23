@@ -70,6 +70,7 @@ Skills
 CMMS and preventive maintenance`;
 
 const SAVED_PROFILE = "Avery North leads preventive maintenance planning for synthetic operations.";
+const SAVED_RESUME_SUMMARY = "Avery North leads source-grounded preventive maintenance programs.";
 const RECOVERED_CANDIDATE_NAME = "Morgan Dale";
 const RECOVERED_CANDIDATE_TITLE = "Maintenance Planner";
 const AMBIGUOUS_CANDIDATE_SOURCE = "Career background supplied for recruiter review.";
@@ -164,7 +165,7 @@ test("deletes a Job only after explicit confirmation and keeps it gone after rel
   await expect(jobSelect.locator("option").filter({ hasText: "Delete Test Job · Delete Test Co" })).toHaveCount(0);
 });
 
-test("shows all canonical workflows and keeps the conflicted branded resume blocked", async ({ page }) => {
+test("shows all canonical workflows and mounts the canonical A branded resume", async ({ page }) => {
   const offOriginRequests = recordOffOriginRequests(page);
   await page.goto("/");
   await openJobOptions(page);
@@ -181,9 +182,13 @@ test("shows all canonical workflows and keeps the conflicted branded resume bloc
 
   await workflowButtons.filter({ hasText: "brandedresume" }).click();
   await expect(detail.getByRole("heading", { name: "brandedresume" })).toBeVisible();
-  await expect(detail).toContainText("Blocked by");
-  await expect(detail).toContainText("active authorities conflict");
-  await expect(detail.locator("section.workflow-execution")).toHaveCount(0);
+  await expect(detail).toContainText("What is incomplete");
+  await expect(detail).toContainText("canonical A layout");
+  await expect(detail.getByLabel("Presentation mode")).toBeVisible();
+  await expect(detail.getByLabel("Presentation mode")).toHaveValue("");
+  await expect(detail.getByRole("button", { name: "Build branded resume" })).toBeDisabled();
+  await expect(detail.getByRole("region", { name: "Workflow execution" }))
+    .toContainText("Select a Job folder and candidate before running this workflow.");
   expect(offOriginRequests).toEqual([]);
 });
 
@@ -293,6 +298,20 @@ test("persists a source-grounded draft and explicit human edit across reload", a
   await expect(page.locator("article.output-preview")).toContainText(CANDIDATE_NAME);
   await expect(page.locator("article.output-preview")).toContainText("One hundred twenty thousand dollars");
 
+  await page.getByRole("tab", { name: "Resume", exact: true }).click();
+  const resumePreview = page.getByLabel("TTTG branded resume preview");
+  await expect(resumePreview.getByRole("img", { name: "Top Tier Talent Group" })).toBeVisible();
+  await expect(resumePreview).toContainText("Summary");
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(page.getByLabel("Editable TTTG resume")).toBeVisible();
+  await page.getByLabel("Summary").fill(SAVED_RESUME_SUMMARY);
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(resumePreview).toContainText(SAVED_RESUME_SUMMARY);
+  await page.getByRole("button", { name: "Output history" }).click();
+  await expect(page.getByRole("menuitem", { name: "Current · v3" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "v2 · generated" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
   await page.getByRole("tab", { name: "Email", exact: true }).click();
   const emailPreview = page.locator("article.output-preview");
   await expect(emailPreview.locator("h2")).toHaveCount(0);
@@ -331,6 +350,12 @@ test("persists a source-grounded draft and explicit human edit across reload", a
   await expect(page.locator("article.output-preview")).toContainText(SAVED_PROFILE);
   await page.getByRole("button", { name: "Output history" }).click();
   await expect(page.getByRole("menuitem", { name: "Current · v3" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("tab", { name: "Resume", exact: true }).click();
+  await expect(page.getByLabel("TTTG branded resume preview")).toContainText(SAVED_RESUME_SUMMARY);
+  await page.getByRole("button", { name: "Output history" }).click();
+  await expect(page.getByRole("menuitem", { name: "Current · v3" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "v2 · generated" })).toBeVisible();
   await page.keyboard.press("Escape");
 
   await openJobOptions(page);

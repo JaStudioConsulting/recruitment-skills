@@ -356,6 +356,33 @@ def render_reportlab(data, logo_path, out):
     SimpleDocTemplate(out, pagesize=letter, leftMargin=L, rightMargin=R,
                       topMargin=T, bottomMargin=B, title=data.get("name", "")).build(story)
 
+def strip_pdf_metadata(pdf_path):
+    """Remove both PDF document information and XMP without changing page content."""
+    try:
+        from io import BytesIO
+        from pypdf import PdfReader, PdfWriter
+    except ImportError as error:
+        sys.exit(f"ERROR: declared PDF dependency is unavailable: {error}")
+
+    clean_path = pdf_path + ".metadata-clean.pdf"
+    try:
+        with open(pdf_path, "rb") as handle:
+            reader = PdfReader(BytesIO(handle.read()))
+        writer = PdfWriter(clone_from=reader)
+        writer.metadata = None
+        writer.xmp_metadata = None
+        with open(clean_path, "wb") as handle:
+            writer.write(handle)
+
+        with open(clean_path, "rb") as handle:
+            cleaned = PdfReader(BytesIO(handle.read()))
+        if cleaned.metadata or cleaned.xmp_metadata is not None:
+            sys.exit("ERROR: PDF metadata stripping failed.")
+        os.replace(clean_path, pdf_path)
+    finally:
+        if os.path.exists(clean_path):
+            os.remove(clean_path)
+
 # ----------------------------------------------------------------------- driver
 def main():
     ap = argparse.ArgumentParser()
@@ -403,6 +430,7 @@ def main():
             render_reportlab(data, args.logo, staged)
         if not os.path.exists(staged):
             sys.exit("ERROR: PDF was not produced.")
+        strip_pdf_metadata(staged)
 
         try:
             import fitz

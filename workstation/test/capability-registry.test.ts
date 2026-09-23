@@ -27,16 +27,16 @@ describe("canonical workstation capability registry", () => {
   it("reports truthful implementation totals", () => {
     expect(implementationCounts()).toEqual({
       working: 0,
-      partial: 8,
+      partial: 9,
       interface_only: 11,
-      blocked: 3,
+      blocked: 2,
       not_applicable: 2,
     });
   });
 
   it("preserves the audited blockers for incomplete capability implementations", () => {
     const audited = [
-      ["brandedresume", "blocked", [/active authorities conflict/, /no exact legislator override/, /Letter, Arial/, /A4, Noto Sans/, /hosted builder does not attest/, /named submission versus MPC/, /artifact store and visual-QA lifecycle/]],
+      ["brandedresume", "partial", [/canonical A layout/, /sole active branded resume design/, /human-reviewed saved resume form/, /supports named_submission or internal_mpc/, /hosted ReportLab runtime/, /canonical repository builder and deployment digest/, /External-client blind MPC remains unavailable/, /authority preflight/]],
       ["loxo-pipeline", "partial", [/explicit validated config/, /declared transport/, /rejected_at readback/, /No verified live Loxo/]],
       ["loxo-readonly-candidate-dashboard", "partial", [/arbitrary input stages/, /outreach filter/, /No live Loxo read adapter/]],
       ["sourcing", "partial", [/schemas/, /name-plus-company fallback dedupe/, /explicit-URL conflict preservation/, /No mounted public-research executor/, /live research outcome/]],

@@ -25,8 +25,8 @@
         { "id": "build-branded-resume", "label": "Build branded resume", "stage": "build", "approval": "none", "output": "Source-grounded Top Tier Talent Group branded PDF resume" },
         { "id": "visual-qa", "label": "Complete visual QA", "stage": "quality_assurance", "approval": "preview", "output": "Page-by-page artifact QA evidence bound to the exact PDF" }
       ],
-      "status": "blocked",
-      "blocker": "Execution is disabled because the active authorities conflict and no exact legislator override exists. The branded-resume guide and builder require Letter, Arial, a centered logo, and black styling, while the immutable legislator rulebook requires A4, Noto Sans, a left-positioned logo, a 24pt charcoal name, and 2px heading rules. Global Rules also ban the education em dash that the legislator rulebook requires. In addition, the hosted builder does not attest its repository commit or builder digest, the Workstation does not collect named submission versus MPC mode, and authority preflight for unresolved employer, date, location, degree, metric, and role-specific fit gaps is not connected. The artifact store and visual-QA lifecycle are implemented and tested, but they cannot make a noncompliant build executable.",
+      "status": "partial",
+      "blocker": "The canonical A layout is the sole active branded resume design. Its mounted executor consumes only a human-reviewed saved resume form, supports named_submission or internal_mpc, requires the hosted ReportLab runtime to attest the canonical repository builder and deployment digest, persists the exact PDF, and requires page-by-page human visual QA. External-client blind MPC remains unavailable, and authority preflight for unresolved employer, date, location, degree, metric, and role-specific fit gaps is not fully connected.",
       "evidence": ["skills/recruiter/modules/brandedresume/scripts/build_resume.py", "test/package-contracts.test.mjs", "workstation/lib/server/resume-builder.ts", "workstation/lib/server/capability-executors/artifact.ts", "workstation/lib/server/case-artifact-store.ts", "workstation/test/resume-builder.test.ts", "workstation/test/artifact-capability-executor.test.ts", "workstation/test/artifact-capability-execution-service.test.ts", "workstation/test/case-artifact-store.test.ts"]
     },
     "candidate-defense": {
@@ -122,7 +122,7 @@
         { "id": "audit-document", "label": "Audit document compliance", "stage": "quality_assurance", "approval": "none", "output": "Top-to-bottom compliance checklist with exact file and line evidence" }
       ],
       "status": "interface_only",
-      "blocker": "The policy is indexed, but the workstation has no mounted compliance-check executor or persisted checklist. The current branded-resume guide and builder also conflict with the immutable rulebook, so Legislator cannot truthfully be claimed as consumed until that conflict is resolved by the exact override protocol or implementation alignment.",
+      "blocker": "The policy now enforces the canonical A branded resume design and retires the former alternative. The workstation still has no mounted compliance-check executor or persisted top-to-bottom checklist, so this supporting policy remains interface-only as a standalone workflow.",
       "evidence": ["skills/recruiter/modules/legislator/GUIDE.md"]
     },
     "linkedin-posts": {

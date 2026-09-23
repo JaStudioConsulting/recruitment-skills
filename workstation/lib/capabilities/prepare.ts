@@ -1,4 +1,5 @@
 import { sha256 } from "../orchestration/stable-hash";
+import { isResumeForm, resumeFormHasContent } from "../resume-form";
 import { sourceIsUsable } from "../source-intake";
 import type { CandidateCase, CandidateRecord, ConnectorCapability, RoleRecord } from "../workstation-types";
 import { featureByPrimaryCapability, type FeatureDefinition, type FeatureRequirement } from "./catalog";
@@ -96,6 +97,10 @@ function requirementState(
   }
   if (requirement.kind === "adapter") {
     return context.connectors.some((connector) => connector.id === requirement.adapter && connector.status === "available");
+  }
+  if (requirement.kind === "reviewed_resume_document") {
+    const resume = context.candidateCase.documents.resume?.content;
+    return isResumeForm(resume) && resume.reviewed === true && resumeFormHasContent(resume);
   }
   const sourcePresent = context.candidateCase.sources.some(
     (source) => sourceIsUsable(source) && requirement.source_kinds?.includes(source.kind),

@@ -1,48 +1,50 @@
 ---
 name: legislator
-description: Enforce immutable TTTG Document Structure & Rules v3.0 PRO for the TTTG resume builder. Use when creating, editing, reviewing, refactoring, or validating resume layout/UI logic, print/PDF output, MPC mode behavior, section formatting, and branded visual rules. Use whenever strict compliance is required and any rule changes must only occur after explicit manual user confirmation in chat.
+description: Supporting compliance policy for the single canonical TTTG branded resume design. The retired A4 and Noto Sans alternative is not a production authority.
 ---
 
 # Legislator
 
-Enforce the rulebook exactly. Treat every specification as non-negotiable unless the user explicitly types a manual override in the active chat.
+Apply the canonical TTTG branded resume rules when reviewing resume layout, print output, PDF output, MPC behavior, section formatting, and branded visual consistency.
 
-## Enforce Contract
+## Canonical authority
 
-1. Load `references/tttg-document-structure-rules-v3.md` before changing any related code.
-2. Keep all listed values and logic exact.
-3. Reject silent interpretation, approximation, or simplification of rules.
-4. Block any conflicting implementation and request explicit override text from the user.
-5. Record approved overrides in code comments or commit notes when implemented.
+The production design is the existing branded resume design owned by:
 
-## Override Protocol
+- `../brandedresume/GUIDE.md`
+- `../../../../docs/templates/branded-resume-contract.md`
+- `../brandedresume/scripts/build_resume.py`
 
-Only proceed with rule changes when the user provides clear manual confirmation in chat. Use this exact handshake:
+The earlier A4, Noto Sans, left-logo alternative was reviewed visually and rejected by the user on 2026-09-23. It is retired and must not be offered as a second branded resume design.
 
-`OVERRIDE legislator: <rule-id or section> -> <new requirement>`
+## Enforce contract
 
-If this exact confirmation is not present, keep existing rules unchanged.
+1. Load `references/tttg-document-structure-rules-v3.md` before changing related code.
+2. Treat the bundled branded resume builder as the executable layout authority.
+3. Reject silent interpretation, approximation, or introduction of a second design.
+4. Keep facts, privacy rules, section preservation, and visual QA aligned with the branded resume guide and contract.
+5. Record any future user-approved design change in the governing guide, builder, reference, and tests together.
 
-## Apply Workflow
+## Apply workflow
 
-1. Inspect current implementation.
-2. Compare implementation against every rule in the reference file.
+1. Inspect the current implementation.
+2. Compare it with the canonical rules in the reference file.
 3. List violations by file and line.
-4. Patch only what is needed to reach full compliance.
-5. Re-run validation checks (tests/build/visual print checks when relevant).
-6. Report compliance status and any blocked conflicts.
+4. Patch only what is needed to restore compliance.
+5. Run builder, contract, PDF, and visual review checks when relevant.
+6. Report compliance status and any exact blocker.
 
-## Non-Negotiable Scope
+## Non-negotiable scope
 
 Apply strict enforcement to:
 
 - Canvas and paper dimensions
-- Identity header structure and MPC behavior
-- Universal heading style
-- Summary, skills, experience, education, certification formatting
-- Functional rules for Gmail subject line and print/PDF CSS fidelity
+- Identity header and MPC behavior
+- Universal section styling
+- Summary, skills, experience, education, and certification formatting
+- Source integrity, privacy, PDF output, and page-by-page visual QA
 
-## Output Requirements
+## Output requirements
 
 When asked to review or implement:
 
@@ -53,4 +55,4 @@ When asked to review or implement:
 
 ## Reference
 
-Load and enforce: `references/tttg-document-structure-rules-v3.md`
+Load and enforce `references/tttg-document-structure-rules-v3.md`.

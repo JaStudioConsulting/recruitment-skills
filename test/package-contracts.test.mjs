@@ -200,7 +200,7 @@ test("every manifest capability exposes its capability-specific contract", async
     "ja-candidate-vetting": [/Use only proven facts/i, /average must be 4\.0 or higher/i],
     "ja-writer": [/Never invent.*salary, availability/is, /do not type a signature/i],
     "job-loxo": [/obtain Ja's explicit approval before the first Loxo write/i, /status.*published.*separately/is],
-    legislator: [/explicitly types a manual override/i, /Do not approve partial compliance as complete/i],
+    legislator: [/single canonical TTTG branded resume design/i, /Do not approve partial compliance as complete/i],
     "linkedin-posts": [/Publish-Ready Copy/i, /Short feed posts.*Login-gated/is],
     loxo: [/read-only and draft-only/i, /loxo-candidate-fit-review\.md/i],
     "loxo-automation": [/separate named authorization/i, /WAIT for approval/i],
@@ -463,6 +463,11 @@ test("Workbench artifact adapters validate at the server boundary", () => {
 
 test("synthetic branded resume artifact QA renders every page and records automation separately", async () => {
   const data = JSON.parse(await readFile(fixture, "utf8"));
+  assert.deepEqual(
+    await readFile(path.join(root, "workstation/public/tttg-logo.png")),
+    await readFile(path.join(skills, "recruiter/modules/brandedresume/assets/tttg_logo.png")),
+    "Workstation editable preview must use the canonical builder logo",
+  );
   const dir = await mkdtemp(path.join(root, ".tmp-resume-contract-"));
   try {
     const input = path.join(dir, "resume.json");
@@ -475,6 +480,14 @@ test("synthetic branded resume artifact QA renders every page and records automa
     const pages = Number(info.match(/^Pages:\s+(\d+)/m)?.[1] || 0);
     assert.ok(pages > 0);
     assert.match(info, /^Page size:\s+612 x 792 pts \(letter\)$/m);
+    const metadataInspection = spawnSync("python3", ["-c", [
+      "import json, sys",
+      "from pypdf import PdfReader",
+      "reader = PdfReader(sys.argv[1])",
+      "print(json.dumps({'metadata': dict(reader.metadata or {}), 'has_xmp': reader.xmp_metadata is not None}))",
+    ].join("; "), output], { encoding: "utf8" });
+    assert.equal(metadataInspection.status, 0, metadataInspection.stderr || metadataInspection.stdout);
+    assert.deepEqual(JSON.parse(metadataInspection.stdout), { metadata: {}, has_xmp: false });
     const imagePrefix = path.join(dir, "page");
     const render = spawnSync("pdftoppm", ["-png", "-r", "72", output, imagePrefix], { encoding: "utf8" });
     assert.equal(render.status, 0, render.stderr);
