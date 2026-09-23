@@ -251,6 +251,50 @@ describe("canonical PDF capability executor adapters", () => {
     );
   });
 
+  it("refuses unsupported or malformed explicit resume modes before calling the builder", async () => {
+    for (const extraInput of [
+      JSON.stringify({ resume_mode: "external_blind_mpc" }),
+      JSON.stringify({ resume_mode: "unknown" }),
+      JSON.stringify({ resume_mode: 7 }),
+      JSON.stringify({}),
+      "not-json",
+    ]) {
+      const deps = dependencies();
+      await expect(executeArtifactCapabilityWithDependencies({
+        userId: "user-1",
+        caseId: "case-1",
+        run: run({ capabilityId: "brandedresume", executorId: "brand-resume", extraInput }),
+        candidateCase: candidateCase(),
+      }, deps.value)).rejects.toMatchObject({ status: 422 });
+      expect(deps.callResumeBuilder).not.toHaveBeenCalled();
+      expect(deps.persistCaseArtifact).not.toHaveBeenCalled();
+    }
+  });
+
+  it("refuses an odd number of reviewed source-backed skills before calling the builder", async () => {
+    const deps = dependencies();
+    const current = candidateCase();
+    const resume = current.documents.resume.content;
+    if (typeof resume !== "object" || resume === null || !("format" in resume)) {
+      throw new Error("Synthetic resume fixture is not a resume form.");
+    }
+    current.documents.resume.content = {
+      ...resume,
+      skills: "CMMS\nPreventive maintenance\nRoot cause analysis",
+    };
+
+    await expect(executeArtifactCapabilityWithDependencies({
+      userId: "user-1",
+      caseId: "case-1",
+      run: run({ capabilityId: "brandedresume", executorId: "brand-resume" }),
+      candidateCase: current,
+    }, deps.value)).rejects.toMatchObject({
+      status: 422,
+      message: expect.stringContaining("Core Skills count is odd (3)"),
+    });
+    expect(deps.callResumeBuilder).not.toHaveBeenCalled();
+  });
+
   it("rejects a hosted builder whose digest differs from the repository", async () => {
     const deps = dependencies();
     deps.callResumeBuilder.mockResolvedValue({

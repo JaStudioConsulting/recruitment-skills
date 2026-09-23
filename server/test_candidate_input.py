@@ -92,10 +92,9 @@ class RefuseInsteadOfDropping(unittest.TestCase):
                        "skills": ["A", "B"], "experience": [JOB], "education": ["**Diploma** - Example College"]})
         self.assertEqual(rep["problems"], [])
 
-    def test_odd_skill_count_is_a_note_not_a_refusal(self):
+    def test_odd_skill_count_is_refused(self):
         _, rep = norm({"name": "Sample Person", "skills": ["A", "B", "C"], "experience": [JOB]})
-        self.assertEqual(rep["problems"], [])
-        self.assertTrue(rep["notes"])
+        self.assertTrue(any("Core Skills count is odd (3)" in problem for problem in rep["problems"]))
 
 
 class ContactStripping(unittest.TestCase):

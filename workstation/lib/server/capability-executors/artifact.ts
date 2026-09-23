@@ -113,7 +113,15 @@ function parsedManualPayload(run: CapabilityRunRecord): Record<string, unknown> 
 function brandedResumeCandidate(candidateCase: CandidateCase): Record<string, unknown> {
   const stored = candidateCase.documents.resume?.content;
   if (isResumeForm(stored) && stored.reviewed === true && resumeFormHasContent(stored)) {
-    return resumeFormToCandidate(stored);
+    const candidate = resumeFormToCandidate(stored);
+    const skills = Array.isArray(candidate.skills) ? candidate.skills : [];
+    if (skills.length % 2 !== 0) {
+      throw new ApiError(
+        422,
+        `Core Skills count is odd (${skills.length}). Add or remove one source-backed skill before building.`,
+      );
+    }
+    return candidate;
   }
   throw new ApiError(
     409,
@@ -123,12 +131,25 @@ function brandedResumeCandidate(candidateCase: CandidateCase): Record<string, un
 
 function brandedResumeMode(run: CapabilityRunRecord): "named_submission" | "internal_mpc" {
   if (!run.input.extraInput.trim()) return "named_submission";
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(run.input.extraInput) as { resume_mode?: unknown };
-    return parsed.resume_mode === "internal_mpc" ? "internal_mpc" : "named_submission";
+    parsed = JSON.parse(run.input.extraInput);
   } catch {
-    return "named_submission";
+    throw new ApiError(422, "Branded resume options must be a valid JSON object.");
   }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new ApiError(422, "Branded resume options must be a valid JSON object.");
+  }
+  const mode = (parsed as { resume_mode?: unknown }).resume_mode;
+  if (mode === "named_submission") return "named_submission";
+  if (mode === "internal_mpc") return "internal_mpc";
+  if (mode === "external_blind_mpc") {
+    throw new ApiError(
+      422,
+      "External blind MPC resumes are not supported because verified anonymization is not implemented.",
+    );
+  }
+  throw new ApiError(422, "Presentation mode must be named_submission or internal_mpc.");
 }
 
 type BuilderFailure = Exclude<

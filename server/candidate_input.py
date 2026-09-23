@@ -250,7 +250,10 @@ def normalize_candidate(raw):
                             "with a heading.")
 
     if len(out["skills"]) % 2:
-        notes.append(f"{len(out['skills'])} skills is odd. The two-column grid wants an even count.")
+        problems.append(
+            f"Core Skills count is odd ({len(out['skills'])}). "
+            "Add or remove one source-backed skill before building."
+        )
 
     # Bold markers only render in bullets, education and section items.
     unbold = lambda v: re.sub(r"\*\*(.+?)\*\*", r"\1", v) if isinstance(v, str) else v
