@@ -80,6 +80,30 @@ describe("canonical workflow UI execution contract", () => {
     current.documents.resume.content = savedForm;
     expect(resumeDraftForEdit(current)).toEqual(savedForm);
 
+    const legacySavedForm: Record<string, unknown> = { ...savedForm };
+    delete legacySavedForm.reviewed;
+    current.documents.resume.content = {
+      ...legacySavedForm,
+      summary: "Recruiter-corrected legacy summary.",
+    };
+    current.sources = [{
+      id: "legacy-source-resume",
+      kind: "resume",
+      filename: "legacy-synthetic-resume.txt",
+      contentType: "text/plain",
+      sizeBytes: 160,
+      sha256: "sha-legacy-synthetic-resume",
+      captureTime: "2026-09-22T00:00:00.000Z",
+      lifecycleStatus: "reviewed",
+      reviewStatus: "reviewed",
+      parsedText: "Synthetic Candidate\nMaintenance Leader\n\nProfessional Summary\nOriginal source summary.",
+      classificationMethod: "explicit",
+    }];
+    expect(resumeDraftForEdit(current)).toMatchObject({
+      reviewed: false,
+      summary: "Recruiter-corrected legacy summary.",
+    });
+
     current.documents.resume.content = { time: 0, version: "2.31.0", blocks: [] };
     current.sources = [{
       id: "source-resume",
@@ -325,6 +349,13 @@ describe("canonical workflow UI execution contract", () => {
       origin: "edited",
       sourceRefs: ["resume:sha-resume:resume:reviewed:reviewed:explicit"],
       capabilityRunId: "run-write-up-1",
+      content: expect.objectContaining({ reviewed: true, summary: "Source-backed summary." }),
+    }));
+
+    const legacyDraft: Record<string, unknown> = { ...draft };
+    delete legacyDraft.reviewed;
+    await saveEditedOutput(saveDocument, session, legacyDraft);
+    expect(saveDocument).toHaveBeenLastCalledWith("case-1", "resume", expect.objectContaining({
       content: expect.objectContaining({ reviewed: true, summary: "Source-backed summary." }),
     }));
   });

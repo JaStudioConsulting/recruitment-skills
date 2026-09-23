@@ -6,11 +6,12 @@ this; use it only when you want callable tools or unattended runs.
 
 ## Local artifact builders
 
-- `build_pdf` is a low-level branded-resume draft renderer. It returns
-  `release_ready: false` because the active branded-resume and immutable
-  Legislator authorities conflict. The Workstation deliberately keeps this
-  executor unmounted until that conflict is resolved through the repository's
-  exact override protocol and the final PDF passes human visual QA.
+- `build_pdf` is the mounted canonical A-layout branded-resume renderer. It
+  validates structured input, returns the attested builder digest, and keeps
+  `release_ready: false` until the Workstation persists the exact PDF and a
+  recruiter completes page-by-page human visual QA. Named submissions and
+  internal MPC presentation are supported; external-client blind MPC remains
+  unavailable because verified anonymization is not implemented.
 - `build_reference_check_pdf` invokes the canonical sanitized-DOCX builder and
   renders that DOCX with LibreOffice. It fails closed when `SOFFICE`, `soffice`,
   or `libreoffice` is unavailable; it never substitutes a newly drawn PDF.
@@ -71,8 +72,9 @@ The `.app.json` app id for the ChatGPT app is issued by ChatGPT when you registe
 the app. Add it on the ChatGPT side; it is not stored in this repo.
 
 ## Notes
-- `build_pdf` uses the repository ReportLab renderer and remains a blocked draft,
-  not a compliant released resume.
+- `build_pdf` uses the repository ReportLab renderer and returns a non-release-ready
+  draft until the Workstation persists the exact output and a recruiter completes
+  page-by-page human visual QA.
 - Reference-check PDF rendering additionally requires LibreOffice. Set
   `SOFFICE` to its executable when it is not on `PATH`.
 - Keep GitHub `main` as the single authority. This server reads the same skills and

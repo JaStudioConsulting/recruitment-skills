@@ -267,6 +267,27 @@ test("hosted builder runtime and resolved dependencies are pinned and attested",
   assert.match(server, /"server\/requirements\.txt"/);
 });
 
+test("mounted branded-resume documentation matches the executable registry", async () => {
+  const featureManifest = JSON.parse(
+    await readFile(path.join(root, "workstation/capability-features.json"), "utf8"),
+  );
+  const brandResume = featureManifest.features.find((feature) => feature.id === "brand-resume");
+  assert.equal(brandResume?.mounted, true);
+
+  const workstationReadme = await readFile(path.join(root, "workstation/README.md"), "utf8");
+  const serverReadme = await readFile(path.join(root, "server/README.md"), "utf8");
+  for (const staleClaim of [
+    "blocked and unmounted",
+    "PDF-producing workflows are unmounted",
+    "deliberately keeps this executor unmounted",
+  ]) {
+    assert.doesNotMatch(workstationReadme, new RegExp(staleClaim, "i"));
+    assert.doesNotMatch(serverReadme, new RegExp(staleClaim, "i"));
+  }
+  assert.match(workstationReadme, /Branded Resume is mounted/);
+  assert.match(serverReadme, /build_pdf.*mounted canonical A-layout/s);
+});
+
 test("sourcing and web-sourcing CLIs export exact synthetic contracts", async () => {
   const dir = await mkdtemp(path.join(root, ".tmp-sourcing-contract-"));
     const rows = [

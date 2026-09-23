@@ -60,7 +60,7 @@ import type {
 } from "@/lib/artifact-browser";
 import { mergeCandidateCaseSnapshots } from "@/lib/case-merge";
 import { resumeFormFromCase } from "@/lib/capabilities/deterministic-autofill";
-import { isResumeForm, resumeFormHasContent, toResumeForm } from "@/lib/resume-form";
+import { hasResumeFormFormat, resumeFormHasContent, toResumeForm } from "@/lib/resume-form";
 import type { CapabilityExecutionResponse } from "@/lib/server/capability-execution-service";
 import type { CapabilityRunRecord } from "@/lib/server/capability-run-repository";
 import {
@@ -300,7 +300,7 @@ export function saveEditedOutput(
   session: OutputEditSession,
   content: CaseDocument["content"],
 ) {
-  const savedContent = session.kind === "resume" && isResumeForm(content)
+  const savedContent = session.kind === "resume" && hasResumeFormFormat(content)
     ? { ...toResumeForm(content), reviewed: true }
     : content;
   return saveDocument(session.caseId, session.kind, {
@@ -314,7 +314,7 @@ export function saveEditedOutput(
 
 export function resumeDraftForEdit(candidateCase: CandidateCase) {
   const stored = candidateCase.documents.resume.content;
-  if (isResumeForm(stored)) return toResumeForm(stored);
+  if (hasResumeFormFormat(stored)) return toResumeForm(stored);
   const recovered = resumeFormFromCase(candidateCase).form;
   return resumeFormHasContent(recovered) ? recovered : null;
 }
