@@ -159,8 +159,27 @@ class RefuseInsteadOfDropping(unittest.TestCase):
         _, rep = norm(complete_candidate(summary="Expected to lead the maintenance team."))
         self.assertEqual(rep["problems"], [])
 
+    def test_business_earnings_are_not_candidate_compensation(self):
+        _, rep = norm(complete_candidate(summary="Improved quarterly earnings through process changes."))
+        self.assertEqual(rep["problems"], [])
+
+    def test_candidate_earnings_context_is_compensation(self):
+        for phrase in ("Current earnings are confidential.", "Expected earnings are $120,000.", "Target earnings are $60/hour."):
+            with self.subTest(phrase=phrase):
+                _, rep = norm(complete_candidate(summary=phrase))
+                self.assertTrue(any("summary contains compensation information" in problem for problem in rep["problems"]))
+
     def test_education_dates_are_refused_not_silently_removed(self):
         _, rep = norm(complete_candidate(education=["**BSc** - Example University, 2015"]))
+        self.assertTrue(any("education[0] contains a date" in problem for problem in rep["problems"]))
+
+    def test_certification_version_year_is_preserved(self):
+        out, rep = norm(complete_candidate(education=["**ISO 9001:2015 Lead Auditor** - Example Registrar"]))
+        self.assertEqual(rep["problems"], [])
+        self.assertEqual(out["education"], ["**ISO 9001:2015 Lead Auditor** - Example Registrar"])
+
+    def test_certification_version_plus_actual_date_is_refused(self):
+        _, rep = norm(complete_candidate(education=["**ISO 9001:2015 Lead Auditor** - Example Registrar, 2020"]))
         self.assertTrue(any("education[0] contains a date" in problem for problem in rep["problems"]))
 
     def test_recruiter_approved_blank_experience_fields_are_permitted(self):

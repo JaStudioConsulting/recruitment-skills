@@ -96,12 +96,19 @@ BANNED = {
 }
 COMPENSATION = re.compile(
     r"(?:\b(?:compensation|salary|wages?|hourly\s+(?:pay\s+)?rate|pay\s+rate|"
-    r"base\s+pay|current\s+pay|currently\s+earns?|currently\s+earning|earnings?|ote)\b"
+    r"base\s+pay|current\s+pay|ote)\b"
+    r"|\bcurrently\s+earn(?:s|ing)?\b"
+    r"|\b(?:current|expected|target|desired)\s+earnings?\b"
     r"|\b(?:seeking|expected|expecting|desired|asking|target(?:ing)?)\b.{0,40}[$€£]\s*\d"
     r"|[$€£]\s*\d[\d,. ]*(?:\s*(?:/|per\s+)(?:hours?|hrs?|years?|annum)\b|\s+(?:annual(?:ly)?|ote)\b))",
     re.I,
 )
-EDUCATION_DATE = re.compile(r"\b(?:19|20)\d{2}\b")
+EDUCATION_DATE = re.compile(
+    r"(?:,\s*|\(\s*|\b(?:graduated|graduation|class\s+of)\s+)"
+    r"(?:19|20)\d{2}\b"
+    r"|\b(?:19|20)\d{2}\s*(?:-|to)\s*(?:19|20)\d{2}\b",
+    re.I,
+)
 
 def check_forbidden_content(data):
     offenders = []

@@ -20,6 +20,7 @@ import {
   insertRoleSource,
   insertSource,
   listDocumentVersions,
+  loadWorkspace,
   reviewRoleSource,
   reviewSource,
   saveCaseDocument,
@@ -128,6 +129,48 @@ afterEach(async () => {
 });
 
 describe("case repository atomic persistence", () => {
+  it("loads workspace lineage from current document versions only", async () => {
+    await database.prepare(
+      `UPDATE case_documents
+       SET revision = 2, content_json = ?
+       WHERE case_id = 'case-1' AND kind = 'resume'`,
+    ).bind(JSON.stringify({ ...emptyResumeForm(), name: "Current Resume" })).run();
+    await database.prepare(
+      `INSERT INTO case_document_versions
+        (case_id, kind, revision, content_json, source_refs_json, origin, created_by)
+       VALUES ('case-1', 'resume', 2, ?, '["current-ref"]', 'edited', 'user-1')`,
+    ).bind(JSON.stringify({ ...emptyResumeForm(), name: "Current Resume" })).run();
+
+    const preparedSql: string[] = [];
+    workerBindings.env.DB = new Proxy(database, {
+      get(target, property, receiver) {
+        if (property === "prepare") {
+          return (query: string) => {
+            preparedSql.push(query);
+            return target.prepare(query);
+          };
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    }) as D1Database;
+
+    const workspace = await loadWorkspace("user-1");
+    const caseOne = workspace.cases.find((candidateCase) => candidateCase.id === "case-1");
+    expect(caseOne?.documents.resume).toMatchObject({
+      revision: 2,
+      sourceRefs: ["current-ref"],
+    });
+
+    const versionQueries = preparedSql.filter((query) => query.includes("case_document_versions"));
+    expect(versionQueries).toHaveLength(2);
+    for (const query of versionQueries) {
+      expect(query).toContain("inner join \"case_documents\"");
+      expect(query).toContain(
+        "\"case_documents\".\"revision\" = \"case_document_versions\".\"revision\"",
+      );
+    }
+  });
+
   it("rejects a malformed reviewed resume form without persisting it", async () => {
     await expect(saveCaseDocument(
       "user-1",

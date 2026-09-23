@@ -603,6 +603,17 @@ test("synthetic branded resume artifact QA renders every page and records automa
     assert.match(datedEducation.stdout + datedEducation.stderr, /education\[0\].*contains a date/);
     assert.equal(exists(datedEducationOutput), false);
 
+    const legitimateEdgeInput = path.join(dir, "legitimate-edge.json");
+    const legitimateEdgeOutput = path.join(dir, "legitimate-edge.pdf");
+    await writeFile(legitimateEdgeInput, JSON.stringify({
+      ...data.resume,
+      summary: "Improved quarterly earnings through process changes.",
+      education: ["**ISO 9001:2015 Lead Auditor** - Example Registrar"],
+    }), "utf8");
+    const legitimateEdge = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", legitimateEdgeInput, "--out", legitimateEdgeOutput, "--engine", "reportlab"], { encoding: "utf8" });
+    assert.equal(legitimateEdge.status, 0, legitimateEdge.stderr || legitimateEdge.stdout);
+    assert.equal(exists(legitimateEdgeOutput), true);
+
     const incompleteInput = path.join(dir, "incomplete.json");
     const incompleteOutput = path.join(dir, "incomplete.pdf");
     await writeFile(incompleteInput, JSON.stringify({ name: "Synthetic Person", summary: "Source-backed summary." }), "utf8");

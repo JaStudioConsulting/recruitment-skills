@@ -306,9 +306,17 @@ export async function getCandidateCase(
 ): Promise<CandidateCase> {
   const db = getDb();
   const row = await assertOwnedCase(userId, caseId);
-  const [documents, documentVersions, sources] = await Promise.all([
+  const [documents, currentVersionRows, sources] = await Promise.all([
     db.select().from(caseDocuments).where(eq(caseDocuments.caseId, caseId)),
-    db.select().from(caseDocumentVersions).where(eq(caseDocumentVersions.caseId, caseId)),
+    db
+      .select({ version: caseDocumentVersions })
+      .from(caseDocumentVersions)
+      .innerJoin(caseDocuments, and(
+        eq(caseDocuments.caseId, caseDocumentVersions.caseId),
+        eq(caseDocuments.kind, caseDocumentVersions.kind),
+        eq(caseDocuments.revision, caseDocumentVersions.revision),
+      ))
+      .where(eq(caseDocuments.caseId, caseId)),
     db
       .select()
       .from(caseSources)
@@ -332,7 +340,7 @@ export async function getCandidateCase(
     facts: parseJson<CandidateFact[]>(row.factsJson, []),
     assistant: parseJson<AssistantState>(row.assistantJson, EMPTY_ASSISTANT),
     externalRefs: parseJson<Record<string, string>>(row.externalRefsJson, {}),
-    documents: documentMap(documents, documentVersions),
+    documents: documentMap(documents, currentVersionRows.map(({ version }) => version)),
     sources: sources.map(sourceRecord),
     updatedAt: row.updatedAt,
   };
