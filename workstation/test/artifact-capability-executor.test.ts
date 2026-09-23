@@ -251,6 +251,25 @@ describe("canonical PDF capability executor adapters", () => {
     );
   });
 
+  it("uses the same human-entered key-value mode syntax accepted during preparation", async () => {
+    const deps = dependencies();
+    await executeArtifactCapabilityWithDependencies({
+      userId: "user-1",
+      caseId: "case-1",
+      run: run({
+        capabilityId: "brandedresume",
+        executorId: "brand-resume",
+        extraInput: "resume_mode: internal_mpc",
+      }),
+      candidateCase: candidateCase(),
+    }, deps.value);
+
+    expect(deps.callResumeBuilder).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: "internal_mpc" }),
+      expect.any(Object),
+    );
+  });
+
   it("refuses unsupported or malformed explicit resume modes before calling the builder", async () => {
     for (const extraInput of [
       JSON.stringify({ resume_mode: "external_blind_mpc" }),

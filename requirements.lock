@@ -1,5 +1,5 @@
-# Fully resolved from the successful Render Python 3.14.3 runtime.
-# Keep synchronized with requirements.lock. Both files are part of the builder attestation.
+# Fully resolved from the successful Render runtime used by recruitment-mcp.
+# This file is both the deployment input and part of the builder attestation.
 annotated-types==0.8.0
 anyio==4.15.1
 attrs==26.1.0

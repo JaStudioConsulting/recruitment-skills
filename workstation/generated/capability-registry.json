@@ -2310,8 +2310,10 @@
         "../docs/templates/branded-resume-contract.md"
       ],
       "builder_paths": [
+        ".python-version",
         "server/candidate_input.py",
         "server/server.py",
+        "requirements.lock",
         "requirements.txt",
         "render.yaml",
         "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",
@@ -2349,7 +2351,7 @@
       "supporting_capability_ids": [
         "legislator"
       ],
-      "builder_digest": "660f0dc396f553c76bf84cb6206a44775f1a352cc108685bf6ccfc5948e9a781",
+      "builder_digest": "481add03fa5e75421b77b5167ab990c2fcb96d1c12555a55e9a68acd53cfb894",
       "supporting_authorities": [
         {
           "id": "legislator",

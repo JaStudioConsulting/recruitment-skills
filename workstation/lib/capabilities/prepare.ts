@@ -51,7 +51,7 @@ function normalizeInputKey(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
-function structuredInputValues(extraInput: string): Map<string, string> {
+export function structuredInputValues(extraInput: string): Map<string, string> {
   const values = new Map<string, string>();
   const trimmed = extraInput.trim();
   if (!trimmed) return values;

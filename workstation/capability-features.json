@@ -11,8 +11,10 @@
       "guide_paths": ["recruiter/modules/brandedresume/GUIDE.md", "recruiter/modules/legislator/GUIDE.md"],
       "contract_paths": ["../docs/templates/branded-resume-contract.md"],
       "builder_paths": [
+        ".python-version",
         "server/candidate_input.py",
         "server/server.py",
+        "requirements.lock",
         "requirements.txt",
         "render.yaml",
         "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",

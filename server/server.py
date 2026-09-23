@@ -60,7 +60,9 @@ BUILDER = os.path.join(
     REPO_ROOT, "skills", "recruiter", "modules", "brandedresume", "scripts", "build_resume.py"
 )
 BUILDER_AUTHORITY_PATHS = (
+    ".python-version",
     "render.yaml",
+    "requirements.lock",
     "requirements.txt",
     "server/candidate_input.py",
     "server/server.py",

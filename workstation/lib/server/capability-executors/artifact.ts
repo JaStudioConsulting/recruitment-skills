@@ -1,4 +1,5 @@
 import { featureById } from "@/lib/capabilities/catalog";
+import { structuredInputValues } from "@/lib/capabilities/prepare";
 import {
   isResumeForm,
   resumeFormHasContent,
@@ -131,16 +132,7 @@ function brandedResumeCandidate(candidateCase: CandidateCase): Record<string, un
 
 function brandedResumeMode(run: CapabilityRunRecord): "named_submission" | "internal_mpc" {
   if (!run.input.extraInput.trim()) return "named_submission";
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(run.input.extraInput);
-  } catch {
-    throw new ApiError(422, "Branded resume options must be a valid JSON object.");
-  }
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    throw new ApiError(422, "Branded resume options must be a valid JSON object.");
-  }
-  const mode = (parsed as { resume_mode?: unknown }).resume_mode;
+  const mode = structuredInputValues(run.input.extraInput).get("resume_mode");
   if (mode === "named_submission") return "named_submission";
   if (mode === "internal_mpc") return "internal_mpc";
   if (mode === "external_blind_mpc") {
