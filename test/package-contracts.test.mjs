@@ -595,13 +595,25 @@ test("synthetic branded resume artifact QA renders every page and records automa
     assert.match(compensation.stdout + compensation.stderr, /compensation information/);
     assert.equal(exists(compensationOutput), false);
 
-    const datedEducationInput = path.join(dir, "dated-education.json");
-    const datedEducationOutput = path.join(dir, "dated-education.pdf");
-    await writeFile(datedEducationInput, JSON.stringify({ ...data.resume, education: ["**BSc** - Example University, 2015"] }), "utf8");
-    const datedEducation = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", datedEducationInput, "--out", datedEducationOutput, "--engine", "reportlab"], { encoding: "utf8" });
-    assert.notEqual(datedEducation.status, 0, "education dates must fail closed");
-    assert.match(datedEducation.stdout + datedEducation.stderr, /education\[0\].*contains a date/);
-    assert.equal(exists(datedEducationOutput), false);
+    const datedEducationEntries = [
+      "**BSc** - Example University, 2015",
+      "2015 - **BSc** - Example University",
+      "**BSc** - Example University 2015",
+      "**BSc** - Example University - 2015",
+      "**BSc** - Example University, 2011-2015",
+      "**BSc** - Example University, Graduated: 2015",
+      "**BSc** - Example University, Education:2015",
+      "**ISO 9001:2015 Lead Auditor** - Example Registrar - 2020",
+    ];
+    for (const [index, education] of datedEducationEntries.entries()) {
+      const datedEducationInput = path.join(dir, `dated-education-${index}.json`);
+      const datedEducationOutput = path.join(dir, `dated-education-${index}.pdf`);
+      await writeFile(datedEducationInput, JSON.stringify({ ...data.resume, education: [education] }), "utf8");
+      const datedEducation = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", datedEducationInput, "--out", datedEducationOutput, "--engine", "reportlab"], { encoding: "utf8" });
+      assert.notEqual(datedEducation.status, 0, `education date must fail closed: ${education}`);
+      assert.match(datedEducation.stdout + datedEducation.stderr, /education\[0\].*contains a date/);
+      assert.equal(exists(datedEducationOutput), false);
+    }
 
     const legitimateEdgeInput = path.join(dir, "legitimate-edge.json");
     const legitimateEdgeOutput = path.join(dir, "legitimate-edge.pdf");

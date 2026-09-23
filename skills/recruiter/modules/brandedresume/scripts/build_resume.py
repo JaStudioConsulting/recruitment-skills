@@ -103,10 +103,37 @@ COMPENSATION = re.compile(
     r"|[$€£]\s*\d[\d,. ]*(?:\s*(?:/|per\s+)(?:hours?|hrs?|years?|annum)\b|\s+(?:annual(?:ly)?|ote)\b))",
     re.I,
 )
+# Education omits years in the branded format. Match a general 19xx/20xx year
+# anywhere in an education line, including leading, trailing, and hyphenated
+# forms. A digit-colon-prefixed year is a version token (for example
+# ISO 9001:2015), not an education date; any other year on that same line is
+# still caught.
 EDUCATION_DATE = re.compile(
-    r"(?:,\s*|\(\s*|\b(?:graduated|graduation|class\s+of)\s+)"
-    r"(?:19|20)\d{2}\b"
-    r"|\b(?:19|20)\d{2}\s*(?:-|to)\s*(?:19|20)\d{2}\b",
+    r"\b(?:graduated|graduation|class\s+of)\s*:\s*(?:19|20)\d{2}\b"
+    r"|(?<!\d:)\b(?:19|20)\d{2}\b",
+    re.I,
+)
+STREET = (
+    r"\b\d{1,6}(?:-\d{1,6})?\s+"
+    r"(?:[A-Za-z0-9][A-Za-z0-9.'-]*\s+){1,6}"
+    r"(?:street|st|road|rd|avenue|ave|boulevard|blvd|drive|dr|lane|ln|court|ct|"
+    r"way|trail|trl|parkway|pkwy|crescent|cres|place|pl|terrace|terr|circle|cir|"
+    r"highway|hwy)\.?(?=\s|,|$)"
+)
+POSTAL_CODE = r"(?:[A-Z]\d[A-Z][ -]?\d[A-Z]\d|\d{5}(?:-\d{4})?)"
+REGION = (
+    r"(?:AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT|"
+    r"AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|"
+    r"MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|"
+    r"WA|WV|WI|WY)"
+)
+POSTAL_ADDRESS = re.compile(
+    STREET
+    + rf"(?=[^\n]{{0,90}}(?:\b{POSTAL_CODE}\b|,\s*[A-Za-z][A-Za-z .'-]{{1,40}},\s*{REGION}\b))",
+    re.I,
+)
+CUED_ADDRESS = re.compile(
+    rf"\b(?:home\s+address|mailing\s+address|address|lives?\s+at|resides?\s+at)\b[^\n]{{0,24}}{STREET}",
     re.I,
 )
 
@@ -122,6 +149,8 @@ def check_forbidden_content(data):
             offenders.append(f"  {label}: contains whitespace around slash (/) -> {text[:70]!r}")
         if COMPENSATION.search(text):
             offenders.append(f"  {label}: contains compensation information -> {text[:70]!r}")
+        if POSTAL_ADDRESS.search(text) or CUED_ADDRESS.search(text):
+            offenders.append(f"  {label}: contains contact details (address) -> {text[:70]!r}")
     scan("name", data.get("name", ""))
     scan("headline", data.get("headline", ""))
     scan("summary", data.get("summary", ""))
@@ -159,6 +188,7 @@ def check_required_structure(data):
     if not isinstance(experience, list) or not experience:
         problems.append("  experience: requires at least one Professional Experience entry")
     else:
+        companies = {}
         for index, job in enumerate(experience):
             if not isinstance(job, dict):
                 problems.append(f"  experience[{index}]: must be an object")
@@ -170,6 +200,20 @@ def check_required_structure(data):
             bullets = job.get("bullets")
             if not isinstance(bullets, list) or not any(isinstance(item, str) and item.strip() for item in bullets):
                 problems.append(f"  experience[{index}].bullets: requires source-backed content")
+            company_key = (
+                re.sub(r"\s+", " ", company).strip().rstrip(".,").casefold()
+                if isinstance(company, str)
+                else ""
+            )
+            if company_key:
+                if company_key in companies:
+                    first_index = companies[company_key]
+                    problems.append(
+                        f"  experience[{index}].company duplicates experience[{first_index}].company "
+                        f"({company.strip()!r}). Combine same-company roles into one timeline entry before building."
+                    )
+                else:
+                    companies[company_key] = index
     education = data.get("education")
     if not isinstance(education, list) or not any(isinstance(item, str) and item.strip() for item in education):
         problems.append("  education: requires Education & Certifications content")

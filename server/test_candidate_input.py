@@ -5,9 +5,20 @@ Run: python3 server/test_candidate_input.py
 import os
 import sys
 import unittest
+import importlib.util
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from candidate_input import find_contact, normalize_candidate  # noqa: E402
+
+_BUILDER_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "skills/recruiter/modules/brandedresume/scripts/build_resume.py"
+)
+_BUILDER_SPEC = importlib.util.spec_from_file_location("canonical_build_resume", _BUILDER_PATH)
+assert _BUILDER_SPEC and _BUILDER_SPEC.loader
+_BUILDER = importlib.util.module_from_spec(_BUILDER_SPEC)
+_BUILDER_SPEC.loader.exec_module(_BUILDER)
 
 JOB = {"title": "CNC Machinist", "company": "Example Fabrication", "location": "Hamilton, ON",
        "dates": "Jan-2020 - Present", "bullets": ["Cut scrap **22%** across two lines."]}
@@ -173,6 +184,20 @@ class RefuseInsteadOfDropping(unittest.TestCase):
         _, rep = norm(complete_candidate(education=["**BSc** - Example University, 2015"]))
         self.assertTrue(any("education[0] contains a date" in problem for problem in rep["problems"]))
 
+    def test_general_education_year_forms_are_refused(self):
+        entries = (
+            "2015 - **BSc** - Example University",
+            "**BSc** - Example University 2015",
+            "**BSc** - Example University - 2015",
+            "**BSc** - Example University, 2011-2015",
+            "**BSc** - Example University, Graduated: 2015",
+            "**BSc** - Example University, Education:2015",
+        )
+        for entry in entries:
+            with self.subTest(entry=entry):
+                _, rep = norm(complete_candidate(education=[entry]))
+                self.assertTrue(any("education[0] contains a date" in problem for problem in rep["problems"]))
+
     def test_certification_version_year_is_preserved(self):
         out, rep = norm(complete_candidate(education=["**ISO 9001:2015 Lead Auditor** - Example Registrar"]))
         self.assertEqual(rep["problems"], [])
@@ -185,6 +210,26 @@ class RefuseInsteadOfDropping(unittest.TestCase):
     def test_recruiter_approved_blank_experience_fields_are_permitted(self):
         approved = {**JOB, "company": "", "location": "", "dates": ""}
         _, rep = norm(complete_candidate(experience=[approved]))
+        self.assertEqual(rep["problems"], [])
+
+    def test_separate_same_company_roles_are_refused(self):
+        experience = [
+            {**JOB, "title": "Machinist", "company": "Example Fabrication"},
+            {**JOB, "title": "Lead Hand", "company": "  EXAMPLE   FABRICATION  "},
+        ]
+        _, rep = norm(complete_candidate(experience=experience))
+        self.assertTrue(any(
+            "experience[1].company duplicates experience[0].company" in problem
+            and "Combine same-company roles" in problem
+            for problem in rep["problems"]
+        ))
+
+    def test_multiple_blank_company_roles_are_not_treated_as_duplicates(self):
+        experience = [
+            {**JOB, "title": "Machinist", "company": ""},
+            {**JOB, "title": "Lead Hand", "company": ""},
+        ]
+        _, rep = norm(complete_candidate(experience=experience))
         self.assertEqual(rep["problems"], [])
 
 
@@ -221,6 +266,44 @@ class ContactStripping(unittest.TestCase):
     def test_dates_money_and_gpa_are_not_mistaken_for_contact(self):
         text = "Managed a $125M program and $120 000 000 capital budget, version 2024.10.15, 2012 - 2016, GPA 3.87/4.00, Jan-2020 - Present, 38 direct reports."
         self.assertEqual(find_contact(text), [])
+
+    def test_postal_address_inside_text_is_refused_with_the_field_named(self):
+        raw = complete_candidate(
+            summary="Lives at 123 Main Street, Toronto, ON M5V 2T6.",
+            experience=[{**JOB, "bullets": ["Mail was routed to 44 King Road, Hamilton, ON L8P 1A1."]}],
+        )
+        _, rep = norm(raw)
+        joined = " ".join(rep["problems"])
+        self.assertIn("summary contains contact details (address)", joined)
+        self.assertIn("experience[0].bullets[0] contains contact details (address)", joined)
+
+    def test_address_guard_does_not_match_counts_routes_or_generic_main_street_language(self):
+        for text in (
+            "Supported 123 Main Street retail locations across Ontario.",
+            "Managed Highway 401 corridor maintenance.",
+            "Processed 500 King Street orders per month.",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(find_contact(text), [])
+
+
+class DirectBuilderBoundary(unittest.TestCase):
+    def test_direct_builder_rejects_embedded_postal_address(self):
+        candidate = complete_candidate(summary="Lives at 123 Main Street, Toronto, ON M5V 2T6.")
+        offenders = _BUILDER.check_forbidden_content(candidate)
+        self.assertTrue(any("summary: contains contact details (address)" in problem for problem in offenders))
+
+    def test_direct_builder_rejects_uncombined_same_company_roles(self):
+        candidate = complete_candidate(experience=[
+            {**JOB, "title": "Machinist", "company": "Example Fabrication"},
+            {**JOB, "title": "Lead Hand", "company": "EXAMPLE FABRICATION"},
+        ])
+        problems = _BUILDER.check_required_structure(candidate)
+        self.assertTrue(any(
+            "experience[1].company duplicates experience[0].company" in problem
+            and "Combine same-company roles" in problem
+            for problem in problems
+        ))
 
 
 class BoldMarkers(unittest.TestCase):

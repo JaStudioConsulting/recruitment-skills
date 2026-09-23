@@ -38,6 +38,33 @@ _PHONE = re.compile(
     r"|\d{2}\s+\d{2,4}\s+\d{4}\s+\d{4}"
     r")(?!\d)"
 )
+# Require a street number/name/suffix plus either locality/region context, a
+# postal code, or an explicit home/address cue. This catches embedded home
+# addresses without treating ordinary counts such as "500 King Street orders"
+# as contact information.
+_STREET = (
+    r"\b\d{1,6}(?:-\d{1,6})?\s+"
+    r"(?:[A-Za-z0-9][A-Za-z0-9.'-]*\s+){1,6}"
+    r"(?:street|st|road|rd|avenue|ave|boulevard|blvd|drive|dr|lane|ln|court|ct|"
+    r"way|trail|trl|parkway|pkwy|crescent|cres|place|pl|terrace|terr|circle|cir|"
+    r"highway|hwy)\.?(?=\s|,|$)"
+)
+_POSTAL_CODE = r"(?:[A-Z]\d[A-Z][ -]?\d[A-Z]\d|\d{5}(?:-\d{4})?)"
+_REGION = (
+    r"(?:AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT|"
+    r"AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|"
+    r"MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|"
+    r"WA|WV|WI|WY)"
+)
+_POSTAL_ADDRESS = re.compile(
+    _STREET
+    + rf"(?=[^\n]{{0,90}}(?:\b{_POSTAL_CODE}\b|,\s*[A-Za-z][A-Za-z .'-]{{1,40}},\s*{_REGION}\b))",
+    re.I,
+)
+_CUED_ADDRESS = re.compile(
+    rf"\b(?:home\s+address|mailing\s+address|address|lives?\s+at|resides?\s+at)\b[^\n]{{0,24}}{_STREET}",
+    re.I,
+)
 _SPACED_SLASH = re.compile(r"\s/|/\s")
 _COMPENSATION = re.compile(
     r"(?:\b(?:compensation|salary|wages?|hourly\s+(?:pay\s+)?rate|pay\s+rate|"
@@ -48,10 +75,14 @@ _COMPENSATION = re.compile(
     r"|[$€£]\s*\d[\d,. ]*(?:\s*(?:/|per\s+)(?:hours?|hrs?|years?|annum)\b|\s+(?:annual(?:ly)?|ote)\b))",
     re.I,
 )
+# Education omits years in the branded format. Match a general 19xx/20xx year
+# anywhere in an education line, including leading, trailing, and hyphenated
+# forms. A digit-colon-prefixed year is a version token (for example
+# ISO 9001:2015), not an education date; any other year on that same line is
+# still caught.
 _EDUCATION_DATE = re.compile(
-    r"(?:,\s*|\(\s*|\b(?:graduated|graduation|class\s+of)\s+)"
-    r"(?:19|20)\d{2}\b"
-    r"|\b(?:19|20)\d{2}\s*(?:-|to)\s*(?:19|20)\d{2}\b",
+    r"\b(?:graduated|graduation|class\s+of)\s*:\s*(?:19|20)\d{2}\b"
+    r"|(?<!\d:)\b(?:19|20)\d{2}\b",
     re.I,
 )
 
@@ -67,8 +98,11 @@ def find_contact(text):
     """Return the kinds of contact detail present in one string."""
     if not isinstance(text, str):
         return []
-    return [kind for pattern, kind in ((_EMAIL, "email"), (_URL, "link"), (_PHONE, "phone"))
-            if pattern.search(text)]
+    found = [kind for pattern, kind in ((_EMAIL, "email"), (_URL, "link"), (_PHONE, "phone"))
+             if pattern.search(text)]
+    if _POSTAL_ADDRESS.search(text) or _CUED_ADDRESS.search(text):
+        found.append("address")
+    return found
 
 
 # ------------------------------------------------------------------ shapes
@@ -310,6 +344,24 @@ def normalize_candidate(raw):
         # "leave it blank" option; title and company cannot both be blank.
         if not job.get("bullets"):
             problems.append(f"experience[{index}].bullets is empty. Confirm source-backed experience before building.")
+
+    # The canonical layout uses one employer timeline entry containing all
+    # titles held there. Separate entries for the same known employer would
+    # render duplicate company headers and violate that contract.
+    companies = {}
+    for index, job in enumerate(out["experience"]):
+        company = job.get("company", "")
+        company_key = re.sub(r"\s+", " ", company).strip().rstrip(".,").casefold()
+        if not company_key:
+            continue
+        if company_key in companies:
+            first_index = companies[company_key]
+            problems.append(
+                f"experience[{index}].company duplicates experience[{first_index}].company "
+                f"({company.strip()!r}). Combine same-company roles into one timeline entry before building."
+            )
+        else:
+            companies[company_key] = index
 
     # Bold markers only render in bullets, education and section items.
     unbold = lambda v: re.sub(r"\*\*(.+?)\*\*", r"\1", v) if isinstance(v, str) else v
