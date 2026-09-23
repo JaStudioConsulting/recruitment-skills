@@ -333,6 +333,55 @@ CMRP - Synthetic Institute`, "separate-certifications.txt");
     });
   });
 
+  it("preserves content from repeated recognized summary and skills sections", () => {
+    const parsed = parseResumeText(`Avery Repeated
+Maintenance Manager
+SUMMARY
+Maintenance leader with manufacturing experience.
+OBJECTIVE
+Improve asset reliability without compromising safety.
+SKILLS
+Preventive maintenance, CMMS
+TECHNICAL SKILLS
+PLC troubleshooting
+• Root cause analysis`, "repeated-sections.txt");
+
+    expect(lines(parsed.form.summary)).toEqual([
+      "Maintenance leader with manufacturing experience.",
+      "Improve asset reliability without compromising safety.",
+    ]);
+    expect(lines(parsed.form.skills)).toEqual([
+      "Preventive maintenance",
+      "CMMS",
+      "PLC troubleshooting",
+      "Root cause analysis",
+    ]);
+    expect(parsed.sources).toMatchObject({
+      "resume.summary": "repeated-sections.txt",
+      "resume.skills": "repeated-sections.txt",
+    });
+  });
+
+  it("preserves jobs from repeated recognized experience sections", () => {
+    const parsed = parseResumeText(`Avery Repeated
+Maintenance Manager
+EXPERIENCE
+Maintenance Manager | Example Manufacturing Inc. | 2022 - Present
+• Led preventive maintenance.
+WORK HISTORY
+Maintenance Planner | Sample Components Ltd. | 2020 - 2021
+• Planned weekly work orders.`, "repeated-experience.txt");
+
+    expect(parsed.form.jobs).toEqual([
+      { title: "Maintenance Manager", company: "Example Manufacturing Inc.", location: "", dates: "2022 - Present", bullets: "Led preventive maintenance." },
+      { title: "Maintenance Planner", company: "Sample Components Ltd.", location: "", dates: "2020 - 2021", bullets: "Planned weekly work orders." },
+    ]);
+    expect(parsed.sources).toMatchObject({
+      "resume.jobs.0.title": "repeated-experience.txt",
+      "resume.jobs.1.title": "repeated-experience.txt",
+    });
+  });
+
   it("pre-fills resume, JD, and only explicitly labelled call facts with provenance", () => {
     const candidateCase = {
       sources: [

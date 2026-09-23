@@ -288,6 +288,38 @@ class ContactStripping(unittest.TestCase):
 
 
 class DirectBuilderBoundary(unittest.TestCase):
+    def test_direct_builder_rejects_email_url_and_phone_in_rendered_fields(self):
+        cases = (
+            ("name", complete_candidate(name="Sample Person sample@example.com"), "email"),
+            ("headline", complete_candidate(headline="CNC Machinist https://example.com/profile"), "link"),
+            ("summary", complete_candidate(summary="Call +44 20 7946 0958 for details."), "phone"),
+            ("skills[0]", complete_candidate(skills=["CNC Machining www.example.com", "Blueprint Reading"]), "link"),
+            ("experience[0].title", complete_candidate(experience=[{**JOB, "title": "Machinist sample@example.com"}]), "email"),
+            ("experience[0].dates", complete_candidate(experience=[{**JOB, "dates": "Jan-2020 - Present, 555-555-0100"}]), "phone"),
+            ("experience[0].company", complete_candidate(experience=[{**JOB, "company": "Example https://example.com"}]), "link"),
+            ("experience[0].location", complete_candidate(experience=[{**JOB, "location": "Hamilton, ON sample@example.com"}]), "email"),
+            ("experience[0].bullets[0]", complete_candidate(experience=[{**JOB, "bullets": ["Call (555) 555-0100."]}]), "phone"),
+            ("education[0]", complete_candidate(education=["Diploma - example.edu/path https://example.edu/path"]), "link"),
+            ("education_heading", complete_candidate(education_heading="Education sample@example.com"), "email"),
+            ("sections[0].heading", complete_candidate(sections=[{"heading": "Awards www.example.com", "items": ["Safety award"]}]), "link"),
+            ("sections[0].items[0]", complete_candidate(sections=[{"heading": "Awards", "items": ["Safety award, 555-555-0100"]}]), "phone"),
+        )
+        for label, candidate, kind in cases:
+            with self.subTest(label=label, kind=kind):
+                offenders = _BUILDER.check_forbidden_content(candidate)
+                self.assertTrue(any(
+                    f"{label}: contains contact details ({kind})" in problem
+                    for problem in offenders
+                ), offenders)
+
+    def test_direct_builder_contact_guard_ignores_dates_money_and_gpa(self):
+        candidate = complete_candidate(
+            summary="Managed a $125M program, version 2024.10.15, GPA 3.87/4.00, and 38 direct reports.",
+            experience=[{**JOB, "dates": "Jan-2020 - Present"}],
+        )
+        offenders = _BUILDER.check_forbidden_content(candidate)
+        self.assertFalse(any("contact details" in problem for problem in offenders), offenders)
+
     def test_direct_builder_rejects_embedded_postal_address(self):
         candidate = complete_candidate(summary="Lives at 123 Main Street, Toronto, ON M5V 2T6.")
         offenders = _BUILDER.check_forbidden_content(candidate)

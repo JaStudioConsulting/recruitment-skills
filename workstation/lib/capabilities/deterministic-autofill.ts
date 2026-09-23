@@ -254,15 +254,15 @@ export function parseResumeText(text: string, filename: string): ParsedResume {
     if (kind) { active = { heading: line.replace(/[:|]+$/, "").trim(), kind, lines: [] }; sections.push(active); }
     else if (active) active.lines.push(line);
   }
-  const summary = sections.find((section) => section.kind === "summary");
-  if (summary?.lines.length) { form.summary = summary.lines.join("\n"); sources["resume.summary"] = filename; }
-  const skills = sections.find((section) => section.kind === "skills");
-  if (skills?.lines.length) {
-    form.skills = parseSkills(skills.lines).join("\n");
+  const summary = sections.filter((section) => section.kind === "summary" && section.lines.length);
+  if (summary.length) { form.summary = summary.flatMap((section) => section.lines).join("\n"); sources["resume.summary"] = filename; }
+  const skills = sections.filter((section) => section.kind === "skills" && section.lines.length);
+  if (skills.length) {
+    form.skills = skills.flatMap((section) => parseSkills(section.lines)).join("\n");
     if (form.skills) sources["resume.skills"] = filename;
   }
-  const experience = sections.find((section) => section.kind === "experience");
-  form.jobs = experience ? parseJobs(experience.lines) : [];
+  const experience = sections.filter((section) => section.kind === "experience" && section.lines.length);
+  form.jobs = experience.flatMap((section) => parseJobs(section.lines));
   form.jobs.forEach((job, index) => Object.entries(job).forEach(([key, value]) => { if (value) sources[`resume.jobs.${index}.${key}`] = filename; }));
   const education = sections.filter((section) => section.kind === "education");
   if (education.length) {

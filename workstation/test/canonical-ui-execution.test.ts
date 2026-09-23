@@ -129,6 +129,95 @@ describe("canonical workflow UI execution contract", () => {
     expect(resumeDraftForEdit(current)).toBeNull();
   });
 
+  it("reconciles every usable resume attachment before saving reviewed recovery lineage", async () => {
+    const current = candidateCase();
+    current.documents.resume.content = { time: 0, version: "2.31.0", blocks: [] };
+    current.sources = [
+      {
+        id: "resume-older",
+        kind: "resume",
+        filename: "synthetic-older-resume.txt",
+        contentType: "text/plain",
+        sizeBytes: 300,
+        sha256: "sha-older",
+        captureTime: "2026-09-20T00:00:00.000Z",
+        lifecycleStatus: "reviewed",
+        reviewStatus: "reviewed",
+        parsedText: `Synthetic Candidate
+Maintenance Manager
+PROFESSIONAL SUMMARY
+Earlier source-backed summary.
+CORE COMPETENCIES
+Preventive maintenance
+PROFESSIONAL EXPERIENCE
+Maintenance Planner | Example Components Ltd. | 2020 - 2023
+• Planned preventive work.
+EDUCATION
+Mechanical Technology Diploma`,
+        classificationMethod: "explicit",
+      },
+      {
+        id: "resume-newer",
+        kind: "resume",
+        filename: "synthetic-newer-resume.txt",
+        contentType: "text/plain",
+        sizeBytes: 320,
+        sha256: "sha-newer",
+        captureTime: "2026-09-23T00:00:00.000Z",
+        lifecycleStatus: "reviewed",
+        reviewStatus: "reviewed",
+        parsedText: `Synthetic Candidate
+Senior Maintenance Manager
+PROFESSIONAL SUMMARY
+Current source-backed summary.
+CORE COMPETENCIES
+CMMS administration
+PROFESSIONAL EXPERIENCE
+Senior Maintenance Manager | Example Manufacturing Inc. | 2023 - Present
+• Led maintenance operations.
+CERTIFICATIONS
+Synthetic Reliability Certificate`,
+        classificationMethod: "explicit",
+      },
+    ];
+
+    const recovered = resumeDraftForEdit(current)!;
+    expect(recovered.headline).toBe("Senior Maintenance Manager");
+    expect(recovered.summary).toContain("Current source-backed summary.");
+    expect(recovered.summary).toContain("Earlier source-backed summary.");
+    expect(recovered.skills.split("\n")).toEqual(["CMMS administration", "Preventive maintenance"]);
+    expect(recovered.jobs.map((job) => job.title)).toEqual([
+      "Senior Maintenance Manager",
+      "Maintenance Planner",
+    ]);
+    expect(recovered.education).toBe("Mechanical Technology Diploma");
+    expect(recovered.sections).toEqual([{
+      heading: "CERTIFICATIONS",
+      items: "Synthetic Reliability Certificate",
+    }]);
+
+    const versions: DocumentVersion[] = [{
+      kind: "resume",
+      revision: 1,
+      content: current.documents.resume.content,
+      sourceRefs: [],
+      capabilityRunId: null,
+      origin: "generated",
+      createdAt: "2026-09-20T00:00:00.000Z",
+    }];
+    const session = editSessionForCurrentDocument(current, "resume", versions)!;
+    const saveDocument = vi.fn(async () => document("resume", 2));
+    await saveEditedOutput(saveDocument, session, recovered);
+
+    expect(saveDocument).toHaveBeenCalledWith("case-1", "resume", expect.objectContaining({
+      sourceRefs: [
+        "resume-newer:sha-newer:resume:reviewed:reviewed:explicit",
+        "resume-older:sha-older:resume:reviewed:reviewed:explicit",
+      ],
+      content: expect.objectContaining({ reviewed: true }),
+    }));
+  });
+
   it("refuses to replace the visible case when candidate intake finishes in a changed context", () => {
     const originating = { roleId: "role-1", caseId: "case-1" };
 

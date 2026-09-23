@@ -60,7 +60,14 @@ import type {
 } from "@/lib/artifact-browser";
 import { mergeCandidateCaseSnapshots } from "@/lib/case-merge";
 import { resumeFormFromCase } from "@/lib/capabilities/deterministic-autofill";
-import { hasResumeFormFormat, resumeFormHasContent, toResumeForm } from "@/lib/resume-form";
+import {
+  hasResumeFormFormat,
+  lines,
+  resumeFormHasContent,
+  toResumeForm,
+  type ResumeFormDocument,
+  type ResumeFormJob,
+} from "@/lib/resume-form";
 import type { CapabilityExecutionResponse } from "@/lib/server/capability-execution-service";
 import type { CapabilityRunRecord } from "@/lib/server/capability-run-repository";
 import {
@@ -312,10 +319,86 @@ export function saveEditedOutput(
   });
 }
 
+function uniqueLines(values: readonly string[]) {
+  const seen = new Set<string>();
+  return values.flatMap(lines).filter((line) => {
+    const key = line.toLocaleLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).join("\n");
+}
+
+function resumeJobKey(job: ResumeFormJob) {
+  return [job.title, job.company, job.location, job.dates]
+    .map((value) => value.toLocaleLowerCase().replace(/\s+/g, " ").trim())
+    .join("\u0000");
+}
+
+function reconcileRecoveredResumeForms(forms: readonly ResumeFormDocument[]): ResumeFormDocument {
+  const primary = forms[0] ?? toResumeForm(null);
+  const jobs: ResumeFormJob[] = [];
+  const jobIndex = new Map<string, number>();
+  for (const form of forms) {
+    for (const job of form.jobs) {
+      const key = resumeJobKey(job);
+      if (!key.replaceAll("\u0000", "")) continue;
+      const existingIndex = jobIndex.get(key);
+      if (existingIndex === undefined) {
+        jobIndex.set(key, jobs.length);
+        jobs.push({ ...job });
+        continue;
+      }
+      jobs[existingIndex] = {
+        ...jobs[existingIndex],
+        bullets: uniqueLines([jobs[existingIndex].bullets, job.bullets]),
+      };
+    }
+  }
+
+  const sections: ResumeFormDocument["sections"] = [];
+  const sectionIndex = new Map<string, number>();
+  for (const form of forms) {
+    for (const section of form.sections) {
+      const key = section.heading.toLocaleLowerCase().replace(/\s+/g, " ").trim();
+      const existingIndex = key ? sectionIndex.get(key) : undefined;
+      if (existingIndex === undefined) {
+        if (key) sectionIndex.set(key, sections.length);
+        sections.push({ ...section });
+        continue;
+      }
+      sections[existingIndex] = {
+        ...sections[existingIndex],
+        items: uniqueLines([sections[existingIndex].items, section.items]),
+      };
+    }
+  }
+
+  const firstNonBlank = (field: keyof Pick<ResumeFormDocument, "name" | "headline" | "educationHeading">) =>
+    forms.map((form) => form[field]).find((value) => value.trim()) ?? "";
+  return {
+    ...primary,
+    reviewed: false,
+    name: firstNonBlank("name"),
+    headline: firstNonBlank("headline"),
+    summary: uniqueLines(forms.map((form) => form.summary)),
+    skills: uniqueLines(forms.map((form) => form.skills)),
+    jobs,
+    educationHeading: firstNonBlank("educationHeading"),
+    education: uniqueLines(forms.map((form) => form.education)),
+    sections,
+  };
+}
+
 export function resumeDraftForEdit(candidateCase: CandidateCase) {
   const stored = candidateCase.documents.resume.content;
   if (hasResumeFormFormat(stored)) return toResumeForm(stored);
-  const recovered = resumeFormFromCase(candidateCase).form;
+  const resumeSources = candidateCase.sources
+    .filter((source) => source.kind === "resume" && sourceIsUsable(source))
+    .sort((left, right) => right.captureTime.localeCompare(left.captureTime) || left.id.localeCompare(right.id));
+  const recovered = reconcileRecoveredResumeForms(resumeSources.map((source) =>
+    resumeFormFromCase({ ...candidateCase, sources: [source] }).form,
+  ));
   return resumeFormHasContent(recovered) ? recovered : null;
 }
 

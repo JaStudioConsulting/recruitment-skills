@@ -52,6 +52,7 @@ House rules enforced here (so a client never sees a slip):
     hyphens in compound words (cost-reduction), slash-separated text without
     spaces (CNC/manual), and the date format (Dec-2025 - Present) are fine.
   - NO compensation information anywhere in the rendered resume.
+  - NO email address, URL, or phone number anywhere in the rendered resume.
   - Logo centered at the top; exactly one title line under the name.
   - No hyperlinks are ever added.
 """
@@ -103,6 +104,20 @@ COMPENSATION = re.compile(
     r"|[$€£]\s*\d[\d,. ]*(?:\s*(?:/|per\s+)(?:hours?|hrs?|years?|annum)\b|\s+(?:annual(?:ly)?|ote)\b))",
     re.I,
 )
+EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+URL = re.compile(r"(?:https?://|www\.)\S+|\b(?:[a-z0-9-]+\.)*linkedin\.com/\S*", re.I)
+# North American phone shapes plus common international forms. Keep the
+# no-plus forms deliberately structural so dates, grouped currency, and other
+# ordinary resume numbers are not mistaken for contact details.
+PHONE = re.compile(
+    r"(?<!\d)(?:"
+    r"(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}"
+    r"|\+\d{1,3}(?:[\s().-]*\d){7,14}"
+    r"|00\d{2,3}(?:\s+\d{2,4}){3}"
+    r"|0\d{2,3}\s+\d{3,4}\s+\d{4}"
+    r"|\d{2}\s+\d{2,4}\s+\d{4}\s+\d{4}"
+    r")(?!\d)"
+)
 # Education omits years in the branded format. Match a general 19xx/20xx year
 # anywhere in an education line, including leading, trailing, and hyphenated
 # forms. A digit-colon-prefixed year is a version token (for example
@@ -149,6 +164,9 @@ def check_forbidden_content(data):
             offenders.append(f"  {label}: contains whitespace around slash (/) -> {text[:70]!r}")
         if COMPENSATION.search(text):
             offenders.append(f"  {label}: contains compensation information -> {text[:70]!r}")
+        for pattern, kind in ((EMAIL, "email"), (URL, "link"), (PHONE, "phone")):
+            if pattern.search(text):
+                offenders.append(f"  {label}: contains contact details ({kind}) -> {text[:70]!r}")
         if POSTAL_ADDRESS.search(text) or CUED_ADDRESS.search(text):
             offenders.append(f"  {label}: contains contact details (address) -> {text[:70]!r}")
     scan("name", data.get("name", ""))
