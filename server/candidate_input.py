@@ -25,19 +25,99 @@ import re
 # ------------------------------------------------------------------ contact
 _EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 _URL = re.compile(r"(?:https?://|www\.)\S+|\b(?:[a-z0-9-]+\.)*linkedin\.com/\S*", re.I)
-# North American phone shapes: (555) 555-0100, 555-555-0100, +1 555 555 0100.
-_PHONE = re.compile(r"(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}(?!\d)")
+# North American phone shapes plus common international forms. Keep the
+# no-plus forms deliberately structural: a domestic trunk prefix, an 00 country
+# prefix, or a two-digit country code followed by three groups. This catches
+# real UK-style numbers without treating dates or grouped currency as phones.
+_PHONE = re.compile(
+    r"(?<!\d)(?:"
+    r"(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}"
+    r"|\+\d{1,3}(?:[\s().-]*\d){7,14}"
+    r"|00\d{2,3}(?:\s+\d{2,4}){3}"
+    r"|0\d{2,3}\s+\d{3,4}\s+\d{4}"
+    r"|\d{2}\s+\d{2,4}\s+\d{4}\s+\d{4}"
+    r")(?!\d)"
+)
+# Require a street number/name/suffix plus either locality/region context, a
+# postal code, or an explicit home/address cue. This catches embedded home
+# addresses without treating ordinary counts such as "500 King Street orders"
+# as contact information.
+_STREET = (
+    r"\b\d{1,6}[A-Za-z]?(?:-\d{1,6}[A-Za-z]?)?\s+"
+    r"(?:[A-Za-z0-9][A-Za-z0-9.'-]*\s+){1,6}"
+    r"(?:street|st|road|rd|avenue|ave|boulevard|blvd|drive|dr|lane|ln|court|ct|"
+    r"way|trail|trl|parkway|pkwy|crescent|cres|place|pl|terrace|terr|circle|cir|"
+    r"highway|hwy|close|gardens|square|row|mews|quay)\.?(?=\s|,|$)"
+)
+_POSTAL_CODE = (
+    # Canada and the US.
+    r"(?:[A-Z]\d[A-Z][ -]?\d[A-Z]\d|\d{5}(?:-\d{4})?"
+    # UK postcode and Irish Eircode. These formats include
+    # letters in fixed positions, so they are safe to recognize without a
+    # country cue and do not turn ordinary years or counts into addresses.
+    r"|GIR[ ]?0AA|[A-Z]{1,2}\d[A-Z\d]?[ ]?\d[A-Z]{2}"
+    r"|[AC-FHKNPRTV-Y]\d{2}[ ]?[AC-FHKNPRTV-Y0-9]{4})"
+)
+_REGION = (
+    r"(?:AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT|"
+    r"AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|"
+    r"MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|"
+    r"WA|WV|WI|WY)"
+)
+_POSTAL_ADDRESS = re.compile(
+    _STREET
+    + rf"(?=[^\n]{{0,90}}(?:\b{_POSTAL_CODE}\b|,\s*[A-Za-z][A-Za-z .'-]{{1,40}},\s*{_REGION}\b))",
+    re.I,
+)
+_AUSTRALIAN_ADDRESS = re.compile(
+    _STREET
+    + r"(?=[^\n]{0,60},\s*[A-Za-z][A-Za-z .'-]{1,40},?\s+"
+      r"(?:ACT|NSW|NT|QLD|SA|TAS|VIC|WA)\s+\d{4}\b)",
+    re.I,
+)
+_CUED_ADDRESS = re.compile(
+    rf"\b(?:home\s+address|mailing\s+address|address|lives?\s+at|resides?\s+at)\b[^\n]{{0,24}}{_STREET}",
+    re.I,
+)
+_SPACED_SLASH = re.compile(r"\s/|/\s")
+_COMPENSATION = re.compile(
+    r"(?:\b(?:compensation|salary|wages?|hourly\s+(?:pay\s+)?rate|pay\s+rate|"
+    r"base\s+pay|current\s+pay|ote)\b"
+    r"|\bcurrently\s+earn(?:s|ing)?\b"
+    r"|\b(?:current|expected|target|desired)\s+earnings?\b"
+    r"|\b(?:seeking|expected|expecting|desired|asking|target(?:ing)?)\b.{0,40}[$€£]\s*\d"
+    r"|[$€£]\s*\d[\d,. ]*(?:\s*(?:/|per\s+)(?:hours?|hrs?|years?|annum)\b|\s+(?:annual(?:ly)?|ote)\b))",
+    re.I,
+)
+# Education omits years in the branded format. Match a general 19xx/20xx year
+# anywhere in an education line, including leading, trailing, and hyphenated
+# forms. A digit-colon-prefixed year is a version token (for example
+# ISO 9001:2015), not an education date; any other year on that same line is
+# still caught.
+_EDUCATION_DATE = re.compile(
+    r"\b(?:graduated|graduation|class\s+of)\s*:\s*(?:19|20)\d{2}\b"
+    r"|(?<!\d:)\b(?:19|20)\d{2}\b",
+    re.I,
+)
 
 CONTACT_KEYS = {"email", "emails", "phone", "phones", "mobile", "cell", "linkedin",
                 "linkedin_url", "contact", "contact_info", "address", "website", "url"}
+FORBIDDEN_PUNCTUATION = (
+    ("—", "em dash"), ("–", "en dash"), ("--", "double hyphen"),
+    (";", "semicolon"), ("~", "tilde"),
+)
 
 
 def find_contact(text):
     """Return the kinds of contact detail present in one string."""
     if not isinstance(text, str):
         return []
-    return [kind for pattern, kind in ((_EMAIL, "email"), (_URL, "link"), (_PHONE, "phone"))
-            if pattern.search(text)]
+    found = [kind for pattern, kind in ((_EMAIL, "email"), (_URL, "link"), (_PHONE, "phone"))
+             if pattern.search(text)]
+    if (_POSTAL_ADDRESS.search(text) or _AUSTRALIAN_ADDRESS.search(text)
+            or _CUED_ADDRESS.search(text)):
+        found.append("address")
+    return found
 
 
 # ------------------------------------------------------------------ shapes
@@ -250,7 +330,53 @@ def normalize_candidate(raw):
                             "with a heading.")
 
     if len(out["skills"]) % 2:
-        notes.append(f"{len(out['skills'])} skills is odd. The two-column grid wants an even count.")
+        problems.append(
+            f"Core Skills count is odd ({len(out['skills'])}). "
+            "Add or remove one source-backed skill before building."
+        )
+
+    for field, label in (
+        ("headline", "one exact current title"),
+        ("summary", "a profile summary"),
+    ):
+        if not out.get(field):
+            problems.append(f"{field} is missing. The branded resume requires {label}.")
+    if not out["skills"]:
+        problems.append("skills is empty. The branded resume requires an even, nonzero Core Skills list.")
+    if not out["experience"]:
+        problems.append("experience is empty. The branded resume requires Professional Experience.")
+    if not out["education"]:
+        problems.append("education is empty. The branded resume requires Education & Certifications.")
+    for index, item in enumerate(out["education"]):
+        if _EDUCATION_DATE.search(item):
+            problems.append(
+                f"education[{index}] contains a date. Education entries must omit dates; "
+                "remove the date before building."
+            )
+    for index, job in enumerate(out["experience"]):
+        # Upstream release requires human review. A blank individual header
+        # field therefore means the recruiter chose GUIDE.md's documented
+        # "leave it blank" option; title and company cannot both be blank.
+        if not job.get("bullets"):
+            problems.append(f"experience[{index}].bullets is empty. Confirm source-backed experience before building.")
+
+    # The canonical layout uses one employer timeline entry containing all
+    # titles held there. Separate entries for the same known employer would
+    # render duplicate company headers and violate that contract.
+    companies = {}
+    for index, job in enumerate(out["experience"]):
+        company = job.get("company", "")
+        company_key = re.sub(r"\s+", " ", company).strip().rstrip(".,").casefold()
+        if not company_key:
+            continue
+        if company_key in companies:
+            first_index = companies[company_key]
+            problems.append(
+                f"experience[{index}].company duplicates experience[{first_index}].company "
+                f"({company.strip()!r}). Combine same-company roles into one timeline entry before building."
+            )
+        else:
+            companies[company_key] = index
 
     # Bold markers only render in bullets, education and section items.
     unbold = lambda v: re.sub(r"\*\*(.+?)\*\*", r"\1", v) if isinstance(v, str) else v
@@ -271,6 +397,22 @@ def normalize_candidate(raw):
             if kinds:
                 problems.append(f"{path} contains contact details ({', '.join(kinds)}). "
                                 "The resume never carries contact info. Rewrite that text without it.")
+            if _COMPENSATION.search(value):
+                problems.append(
+                    f"{path} contains compensation information. "
+                    "Compensation belongs in the submission, never the resume."
+                )
+            for token, label in FORBIDDEN_PUNCTUATION:
+                if token in value:
+                    problems.append(
+                        f"{path} contains a forbidden {label} ({token}). "
+                        "Rewrite that text before building."
+                    )
+            if _SPACED_SLASH.search(value):
+                problems.append(
+                    f"{path} contains forbidden whitespace around a slash (/). "
+                    "Remove the whitespace before building."
+                )
         elif isinstance(value, list):
             for i, v in enumerate(value):
                 scan(v, f"{path}[{i}]")
@@ -296,6 +438,9 @@ SCHEMA_HINT = (
     "education (array of strings like '**Degree** - Institution, City'; no years), "
     "education_heading (optional string, default 'Education & Certifications'), "
     "sections (optional array of {heading, items[]} for any other section the original resume has). "
-    "Never include email, phone, or links: they are stripped. "
-    "No em dashes, en dashes, double hyphens, semicolons, or [placeholders]: the builder refuses them."
+    "Every core field is required; each experience entry requires title or company plus bullets. "
+    "Recruiter-approved unknown company, location, or dates may be an empty string. "
+    "Never include compensation, email, phone, or links: they are refused or stripped. "
+    "No em dashes, en dashes, double hyphens, semicolons, tildes, whitespace around slashes, "
+    "or [placeholders]: the builder refuses them."
 )

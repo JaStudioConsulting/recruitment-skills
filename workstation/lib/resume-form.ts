@@ -22,6 +22,8 @@ export type ResumeFormSection = { heading: string; items: string };
 
 export type ResumeFormDocument = {
   format: typeof RESUME_FORM_FORMAT;
+  /** Set only by an explicit human save in the editable resume canvas. */
+  reviewed: boolean;
   name: string;
   headline: string;
   summary: string;
@@ -38,6 +40,7 @@ export const EMPTY_SECTION: ResumeFormSection = { heading: "", items: "" };
 export function emptyResumeForm(): ResumeFormDocument {
   return {
     format: RESUME_FORM_FORMAT,
+    reviewed: false,
     name: "",
     headline: "",
     summary: "",
@@ -49,20 +52,39 @@ export function emptyResumeForm(): ResumeFormDocument {
   };
 }
 
-export function isResumeForm(value: unknown): value is ResumeFormDocument {
+export function hasResumeFormFormat(value: unknown): value is { format: typeof RESUME_FORM_FORMAT } & Record<string, unknown> {
   return typeof value === "object" && value !== null && (value as { format?: unknown }).format === RESUME_FORM_FORMAT;
+}
+
+function hasStringFields(value: unknown, fields: string[]): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  return fields.every((field) => typeof (value as Record<string, unknown>)[field] === "string");
+}
+
+export function isResumeForm(value: unknown): value is ResumeFormDocument {
+  if (!hasResumeFormFormat(value) || typeof value.reviewed !== "boolean") return false;
+  if (!hasStringFields(value, ["name", "headline", "summary", "skills", "educationHeading", "education"])) {
+    return false;
+  }
+  return (
+    Array.isArray(value.jobs) &&
+    value.jobs.every((job) => hasStringFields(job, ["title", "company", "location", "dates", "bullets"])) &&
+    Array.isArray(value.sections) &&
+    value.sections.every((section) => hasStringFields(section, ["heading", "items"]))
+  );
 }
 
 /** Hydrate a stored resume document. Anything that is not a saved form (an
  * empty or legacy editor document) opens as a blank form; nothing is lost
  * because the legacy document is only replaced once the recruiter edits. */
 export function toResumeForm(value: unknown): ResumeFormDocument {
-  if (!isResumeForm(value)) return emptyResumeForm();
+  if (!hasResumeFormFormat(value)) return emptyResumeForm();
   const text = (field: unknown) => (typeof field === "string" ? field : "");
   const jobs = Array.isArray(value.jobs) ? value.jobs : [];
   const sections = Array.isArray(value.sections) ? value.sections : [];
   return {
     format: RESUME_FORM_FORMAT,
+    reviewed: value.reviewed === true,
     name: text(value.name),
     headline: text(value.headline),
     summary: text(value.summary),

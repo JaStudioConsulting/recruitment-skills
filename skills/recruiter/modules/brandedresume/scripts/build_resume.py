@@ -46,10 +46,13 @@ entries, and section items to render it bold (for example "downtime **22%**" or
 never the whole line. Both engines render it. Text without ** is unchanged.
 
 House rules enforced here (so a client never sees a slip):
-  - NO em dashes / en dashes / double hyphens anywhere in the text. The script
-    aborts and lists the offending fields so the text gets fixed, not silently
-    mangled. Regular hyphens in compound words (cost-reduction) and the date
-    format (Dec-2025 - Present) are fine.
+  - NO em dashes, en dashes, double hyphens, semicolons, tildes, or whitespace
+    around slashes anywhere in the text. The script aborts and lists the
+    offending fields so the text gets fixed, not silently mangled. Regular
+    hyphens in compound words (cost-reduction), slash-separated text without
+    spaces (CNC/manual), and the date format (Dec-2025 - Present) are fine.
+  - NO compensation information anywhere in the rendered resume.
+  - NO email address, URL, or phone number anywhere in the rendered resume.
   - Logo centered at the top; exactly one title line under the name.
   - No hyperlinks are ever added.
 """
@@ -85,9 +88,85 @@ def find_chrome():
             return p
     return None
 
-BANNED = {"—": "em dash (—)", "–": "en dash (–)", "--": "double hyphen (--)"}
+BANNED = {
+    "—": "em dash (—)",
+    "–": "en dash (–)",
+    "--": "double hyphen (--)",
+    ";": "semicolon (;)",
+    "~": "tilde (~)",
+}
+COMPENSATION = re.compile(
+    r"(?:\b(?:compensation|salary|wages?|hourly\s+(?:pay\s+)?rate|pay\s+rate|"
+    r"base\s+pay|current\s+pay|ote)\b"
+    r"|\bcurrently\s+earn(?:s|ing)?\b"
+    r"|\b(?:current|expected|target|desired)\s+earnings?\b"
+    r"|\b(?:seeking|expected|expecting|desired|asking|target(?:ing)?)\b.{0,40}[$€£]\s*\d"
+    r"|[$€£]\s*\d[\d,. ]*(?:\s*(?:/|per\s+)(?:hours?|hrs?|years?|annum)\b|\s+(?:annual(?:ly)?|ote)\b))",
+    re.I,
+)
+EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+URL = re.compile(r"(?:https?://|www\.)\S+|\b(?:[a-z0-9-]+\.)*linkedin\.com/\S*", re.I)
+# North American phone shapes plus common international forms. Keep the
+# no-plus forms deliberately structural so dates, grouped currency, and other
+# ordinary resume numbers are not mistaken for contact details.
+PHONE = re.compile(
+    r"(?<!\d)(?:"
+    r"(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}"
+    r"|\+\d{1,3}(?:[\s().-]*\d){7,14}"
+    r"|00\d{2,3}(?:\s+\d{2,4}){3}"
+    r"|0\d{2,3}\s+\d{3,4}\s+\d{4}"
+    r"|\d{2}\s+\d{2,4}\s+\d{4}\s+\d{4}"
+    r")(?!\d)"
+)
+# Education omits years in the branded format. Match a general 19xx/20xx year
+# anywhere in an education line, including leading, trailing, and hyphenated
+# forms. A digit-colon-prefixed year is a version token (for example
+# ISO 9001:2015), not an education date; any other year on that same line is
+# still caught.
+EDUCATION_DATE = re.compile(
+    r"\b(?:graduated|graduation|class\s+of)\s*:\s*(?:19|20)\d{2}\b"
+    r"|(?<!\d:)\b(?:19|20)\d{2}\b",
+    re.I,
+)
+STREET = (
+    r"\b\d{1,6}[A-Za-z]?(?:-\d{1,6}[A-Za-z]?)?\s+"
+    r"(?:[A-Za-z0-9][A-Za-z0-9.'-]*\s+){1,6}"
+    r"(?:street|st|road|rd|avenue|ave|boulevard|blvd|drive|dr|lane|ln|court|ct|"
+    r"way|trail|trl|parkway|pkwy|crescent|cres|place|pl|terrace|terr|circle|cir|"
+    r"highway|hwy|close|gardens|square|row|mews|quay)\.?(?=\s|,|$)"
+)
+POSTAL_CODE = (
+    # Canada and the US.
+    r"(?:[A-Z]\d[A-Z][ -]?\d[A-Z]\d|\d{5}(?:-\d{4})?"
+    # UK postcode and Irish Eircode. These formats include
+    # letters in fixed positions, so they are safe to recognize without a
+    # country cue and do not turn ordinary years or counts into addresses.
+    r"|GIR[ ]?0AA|[A-Z]{1,2}\d[A-Z\d]?[ ]?\d[A-Z]{2}"
+    r"|[AC-FHKNPRTV-Y]\d{2}[ ]?[AC-FHKNPRTV-Y0-9]{4})"
+)
+REGION = (
+    r"(?:AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT|"
+    r"AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|"
+    r"MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|"
+    r"WA|WV|WI|WY)"
+)
+POSTAL_ADDRESS = re.compile(
+    STREET
+    + rf"(?=[^\n]{{0,90}}(?:\b{POSTAL_CODE}\b|,\s*[A-Za-z][A-Za-z .'-]{{1,40}},\s*{REGION}\b))",
+    re.I,
+)
+AUSTRALIAN_ADDRESS = re.compile(
+    STREET
+    + r"(?=[^\n]{0,60},\s*[A-Za-z][A-Za-z .'-]{1,40},?\s+"
+      r"(?:ACT|NSW|NT|QLD|SA|TAS|VIC|WA)\s+\d{4}\b)",
+    re.I,
+)
+CUED_ADDRESS = re.compile(
+    rf"\b(?:home\s+address|mailing\s+address|address|lives?\s+at|resides?\s+at)\b[^\n]{{0,24}}{STREET}",
+    re.I,
+)
 
-def check_dashes(data):
+def check_forbidden_content(data):
     offenders = []
     def scan(label, text):
         if not isinstance(text, str):
@@ -95,6 +174,16 @@ def check_dashes(data):
         for ch, nm in BANNED.items():
             if ch in text:
                 offenders.append(f"  {label}: contains {nm} -> {text[:70]!r}")
+        if re.search(r"\s/|/\s", text):
+            offenders.append(f"  {label}: contains whitespace around slash (/) -> {text[:70]!r}")
+        if COMPENSATION.search(text):
+            offenders.append(f"  {label}: contains compensation information -> {text[:70]!r}")
+        for pattern, kind in ((EMAIL, "email"), (URL, "link"), (PHONE, "phone")):
+            if pattern.search(text):
+                offenders.append(f"  {label}: contains contact details ({kind}) -> {text[:70]!r}")
+        if (POSTAL_ADDRESS.search(text) or AUSTRALIAN_ADDRESS.search(text)
+                or CUED_ADDRESS.search(text)):
+            offenders.append(f"  {label}: contains contact details (address) -> {text[:70]!r}")
     scan("name", data.get("name", ""))
     scan("headline", data.get("headline", ""))
     scan("summary", data.get("summary", ""))
@@ -107,12 +196,61 @@ def check_dashes(data):
             scan(f"experience[{i}].bullets[{b}]", bt)
     for i, e in enumerate(data.get("education", [])):
         scan(f"education[{i}]", e)
+        if isinstance(e, str) and EDUCATION_DATE.search(e):
+            offenders.append(f"  education[{i}]: contains a date -> {e[:70]!r}")
     scan("education_heading", data.get("education_heading", ""))
     for i, sec in enumerate(data.get("sections", [])):
         scan(f"sections[{i}].heading", sec.get("heading", ""))
         for j, it in enumerate(sec.get("items", [])):
             scan(f"sections[{i}].items[{j}]", it)
     return offenders
+
+def check_required_structure(data):
+    problems = []
+    for field, label in (
+        ("name", "candidate name"),
+        ("headline", "one exact current title"),
+        ("summary", "profile summary"),
+    ):
+        if not isinstance(data.get(field), str) or not data[field].strip():
+            problems.append(f"  {field}: missing {label}")
+    skills = data.get("skills")
+    if not isinstance(skills, list) or not any(isinstance(item, str) and item.strip() for item in skills):
+        problems.append("  skills: requires an even, nonzero Core Skills list")
+    experience = data.get("experience")
+    if not isinstance(experience, list) or not experience:
+        problems.append("  experience: requires at least one Professional Experience entry")
+    else:
+        companies = {}
+        for index, job in enumerate(experience):
+            if not isinstance(job, dict):
+                problems.append(f"  experience[{index}]: must be an object")
+                continue
+            title = job.get("title")
+            company = job.get("company")
+            if not any(isinstance(value, str) and value.strip() for value in (title, company)):
+                problems.append(f"  experience[{index}]: requires title or company")
+            bullets = job.get("bullets")
+            if not isinstance(bullets, list) or not any(isinstance(item, str) and item.strip() for item in bullets):
+                problems.append(f"  experience[{index}].bullets: requires source-backed content")
+            company_key = (
+                re.sub(r"\s+", " ", company).strip().rstrip(".,").casefold()
+                if isinstance(company, str)
+                else ""
+            )
+            if company_key:
+                if company_key in companies:
+                    first_index = companies[company_key]
+                    problems.append(
+                        f"  experience[{index}].company duplicates experience[{first_index}].company "
+                        f"({company.strip()!r}). Combine same-company roles into one timeline entry before building."
+                    )
+                else:
+                    companies[company_key] = index
+    education = data.get("education")
+    if not isinstance(education, list) or not any(isinstance(item, str) and item.strip() for item in education):
+        problems.append("  education: requires Education & Certifications content")
+    return problems
 
 def check_placeholders(data):
     """A finished resume must never show a fill-in marker to a client. If any field
@@ -356,6 +494,33 @@ def render_reportlab(data, logo_path, out):
     SimpleDocTemplate(out, pagesize=letter, leftMargin=L, rightMargin=R,
                       topMargin=T, bottomMargin=B, title=data.get("name", "")).build(story)
 
+def strip_pdf_metadata(pdf_path):
+    """Remove both PDF document information and XMP without changing page content."""
+    try:
+        from io import BytesIO
+        from pypdf import PdfReader, PdfWriter
+    except ImportError as error:
+        sys.exit(f"ERROR: declared PDF dependency is unavailable: {error}")
+
+    clean_path = pdf_path + ".metadata-clean.pdf"
+    try:
+        with open(pdf_path, "rb") as handle:
+            reader = PdfReader(BytesIO(handle.read()))
+        writer = PdfWriter(clone_from=reader)
+        writer.metadata = None
+        writer.xmp_metadata = None
+        with open(clean_path, "wb") as handle:
+            writer.write(handle)
+
+        with open(clean_path, "rb") as handle:
+            cleaned = PdfReader(BytesIO(handle.read()))
+        if cleaned.metadata or cleaned.xmp_metadata is not None:
+            sys.exit("ERROR: PDF metadata stripping failed.")
+        os.replace(clean_path, pdf_path)
+    finally:
+        if os.path.exists(clean_path):
+            os.remove(clean_path)
+
 # ----------------------------------------------------------------------- driver
 def main():
     ap = argparse.ArgumentParser()
@@ -368,9 +533,14 @@ def main():
 
     data = json.load(open(args.data, encoding="utf-8"))
 
-    offenders = check_dashes(data)
+    structure = check_required_structure(data)
+    if structure:
+        print("ABORT: required branded-resume structure is incomplete.\n" + "\n".join(structure))
+        sys.exit(2)
+
+    offenders = check_forbidden_content(data)
     if offenders:
-        print("ABORT: banned long-dash characters found. Fix these fields and rerun:\n"
+        print("ABORT: forbidden punctuation found. Fix these fields and rerun:\n"
               + "\n".join(offenders))
         sys.exit(2)
 
@@ -403,27 +573,31 @@ def main():
             render_reportlab(data, args.logo, staged)
         if not os.path.exists(staged):
             sys.exit("ERROR: PDF was not produced.")
+        strip_pdf_metadata(staged)
 
         try:
             import fitz
             pdf = fitz.open(staged)
             alltext = "".join(p.get_text() for p in pdf)
-            dash = [nm for ch, nm in BANNED.items() if ch in alltext]
+            forbidden = [nm for ch, nm in BANNED.items() if ch in alltext]
             links = sum(1 for p in pdf for _ in p.links())
-            if dash or links:
-                sys.exit(f"ERROR: PDF verification failed: long_dashes={dash or 'none'} hyperlinks={links}")
+            if forbidden or links:
+                sys.exit(f"ERROR: PDF verification failed: forbidden_punctuation={forbidden or 'none'} hyperlinks={links}")
             pages = pdf.page_count
             if args.preview:
                 pdf[0].get_pixmap(dpi=110).save(args.preview)
             pdf.close()
         except ImportError:
             pages = "unverified"
-            dash = "unverified"
+            forbidden = "unverified"
             links = "unverified"
 
         os.replace(staged, out)
         print(f"OK [{engine}]: {out}")
-        print(f"   pages={pages}  bytes={os.path.getsize(out)} long_dashes={dash or 'none'} hyperlinks={links}")
+        print(
+            f"   pages={pages}  bytes={os.path.getsize(out)} "
+            f"forbidden_punctuation={forbidden or 'none'} hyperlinks={links}"
+        )
         if args.preview:
             print(f"   preview={args.preview}")
 

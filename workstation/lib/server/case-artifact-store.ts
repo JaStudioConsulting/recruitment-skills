@@ -84,6 +84,7 @@ export type PersistCaseArtifactInput = {
   filename: string;
   kind: string;
   executorId: string;
+  expectedDocument?: { kind: "resume"; revision: number };
   source: BuilderArtifactSource;
 };
 
@@ -434,6 +435,7 @@ export async function persistCaseArtifactWithDependencies(
         storage: "workstation_r2",
       },
     },
+    expectedDocument: input.expectedDocument,
   };
 
   try {

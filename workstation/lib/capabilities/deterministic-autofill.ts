@@ -9,6 +9,7 @@ import type { CapabilityDraft } from "./types";
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 const URL = /(?:https?:\/\/|www\.)\S+|\b(?:[a-z0-9-]+\.)*linkedin\.com\/\S*/gi;
 const PHONE = /(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}(?!\d)/g;
+const INTERNATIONAL_PHONE = /(?<!\d)(?:\+\d{1,3}(?:[\s().-]*\d){7,14}|00\d{2,3}(?:\s+\d{2,4}){3}|0\d{2,3}\s+\d{3,4}\s+\d{4}|\d{2}\s+\d{2,4}\s+\d{4}\s+\d{4})(?!\d)/g;
 const CONTACT_LABEL = /^\s*(?:e-?mail|phone|mobile|cell|contact(?:\s+no\.?|\s+number)?|linkedin|website|url|address)\s*[:|-]?\s*/i;
 const BULLET = /^\s*(?:[-*•●▪◦]|\d+[.)])\s*/;
 const MONTHS: Record<string, string> = {
@@ -26,7 +27,7 @@ type ParsedResume = { form: ResumeFormDocument; sources: Record<string, string> 
 type JdFacts = { title: string; client: string; location: string; source: string };
 
 function stripContactLine(line: string): string {
-  let next = line.replace(EMAIL, "").replace(URL, "").replace(PHONE, "");
+  let next = line.replace(EMAIL, "").replace(URL, "").replace(PHONE, "").replace(INTERNATIONAL_PHONE, "");
   if (CONTACT_LABEL.test(next)) next = next.replace(CONTACT_LABEL, "");
   return next.replace(/^[\s|,;:-]+|[\s|,;:-]+$/g, "").replace(/\s{2,}/g, " ").trim();
 }
@@ -48,7 +49,7 @@ function looksLikeName(line: string): boolean {
     words.every((word) => /^[A-Z][A-Za-z'’-]*$/.test(word));
 }
 
-type HeadingKind = "summary" | "skills" | "experience" | "education" | "other";
+type HeadingKind = "summary" | "skills" | "experience" | "education" | "certifications" | "other";
 
 function knownHeadingKind(line: string): Exclude<HeadingKind, "other"> | null {
   const plain = line.replace(/[:|]+$/, "").trim();
@@ -56,7 +57,8 @@ function knownHeadingKind(line: string): Exclude<HeadingKind, "other"> | null {
   if (["summary", "profile", "profile summary", "professional summary", "professional profile", "objective", "career objective"].includes(normalized)) return "summary";
   if (["skill", "skills", "core skills", "key skills", "core competencies", "technical skills", "areas of expertise"].includes(normalized)) return "skills";
   if (["experience", "work experience", "work history", "professional experience", "employment", "employment history"].includes(normalized)) return "experience";
-  if (["education", "education and certifications", "certifications", "licenses", "licences", "education certifications and licenses"].includes(normalized)) return "education";
+  if (["education", "education and certifications", "education certifications and licenses"].includes(normalized)) return "education";
+  if (["certification", "certifications", "licenses", "licences"].includes(normalized)) return "certifications";
   return null;
 }
 
@@ -71,7 +73,7 @@ function headingKind(line: string): HeadingKind | null {
 }
 
 function normalizeLocation(value: string): string {
-  return value.trim().replace(/^\(|\)$/g, "").replace(/\s*\/\s*/g, " / ").replace(/\s*,\s*/g, ", ").replace(/\s{2,}/g, " ");
+  return value.trim().replace(/^\(|\)$/g, "").replace(/\s*\/\s*/g, "/").replace(/\s*,\s*/g, ", ").replace(/\s{2,}/g, " ");
 }
 
 function looksLikeLocation(line: string): boolean {
@@ -238,7 +240,7 @@ function sectionHeadingKind(lines: string[], index: number, activeKind: HeadingK
 
 export function parseResumeText(text: string, filename: string): ParsedResume {
   const lines = cleanLines(text);
-  const form: ResumeFormDocument = { format: "tttg-resume-form-v1", name: "", headline: "", summary: "", skills: "", jobs: [], educationHeading: "", education: "", sections: [] };
+  const form: ResumeFormDocument = { format: "tttg-resume-form-v1", reviewed: false, name: "", headline: "", summary: "", skills: "", jobs: [], educationHeading: "", education: "", sections: [] };
   const sources: Record<string, string> = {};
   let cursor = 0;
   if (lines[0] && looksLikeName(lines[0])) { form.name = lines[0]; sources["resume.name"] = filename; cursor = 1; }
@@ -252,15 +254,15 @@ export function parseResumeText(text: string, filename: string): ParsedResume {
     if (kind) { active = { heading: line.replace(/[:|]+$/, "").trim(), kind, lines: [] }; sections.push(active); }
     else if (active) active.lines.push(line);
   }
-  const summary = sections.find((section) => section.kind === "summary");
-  if (summary?.lines.length) { form.summary = summary.lines.join("\n"); sources["resume.summary"] = filename; }
-  const skills = sections.find((section) => section.kind === "skills");
-  if (skills?.lines.length) {
-    form.skills = parseSkills(skills.lines).join("\n");
+  const summary = sections.filter((section) => section.kind === "summary" && section.lines.length);
+  if (summary.length) { form.summary = summary.flatMap((section) => section.lines).join("\n"); sources["resume.summary"] = filename; }
+  const skills = sections.filter((section) => section.kind === "skills" && section.lines.length);
+  if (skills.length) {
+    form.skills = skills.flatMap((section) => parseSkills(section.lines)).join("\n");
     if (form.skills) sources["resume.skills"] = filename;
   }
-  const experience = sections.find((section) => section.kind === "experience");
-  form.jobs = experience ? parseJobs(experience.lines) : [];
+  const experience = sections.filter((section) => section.kind === "experience" && section.lines.length);
+  form.jobs = experience.flatMap((section) => parseJobs(section.lines));
   form.jobs.forEach((job, index) => Object.entries(job).forEach(([key, value]) => { if (value) sources[`resume.jobs.${index}.${key}`] = filename; }));
   const education = sections.filter((section) => section.kind === "education");
   if (education.length) {
@@ -269,7 +271,9 @@ export function parseResumeText(text: string, filename: string): ParsedResume {
     if (form.educationHeading) sources["resume.educationHeading"] = filename;
     if (form.education) sources["resume.education"] = filename;
   }
-  form.sections = sections.filter((section) => section.kind === "other" && section.lines.length).map<ResumeFormSection>((section) => ({ heading: section.heading, items: section.lines.map((line) => line.replace(BULLET, "").trim()).join("\n") }));
+  form.sections = sections
+    .filter((section) => ["certifications", "other"].includes(section.kind) && section.lines.length)
+    .map<ResumeFormSection>((section) => ({ heading: section.heading, items: section.lines.map((line) => line.replace(BULLET, "").trim()).join("\n") }));
   form.sections.forEach((section, index) => {
     sources[`resume.sections.${index}.heading`] = filename;
     sources[`resume.sections.${index}.items`] = filename;

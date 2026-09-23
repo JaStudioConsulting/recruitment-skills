@@ -1,6 +1,12 @@
 import { and, desc, eq, exists, ne, notExists, sql } from "drizzle-orm";
 
-import { capabilityRuns, caseArtifacts } from "../../db/schema";
+import {
+  capabilityRuns,
+  caseArtifacts,
+  caseDocuments,
+  caseDocumentVersions,
+  caseSources,
+} from "../../db/schema";
 import type { PreparedCapability } from "../capabilities/prepare";
 
 export const CAPABILITY_RUN_STATUSES = [
@@ -278,6 +284,7 @@ export type CreateCaseArtifactInput = {
   sizeBytes: number;
   revision?: number;
   evidence?: unknown;
+  expectedDocument?: { kind: "resume"; revision: number };
 };
 
 export function validateCaseArtifactAttachment(
@@ -586,6 +593,55 @@ export async function createCaseArtifact(
   }
   const evidenceJson = serializeJson(input.evidence ?? {}, "Artifact evidence");
   const timestamp = new Date().toISOString();
+  const expectedDocumentStillCurrent = input.expectedDocument
+    ? exists(
+        db.select({ kind: caseDocuments.kind })
+          .from(caseDocuments)
+          .where(and(
+            eq(caseDocuments.caseId, input.caseId),
+            eq(caseDocuments.kind, input.expectedDocument.kind),
+            eq(caseDocuments.revision, input.expectedDocument.revision),
+          )),
+      )
+    : undefined;
+  const resumeSourcesStillMatch = input.expectedDocument?.kind === "resume"
+    ? exists(
+        db.select({ revision: caseDocumentVersions.revision })
+          .from(caseDocumentVersions)
+          .where(and(
+            eq(caseDocumentVersions.caseId, input.caseId),
+            eq(caseDocumentVersions.kind, input.expectedDocument.kind),
+            eq(caseDocumentVersions.revision, input.expectedDocument.revision),
+            sql`${caseDocumentVersions.sourceRefsJson} = (
+              SELECT COALESCE(json_group_array(source_ref), '[]')
+              FROM (
+                SELECT
+                  ${caseSources.id} || ':' ||
+                  ${caseSources.sha256} || ':' ||
+                  ${caseSources.kind} || ':' ||
+                  ${caseSources.lifecycleStatus} || ':' ||
+                  ${caseSources.reviewStatus} || ':' ||
+                  COALESCE(${caseSources.classificationMethod}, 'unknown') AS source_ref
+                FROM ${caseSources}
+                WHERE ${and(
+                  eq(caseSources.caseId, input.caseId),
+                  eq(caseSources.contextStatus, "active"),
+                  eq(caseSources.kind, "resume"),
+                  sql`trim(COALESCE(${caseSources.parsedText}, '')) <> ''`,
+                  sql`(
+                    ${caseSources.lifecycleStatus} = 'reviewed' OR
+                    (
+                      ${caseSources.lifecycleStatus} = 'classified' AND
+                      ${caseSources.classificationMethod} IN ('explicit', 'filename', 'content')
+                    )
+                  )`,
+                )}
+                ORDER BY source_ref
+              )
+            )`,
+          )),
+      )
+    : undefined;
   const [created] = await db
     .insert(caseArtifacts)
     .select(sql`
@@ -614,6 +670,8 @@ export async function createCaseArtifact(
         eq(capabilityRuns.status, "running"),
         eq(capabilityRuns.outputKind, "pdf"),
         eq(capabilityRuns.capabilityId, input.kind),
+        expectedDocumentStillCurrent,
+        resumeSourcesStillMatch,
       )}
       limit 1
     `)
@@ -627,6 +685,23 @@ export async function createCaseArtifact(
         `Capability run changed before artifact persistence completed and is now ${latestRun.status}. No artifact record was persisted.`,
         { currentStatus: latestRun.status },
       );
+    }
+    if (input.expectedDocument) {
+      const [attachedArtifact] = await db
+        .select({ id: caseArtifacts.id })
+        .from(caseArtifacts)
+        .where(and(
+          eq(caseArtifacts.caseId, input.caseId),
+          eq(caseArtifacts.runId, input.runId),
+        ))
+        .limit(1);
+      if (!attachedArtifact) {
+        throw await apiError(
+          409,
+          "The reviewed resume or its active sources changed while the PDF was being built. No artifact was persisted.",
+          { code: "artifact_input_changed" },
+        );
+      }
     }
     throw await apiError(409, "Case artifacts are append-only and cannot be replaced.");
   }

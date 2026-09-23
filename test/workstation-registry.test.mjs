@@ -19,6 +19,14 @@ function registryFixture() {
   for (const filename of ["capability-features.json", "capability-implementation.json"]) {
     cpSync(path.join(root, "workstation", filename), path.join(fixture, "workstation", filename));
   }
+  const features = JSON.parse(readFileSync(path.join(root, "workstation/capability-features.json"), "utf8"));
+  for (const feature of features.features) {
+    for (const builderPath of feature.builder_paths ?? []) {
+      const destination = path.join(fixture, builderPath);
+      mkdirSync(path.dirname(destination), { recursive: true });
+      cpSync(path.join(root, builderPath), destination);
+    }
+  }
   const overlay = JSON.parse(readFileSync(path.join(root, "workstation/capability-implementation.json"), "utf8"));
   for (const implementation of Object.values(overlay.capabilities)) {
     for (const evidencePath of implementation.evidence) {
@@ -383,7 +391,7 @@ test("registry executor links resolve to declared workstation features", () => {
   }
   assert.deepEqual(
     registry.executors.filter((executor) => executor.mounted).map((executor) => executor.id),
-    ["write-up-candidate"],
+    ["brand-resume", "write-up-candidate"],
     "only a real server dispatcher may be marked mounted",
   );
 });

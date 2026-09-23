@@ -113,7 +113,7 @@
     "skills/tracker-manager/scripts/tracker.mjs",
     "tests/fixtures/synthetic-candidate-dashboard.json"
   ],
-  "repositoryAuthorityDigest": "f4ba347334840eb3ab619cf20419ddc6e311b3b03d23f1445d80cdbbec371d5d",
+  "repositoryAuthorityDigest": "106c04de1fc8564de671ff98c5f7fff265374940098fe7fc9dd8447867147832",
   "policies": [
     "skills/GLOBAL-RULES.md",
     "skills/TOOL-CONVENTIONS.md"
@@ -153,7 +153,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "d7e9490bf7de28d4ee657bcf680813c1074300c0f810192644ad9ceeb5ba4978",
+      "authorityDigest": "cfe9af95830f3aed25362c0d7255a4b5ec9715fce058380850922895b06a0d2d",
       "repositoryGroup": "on_demand",
       "repositoryStatus": "active",
       "workflowGroup": "candidate_work",
@@ -237,17 +237,19 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "f785876e4100d9083a6ecb443c145c07491cd4a60359f11c76db37fcf8accc97",
+      "authorityDigest": "ba490515e1961cd0673753718368ad7064650e8021fa0456daed88a9fd268e21",
       "repositoryGroup": "daily_core",
       "repositoryStatus": "active",
       "workflowGroup": "candidate_work",
       "inputs": [
-        "Reviewed resume or candidate material",
+        "Human-reviewed editable resume",
+        "Reviewed job description",
+        "Reviewed transcript or call notes",
         "Resolved clarification gaps"
       ],
       "context": [
         "Candidate",
-        "Job when tailoring is requested"
+        "Job"
       ],
       "output": "Source-grounded Top Tier Talent Group branded PDF resume with completed visual QA evidence",
       "runtime": "Repository Python PDF builder plus artifact storage and visual QA",
@@ -272,7 +274,7 @@
           "id": "brand-resume",
           "label": "Brand resume",
           "runtime": "deterministic_server",
-          "mounted": false,
+          "mounted": true,
           "resultKind": "pdf",
           "operationId": "build-branded-resume",
           "supportingCapabilityIds": [
@@ -281,21 +283,23 @@
           "supportingAuthorities": [
             {
               "id": "legislator",
-              "authorityDigest": "140577b54acf31b36cc05e7023c9ba80bc286d6ca5d99c550b8991ed890c50ef"
+              "authorityDigest": "ba490515e1961cd0673753718368ad7064650e8021fa0456daed88a9fd268e21"
             }
           ]
         }
       ],
       "implementation": {
-        "status": "blocked",
-        "blocker": "Execution is disabled because the active authorities conflict and no exact legislator override exists. The branded-resume guide and builder require Letter, Arial, a centered logo, and black styling, while the immutable legislator rulebook requires A4, Noto Sans, a left-positioned logo, a 24pt charcoal name, and 2px heading rules. Global Rules also ban the education em dash that the legislator rulebook requires. In addition, the hosted builder does not attest its repository commit or builder digest, the Workstation does not collect named submission versus MPC mode, and authority preflight for unresolved employer, date, location, degree, metric, and role-specific fit gaps is not connected. The artifact store and visual-QA lifecycle are implemented and tested, but they cannot make a noncompliant build executable.",
+        "status": "partial",
+        "blocker": "The canonical A layout is the sole active branded resume design. Its mounted executor requires a human-reviewed saved resume form, reviewed job description, and reviewed transcript or call notes before building; supports named_submission or internal_mpc; requires the hosted ReportLab runtime to attest the canonical repository builder and deployment digest; persists the exact PDF; and requires page-by-page human visual QA. External-client blind MPC remains unavailable, and authority preflight for unresolved employer, date, location, degree, and metric gaps is not fully connected.",
         "evidence": [
           "skills/recruiter/modules/brandedresume/scripts/build_resume.py",
           "test/package-contracts.test.mjs",
+          "workstation/lib/capabilities/prepare.ts",
           "workstation/lib/server/resume-builder.ts",
           "workstation/lib/server/capability-executors/artifact.ts",
           "workstation/lib/server/case-artifact-store.ts",
           "workstation/test/resume-builder.test.ts",
+          "workstation/test/capability-prepare.test.ts",
           "workstation/test/artifact-capability-executor.test.ts",
           "workstation/test/artifact-capability-execution-service.test.ts",
           "workstation/test/case-artifact-store.test.ts"
@@ -332,7 +336,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "b9d50397923df3a911b0ac0fe8976ec8a63092e619f1db047848813616eeb179",
+      "authorityDigest": "a00c873aa4db3bea8f2c81e7fc2d4b1ac81fdf46eba1d2354b8b3d2446697be5",
       "repositoryGroup": "on_demand",
       "repositoryStatus": "active",
       "workflowGroup": "candidate_work",
@@ -424,7 +428,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "f2bd1ef303677799da47e7f173dd676e1ccf8017ee1fb28e3f4878b4e8826fe5",
+      "authorityDigest": "9e4af9d979110e2e3ac1d4c7a785348381f24b59f999ec13cf957fcc7ee15d45",
       "repositoryGroup": "on_demand",
       "repositoryStatus": "active",
       "workflowGroup": "artifacts",
@@ -508,7 +512,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "3271d05a2287ae87cba575e9e381f01d6436d14bec9daa924fc7a8de1875c0df",
+      "authorityDigest": "5a030b971f877c750dc1eb9de9c9b508c61bb11e8dc09c7939f2c1844d41f6ed",
       "repositoryGroup": "on_demand",
       "repositoryStatus": "active",
       "workflowGroup": "writing",
@@ -602,7 +606,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "69c35f26657a2b951f2a3d66cce873ec0d57263e87d4907321636493a94cd5f3",
+      "authorityDigest": "ce92c1b3dd946b6a43cc364d4b15b67f18867b5b566d842c55cdbe4c8d9c897b",
       "repositoryGroup": "daily_core",
       "repositoryStatus": "active",
       "workflowGroup": "candidate_work",
@@ -665,7 +669,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "6f15c981684b71717c12a4d64eb15a0ea3d291e88d763b60e012d69370fe8504",
+      "authorityDigest": "8189c27732e9bf3bbf3833efaa8cbcca1645d18ec6a3e7eec34cd62808d3e428",
       "repositoryGroup": "daily_core",
       "repositoryStatus": "active",
       "workflowGroup": "writing",
@@ -743,7 +747,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "1eda5dbe170459d2599719a1e82f2286eaee72f37b735aefeade27b04d5214c9",
+      "authorityDigest": "127d9dc39feb1cf3e4203a52f6f1532323026616216fe8e29737b14e842d2fe6",
       "repositoryGroup": "on_demand",
       "repositoryStatus": "restricted",
       "workflowGroup": "job_client_work",
@@ -798,7 +802,7 @@
     {
       "id": "legislator",
       "label": "legislator",
-      "summary": "Enforce immutable TTTG Document Structure & Rules v3.0 PRO for the TTTG resume builder. Use when creating, editing, reviewing, refactoring, or validating resume layout/UI logic, print/PDF output, MPC mode behavior, section formatting, and branded visual rules. Use whenever strict compliance is required and any rule changes must only occur after explicit manual user confirmation in chat.",
+      "summary": "Supporting compliance policy for the single canonical TTTG branded resume design. The retired A4 and Noto Sans alternative is not a production authority.",
       "authorityPath": "skills/recruiter/modules/legislator/GUIDE.md",
       "relatedPaths": [
         "docs/knowledge-architecture.md",
@@ -809,6 +813,10 @@
         "skills/TOOL-CONVENTIONS.md",
         "skills/capabilities.json",
         "skills/recruiter/SKILL.md",
+        "skills/recruiter/modules/brandedresume/GUIDE.md",
+        "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",
+        "skills/recruiter/modules/brandedresume/references/example-candidate.json",
+        "skills/recruiter/modules/brandedresume/scripts/build_resume.py",
         "skills/recruiter/modules/legislator/references/tttg-document-structure-rules-v3.md",
         "skills/recruiter/references/active-job-template-kit.md",
         "skills/recruiter/references/call-recording-recovery.md",
@@ -825,7 +833,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "140577b54acf31b36cc05e7023c9ba80bc286d6ca5d99c550b8991ed890c50ef",
+      "authorityDigest": "ba490515e1961cd0673753718368ad7064650e8021fa0456daed88a9fd268e21",
       "repositoryGroup": "supporting",
       "repositoryStatus": "active",
       "workflowGroup": "artifacts",
@@ -851,7 +859,7 @@
       "executorFeatures": [],
       "implementation": {
         "status": "interface_only",
-        "blocker": "The policy is indexed, but the workstation has no mounted compliance-check executor or persisted checklist. The current branded-resume guide and builder also conflict with the immutable rulebook, so Legislator cannot truthfully be claimed as consumed until that conflict is resolved by the exact override protocol or implementation alignment.",
+        "blocker": "The policy now enforces the canonical A branded resume design and retires the former alternative. The workstation still has no mounted compliance-check executor or persisted top-to-bottom checklist, so this supporting policy remains interface-only as a standalone workflow.",
         "evidence": [
           "skills/recruiter/modules/legislator/GUIDE.md"
         ]
@@ -888,7 +896,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "3c08ae0ecf8b82db62da403c1d0af1f7dc531ce6a8424d8e9bf1d07153b8a84a",
+      "authorityDigest": "a016f2605387bd13d283ce777782ff16e5267a608fb644bf7722d8575b310d00",
       "repositoryGroup": "on_demand",
       "repositoryStatus": "active",
       "workflowGroup": "writing",
@@ -927,7 +935,7 @@
           "supportingAuthorities": [
             {
               "id": "ja-writer",
-              "authorityDigest": "6f15c981684b71717c12a4d64eb15a0ea3d291e88d763b60e012d69370fe8504"
+              "authorityDigest": "8189c27732e9bf3bbf3833efaa8cbcca1645d18ec6a3e7eec34cd62808d3e428"
             }
           ]
         }
@@ -989,7 +997,7 @@
         "skills/tracker-manager/GUIDE.md",
         "tests/fixtures/synthetic-candidate-dashboard.json"
       ],
-      "authorityDigest": "e9a69bc6cfd1350b07ecd327018edb608f0aefaba114b403c748109ce55a9eb8",
+      "authorityDigest": "315a401acca1c8be1cc5748f968da2cbe2e9c5e63337f0bea507930a1d23cca4",
       "repositoryGroup": "daily_core",
       "repositoryStatus": "read_only",
       "workflowGroup": "pipeline_tracker",
@@ -1043,11 +1051,11 @@
           "supportingAuthorities": [
             {
               "id": "loxo-readonly-candidate-dashboard",
-              "authorityDigest": "9d813e5b66de9ba3ee56e175ca959fb1249d53742e29ceb99efbf731a6d54650"
+              "authorityDigest": "3ac8a65c185df810b11902eddc25340e6a5cd64d7d73ed6610c5d90effe1a2c3"
             },
             {
               "id": "loxo-pipeline",
-              "authorityDigest": "374a474f004609a9071c0a6f2acaadd3c80e4a7ae5c01ffe51bc9b80acc80a7a"
+              "authorityDigest": "a8f83ed2f6ccba6a8f3ab3f4f7704503dc8c1ccfd27f7c443cd5df489477ca4c"
             }
           ]
         }
@@ -1101,7 +1109,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "10fdd1e73f5e812d3b59d73af74dc6b380cb502122690d87e8b477552a2d042c",
+      "authorityDigest": "fb0071d69d010574626db0560b5fcaf6892049f554a47e712fdc3e28d4471bd1",
       "repositoryGroup": "supporting",
       "repositoryStatus": "restricted",
       "workflowGroup": "pipeline_tracker",
@@ -1175,7 +1183,7 @@
         "skills/tracker-manager/GUIDE.md",
         "tests/fixtures/synthetic-candidate-dashboard.json"
       ],
-      "authorityDigest": "9d813e5b66de9ba3ee56e175ca959fb1249d53742e29ceb99efbf731a6d54650",
+      "authorityDigest": "3ac8a65c185df810b11902eddc25340e6a5cd64d7d73ed6610c5d90effe1a2c3",
       "repositoryGroup": "on_demand",
       "repositoryStatus": "read_only",
       "workflowGroup": "pipeline_tracker",
@@ -1270,7 +1278,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "374a474f004609a9071c0a6f2acaadd3c80e4a7ae5c01ffe51bc9b80acc80a7a",
+      "authorityDigest": "a8f83ed2f6ccba6a8f3ab3f4f7704503dc8c1ccfd27f7c443cd5df489477ca4c",
       "repositoryGroup": "on_demand",
       "repositoryStatus": "restricted",
       "workflowGroup": "pipeline_tracker",
@@ -1352,7 +1360,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "67c610afef99a6da6dbf15f3c94acbbfa527b9427a38e42172268c4c9ffc1349",
+      "authorityDigest": "452d166b0585a6ac1ce435f9eab76a6e505e2b0b7c43bd604dec69f559542e9e",
       "repositoryGroup": "on_demand",
       "repositoryStatus": "active",
       "workflowGroup": "writing",
@@ -1437,7 +1445,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "9cb21d2a0cdf262db0ec5ed1a0fb3060fea076efa18a465dcaea37ce19aa087c",
+      "authorityDigest": "dcc394cec2ebba2710b18a6f8972b5f7458f9041c679158e1a6e1230c92eb150",
       "repositoryGroup": "on_demand",
       "repositoryStatus": "active",
       "workflowGroup": "artifacts",
@@ -1543,7 +1551,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "4d2839952b0bee1b5f1b1ab1e4649ad1f19fdf2b3f0c88511f1b6689090e763e",
+      "authorityDigest": "5f21c7d265f9c3fea1c28464fa9130172ef3282d7b7c407ca3a57593976ce949",
       "repositoryGroup": "collection",
       "repositoryStatus": "active",
       "workflowGroup": "job_client_work",
@@ -1637,7 +1645,7 @@
         "skills/tracker-manager/references/leads-contract.json",
         "skills/tracker-manager/scripts/leads.mjs"
       ],
-      "authorityDigest": "5b8b8bf8ee1b1c6cda70a3d7770c459b5bd0892bf63f06d9b39bbb0acc818417",
+      "authorityDigest": "0e71a79bc71e501928440bef14908e7789763b513a06414013fa05555a8b0e91",
       "repositoryGroup": "on_demand",
       "repositoryStatus": "active",
       "workflowGroup": "sourcing",
@@ -1733,7 +1741,7 @@
           "supportingAuthorities": [
             {
               "id": "web-sourcing",
-              "authorityDigest": "eebbc5b107534528379d9660eb6765c37bf6b408fee1bd0423fb5b9c89490552"
+              "authorityDigest": "2814b78725d22343249c51c9bbdb67f8b4c6a5fd1a41a78802b00282b079d190"
             }
           ]
         }
@@ -1787,7 +1795,7 @@
         "skills/tracker-manager/scripts/leads.mjs",
         "skills/tracker-manager/scripts/tracker.mjs"
       ],
-      "authorityDigest": "ad179f25d68f66ee3fcc248881ae66f83decfa1ae634dc210b6f1ffc7b41c5a6",
+      "authorityDigest": "bca11b886f59af040b521736e7d691810a0d9f9d4d5e5422cac0e5693c0adc4a",
       "repositoryGroup": "daily_core",
       "repositoryStatus": "restricted",
       "workflowGroup": "pipeline_tracker",
@@ -1900,7 +1908,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "ff6737a7c203b3277c3434371700da07fef5b185905d72b3800ea5df4382cf94",
+      "authorityDigest": "a1429e8c88fd6e09f39c3f4e3173b8456e2c5767d470181edba99a2947547d92",
       "repositoryGroup": "compatibility",
       "repositoryStatus": "legacy",
       "workflowGroup": "candidate_work",
@@ -1964,7 +1972,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "a38b366e71e9e77b5779fc8bb940b88aff88ddbc36ab3c548107b8e59c1ca41f",
+      "authorityDigest": "bac5e4ee13ada43f298d4e18aa893288b8d25d9f7da9d55a8201622909558b9c",
       "repositoryGroup": "evaluation",
       "repositoryStatus": "internal",
       "workflowGroup": "artifacts",
@@ -2037,7 +2045,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "95e27f730f59b7c206470a01fcb0efd5c4d5af60a33ae443f5264f2197886b32",
+      "authorityDigest": "1d0ff1121afc384e23f186bac538546068311ce43d822b34ed29db4b27d729f0",
       "repositoryGroup": "daily_core",
       "repositoryStatus": "active",
       "workflowGroup": "candidate_work",
@@ -2096,7 +2104,7 @@
           "supportingAuthorities": [
             {
               "id": "ja-candidate-vetting",
-              "authorityDigest": "69c35f26657a2b951f2a3d66cce873ec0d57263e87d4907321636493a94cd5f3"
+              "authorityDigest": "ce92c1b3dd946b6a43cc364d4b15b67f18867b5b566d842c55cdbe4c8d9c897b"
             }
           ]
         }
@@ -2141,7 +2149,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "eebbc5b107534528379d9660eb6765c37bf6b408fee1bd0423fb5b9c89490552",
+      "authorityDigest": "2814b78725d22343249c51c9bbdb67f8b4c6a5fd1a41a78802b00282b079d190",
       "repositoryGroup": "on_demand",
       "repositoryStatus": "active",
       "workflowGroup": "sourcing",
@@ -2221,7 +2229,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "bfba61f224a473fbbc99f11237e1e0e592ce09f430d42a5b436e864d24b5040c",
+      "authorityDigest": "b97d5477094e8f667f17b53082caabfe9cb264e6f39419517974f51da9c7699c",
       "repositoryGroup": "daily_core",
       "repositoryStatus": "active",
       "workflowGroup": "candidate_work",
@@ -2269,7 +2277,7 @@
           "supportingAuthorities": [
             {
               "id": "brandedresume",
-              "authorityDigest": "f785876e4100d9083a6ecb443c145c07491cd4a60359f11c76db37fcf8accc97"
+              "authorityDigest": "ba490515e1961cd0673753718368ad7064650e8021fa0456daed88a9fd268e21"
             }
           ]
         }
@@ -2305,29 +2313,73 @@
       "contract_paths": [
         "../docs/templates/branded-resume-contract.md"
       ],
+      "builder_paths": [
+        ".python-version",
+        "server/candidate_input.py",
+        "server/server.py",
+        "requirements.lock",
+        "requirements.txt",
+        "render.yaml",
+        "server/requirements.txt",
+        "skills/recruiter/modules/brandedresume/assets/tttg_logo.png",
+        "skills/recruiter/modules/brandedresume/scripts/build_resume.py"
+      ],
       "result_kind": "pdf",
       "runtime": "deterministic_server",
-      "mounted": false,
+      "mounted": true,
       "requirements": [
         {
           "id": "resume",
-          "label": "Reviewed resume",
-          "kind": "source",
+          "label": "Human-reviewed editable resume",
+          "kind": "reviewed_resume_document",
           "source_kinds": [
             "resume"
           ],
           "required": true
+        },
+        {
+          "id": "job-description",
+          "label": "Reviewed job description",
+          "kind": "reviewed_source",
+          "source_kinds": [
+            "job_description"
+          ],
+          "required": true
+        },
+        {
+          "id": "call-evidence",
+          "label": "Reviewed call notes or transcript",
+          "kind": "reviewed_source",
+          "source_kinds": [
+            "call_notes",
+            "transcript"
+          ],
+          "required": true
+        },
+        {
+          "id": "resume-mode",
+          "label": "Presentation mode",
+          "kind": "user_input",
+          "input_keys": [
+            "resume_mode"
+          ],
+          "allowed_values": [
+            "named_submission",
+            "internal_mpc"
+          ],
+          "required": false
         }
       ],
       "outside_world": true,
-      "outside_world_note": "The storage and QA adapter exists, but execution is disabled until the conflicting branded-resume and immutable legislator layout authorities are reconciled through the legislator override protocol.",
+      "outside_world_note": "The mounted executor requires a human-reviewed editable resume, reviewed job description, and reviewed call notes or transcript; consumes named_submission or internal_mpc; requires the hosted builder to attest the canonical repository builder digest; persists the exact PDF; and holds completion for page-by-page visual QA. External-client blind MPC is not available.",
       "supporting_capability_ids": [
         "legislator"
       ],
+      "builder_digest": "a113d9d19a70cc26386b2c1b818ee3cffb7cfa6d159367f6ae12beee847cdc3e",
       "supporting_authorities": [
         {
           "id": "legislator",
-          "authority_digest": "140577b54acf31b36cc05e7023c9ba80bc286d6ca5d99c550b8991ed890c50ef"
+          "authority_digest": "ba490515e1961cd0673753718368ad7064650e8021fa0456daed88a9fd268e21"
         }
       ]
     },
@@ -2391,7 +2443,7 @@
       "supporting_authorities": [
         {
           "id": "brandedresume",
-          "authority_digest": "f785876e4100d9083a6ecb443c145c07491cd4a60359f11c76db37fcf8accc97"
+          "authority_digest": "ba490515e1961cd0673753718368ad7064650e8021fa0456daed88a9fd268e21"
         }
       ]
     },
@@ -2439,7 +2491,7 @@
       "supporting_authorities": [
         {
           "id": "ja-candidate-vetting",
-          "authority_digest": "69c35f26657a2b951f2a3d66cce873ec0d57263e87d4907321636493a94cd5f3"
+          "authority_digest": "ce92c1b3dd946b6a43cc364d4b15b67f18867b5b566d842c55cdbe4c8d9c897b"
         }
       ]
     },
@@ -2864,7 +2916,7 @@
       "supporting_authorities": [
         {
           "id": "web-sourcing",
-          "authority_digest": "eebbc5b107534528379d9660eb6765c37bf6b408fee1bd0423fb5b9c89490552"
+          "authority_digest": "2814b78725d22343249c51c9bbdb67f8b4c6a5fd1a41a78802b00282b079d190"
         }
       ]
     },
@@ -2988,11 +3040,11 @@
       "supporting_authorities": [
         {
           "id": "loxo-readonly-candidate-dashboard",
-          "authority_digest": "9d813e5b66de9ba3ee56e175ca959fb1249d53742e29ceb99efbf731a6d54650"
+          "authority_digest": "3ac8a65c185df810b11902eddc25340e6a5cd64d7d73ed6610c5d90effe1a2c3"
         },
         {
           "id": "loxo-pipeline",
-          "authority_digest": "374a474f004609a9071c0a6f2acaadd3c80e4a7ae5c01ffe51bc9b80acc80a7a"
+          "authority_digest": "a8f83ed2f6ccba6a8f3ab3f4f7704503dc8c1ccfd27f7c443cd5df489477ca4c"
         }
       ]
     },
@@ -3062,7 +3114,7 @@
       "supporting_authorities": [
         {
           "id": "ja-writer",
-          "authority_digest": "6f15c981684b71717c12a4d64eb15a0ea3d291e88d763b60e012d69370fe8504"
+          "authority_digest": "8189c27732e9bf3bbf3833efaa8cbcca1645d18ec6a3e7eec34cd62808d3e428"
         }
       ]
     },

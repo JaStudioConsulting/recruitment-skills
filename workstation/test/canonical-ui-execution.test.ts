@@ -9,6 +9,7 @@ import {
   loadCapabilityRunsForCase,
   mergePersistedDocuments,
   reviewCaseArtifactAndRefresh,
+  resumeDraftForEdit,
   saveEditedOutput,
 } from "../components/workstation/recruiter-workstation";
 import {
@@ -62,6 +63,212 @@ function candidateCase(): CandidateCase {
 }
 
 describe("canonical workflow UI execution contract", () => {
+  it("preserves saved resume forms and safely recovers legacy resume text for editing", () => {
+    const current = candidateCase();
+    const savedForm = {
+      format: "tttg-resume-form-v1" as const,
+      reviewed: false,
+      name: "Synthetic Candidate",
+      headline: "Maintenance Leader",
+      summary: "Source-backed summary.",
+      skills: "Preventive maintenance",
+      jobs: [],
+      educationHeading: "Education",
+      education: "Synthetic College",
+      sections: [],
+    };
+    current.documents.resume.content = savedForm;
+    expect(resumeDraftForEdit(current)).toEqual(savedForm);
+
+    const legacySavedForm: Record<string, unknown> = { ...savedForm };
+    delete legacySavedForm.reviewed;
+    current.documents.resume.content = {
+      ...legacySavedForm,
+      summary: "Recruiter-corrected legacy summary.",
+    };
+    current.sources = [{
+      id: "legacy-source-resume",
+      kind: "resume",
+      filename: "legacy-synthetic-resume.txt",
+      contentType: "text/plain",
+      sizeBytes: 160,
+      sha256: "sha-legacy-synthetic-resume",
+      captureTime: "2026-09-22T00:00:00.000Z",
+      lifecycleStatus: "reviewed",
+      reviewStatus: "reviewed",
+      parsedText: "Synthetic Candidate\nMaintenance Leader\n\nProfessional Summary\nOriginal source summary.",
+      classificationMethod: "explicit",
+    }];
+    expect(resumeDraftForEdit(current)).toMatchObject({
+      reviewed: false,
+      summary: "Recruiter-corrected legacy summary.",
+    });
+
+    current.documents.resume.content = { time: 0, version: "2.31.0", blocks: [] };
+    current.sources = [{
+      id: "source-resume",
+      kind: "resume",
+      filename: "synthetic-resume.txt",
+      contentType: "text/plain",
+      sizeBytes: 160,
+      sha256: "sha-synthetic-resume",
+      captureTime: "2026-09-23T00:00:00.000Z",
+      lifecycleStatus: "reviewed",
+      reviewStatus: "reviewed",
+      parsedText: "Synthetic Candidate\nMaintenance Leader\n\nProfessional Summary\nSource-backed summary.\n\nCore Competencies\nPreventive maintenance",
+      classificationMethod: "explicit",
+    }];
+    expect(resumeDraftForEdit(current)).toMatchObject({
+      name: "Synthetic Candidate",
+      headline: "Maintenance Leader",
+      summary: "Source-backed summary.",
+      skills: "Preventive maintenance",
+    });
+
+    current.sources = [];
+    expect(resumeDraftForEdit(current)).toBeNull();
+  });
+
+  it("uses the newest usable resume as a replacement while retaining every resume in saved lineage", async () => {
+    const current = candidateCase();
+    current.documents.resume.content = { time: 0, version: "2.31.0", blocks: [] };
+    current.sources = [
+      {
+        id: "resume-older",
+        kind: "resume",
+        filename: "synthetic-older-resume.txt",
+        contentType: "text/plain",
+        sizeBytes: 300,
+        sha256: "sha-older",
+        captureTime: "2026-09-20T00:00:00.000Z",
+        lifecycleStatus: "reviewed",
+        reviewStatus: "reviewed",
+        parsedText: `Synthetic Candidate
+Maintenance Manager
+PROFESSIONAL SUMMARY
+Obsolete source-backed summary.
+CORE COMPETENCIES
+Preventive maintenance
+PROFESSIONAL EXPERIENCE
+Maintenance Manager | Example Manufacturing Inc. | 2023 - Present
+• Obsolete maintenance scope.
+Maintenance Planner | Example Components Ltd. | 2020 - 2023
+• Planned preventive work.
+EDUCATION
+Mechanical Technology Diploma
+CERTIFICATIONS
+Expired Synthetic Certificate`,
+        classificationMethod: "explicit",
+      },
+      {
+        id: "resume-newer",
+        kind: "resume",
+        filename: "synthetic-newer-resume.txt",
+        contentType: "text/plain",
+        sizeBytes: 320,
+        sha256: "sha-newer",
+        captureTime: "2026-09-23T00:00:00.000Z",
+        lifecycleStatus: "reviewed",
+        reviewStatus: "reviewed",
+        parsedText: `Synthetic Candidate
+Senior Maintenance Manager
+PROFESSIONAL SUMMARY
+Current source-backed summary.
+CORE COMPETENCIES
+CMMS administration
+PROFESSIONAL EXPERIENCE
+Senior Maintenance Manager | Example Manufacturing Inc. | 2023 - Present
+• Led maintenance operations.
+CERTIFICATIONS
+Synthetic Reliability Certificate`,
+        classificationMethod: "explicit",
+      },
+    ];
+
+    const recovered = resumeDraftForEdit(current)!;
+    expect(recovered.headline).toBe("Senior Maintenance Manager");
+    expect(recovered.summary).toBe("Current source-backed summary.");
+    expect(recovered.skills).toBe("CMMS administration");
+    expect(recovered.jobs).toEqual([expect.objectContaining({
+      title: "Senior Maintenance Manager",
+      company: "Example Manufacturing Inc.",
+      dates: "2023 - Present",
+      bullets: "Led maintenance operations.",
+    })]);
+    expect(recovered.educationHeading).toBe("");
+    expect(recovered.education).toBe("");
+    expect(recovered.sections).toEqual([{
+      heading: "CERTIFICATIONS",
+      items: "Synthetic Reliability Certificate",
+    }]);
+    expect(JSON.stringify(recovered)).not.toContain("Obsolete");
+    expect(JSON.stringify(recovered)).not.toContain("Preventive maintenance");
+    expect(JSON.stringify(recovered)).not.toContain("Maintenance Planner");
+    expect(JSON.stringify(recovered)).not.toContain("Mechanical Technology Diploma");
+    expect(JSON.stringify(recovered)).not.toContain("Expired Synthetic Certificate");
+
+    const versions: DocumentVersion[] = [{
+      kind: "resume",
+      revision: 1,
+      content: current.documents.resume.content,
+      sourceRefs: [],
+      capabilityRunId: null,
+      origin: "generated",
+      createdAt: "2026-09-20T00:00:00.000Z",
+    }];
+    const session = editSessionForCurrentDocument(current, "resume", versions)!;
+    const saveDocument = vi.fn(async () => document("resume", 2));
+    await saveEditedOutput(saveDocument, session, recovered);
+
+    expect(saveDocument).toHaveBeenCalledWith("case-1", "resume", expect.objectContaining({
+      sourceRefs: [
+        "resume-newer:sha-newer:resume:reviewed:reviewed:explicit",
+        "resume-older:sha-older:resume:reviewed:reviewed:explicit",
+      ],
+      content: expect.objectContaining({ reviewed: true }),
+    }));
+  });
+
+  it("does not fall through to obsolete resume facts when the newest usable replacement has no recoverable body", () => {
+    const current = candidateCase();
+    current.documents.resume.content = { time: 0, version: "2.31.0", blocks: [] };
+    current.sources = [
+      {
+        id: "resume-older-complete",
+        kind: "resume",
+        filename: "synthetic-older-complete-resume.txt",
+        contentType: "text/plain",
+        sizeBytes: 220,
+        sha256: "sha-older-complete",
+        captureTime: "2026-09-20T00:00:00.000Z",
+        lifecycleStatus: "reviewed",
+        reviewStatus: "reviewed",
+        parsedText: `Synthetic Candidate
+Maintenance Manager
+PROFESSIONAL SUMMARY
+Obsolete summary that was removed.
+CORE COMPETENCIES
+Obsolete skill`,
+        classificationMethod: "explicit",
+      },
+      {
+        id: "resume-newer-minimal",
+        kind: "resume",
+        filename: "synthetic-corrected-resume.txt",
+        contentType: "text/plain",
+        sizeBytes: 60,
+        sha256: "sha-newer-minimal",
+        captureTime: "2026-09-23T00:00:00.000Z",
+        lifecycleStatus: "reviewed",
+        reviewStatus: "reviewed",
+        parsedText: "Synthetic Candidate\nMaintenance Leader",
+        classificationMethod: "explicit",
+      },
+    ];
+
+    expect(resumeDraftForEdit(current)).toBeNull();
+  });
+
   it("refuses to replace the visible case when candidate intake finishes in a changed context", () => {
     const originating = { roleId: "role-1", caseId: "case-1" };
 
@@ -126,7 +333,11 @@ describe("canonical workflow UI execution contract", () => {
     });
     expect(mountedExecutorFor(interfaceOnly)).toBeUndefined();
     expect(mountedExecutorFor(capabilityById("loxo")!)).toBeUndefined();
-    expect(mountedExecutorFor(capabilityById("brandedresume")!)).toBeUndefined();
+    expect(mountedExecutorFor(capabilityById("brandedresume")!)).toMatchObject({
+      id: "brand-resume",
+      mounted: true,
+      operationId: "build-branded-resume",
+    });
     expect(mountedExecutorFor({
       ...interfaceOnly,
       executorFeatures: [{ ...interfaceOnly.executorFeatures[0], mounted: true }],
@@ -185,6 +396,16 @@ describe("canonical workflow UI execution contract", () => {
     expect(workstationSource).not.toContain('extraInput: ""');
   });
 
+  it("exposes the optional branded-resume presentation mode without making it a build gate", () => {
+    expect(capabilityInputFields(capabilityById("brandedresume")!)).toEqual([{
+      key: "resume_mode",
+      label: "Presentation mode",
+      required: false,
+      allowedValues: ["named_submission", "internal_mpc"],
+      multiline: false,
+    }]);
+  });
+
   it("keeps output read-only until Edit, exposes Cancel, and clears the local draft on cancel", () => {
     expect(workstationSource).not.toContain('className="output-version-row"');
     expect(workstationSource).toContain("effectiveRevision === document.revision");
@@ -221,6 +442,62 @@ describe("canonical workflow UI execution contract", () => {
       sourceRefs: ["resume:sha-resume", "call:sha-call", "jd:sha-jd"],
       capabilityRunId: "run-canonical-1",
     });
+  });
+
+  it("marks only an explicitly saved resume form as reviewed for PDF export", async () => {
+    const current = candidateCase();
+    current.sources = [{
+      id: "resume",
+      kind: "resume",
+      filename: "resume.txt",
+      contentType: "text/plain",
+      sizeBytes: 100,
+      sha256: "sha-resume",
+      captureTime: "2026-09-20T00:00:00.000Z",
+      lifecycleStatus: "reviewed",
+      reviewStatus: "reviewed",
+      parsedText: "Synthetic Candidate resume",
+      classificationMethod: "explicit",
+    }];
+    const versions: DocumentVersion[] = [{
+      kind: "resume",
+      revision: 1,
+      content: current.documents.resume.content,
+      sourceRefs: ["resume:sha-resume:resume:reviewed:reviewed:explicit"],
+      capabilityRunId: "run-write-up-1",
+      origin: "generated",
+      createdAt: "2026-09-20T00:00:00.000Z",
+    }];
+    const session = editSessionForCurrentDocument(current, "resume", versions)!;
+    const saveDocument = vi.fn(async () => document("resume", 2));
+    const draft = {
+      format: "tttg-resume-form-v1" as const,
+      reviewed: false,
+      name: "Synthetic Candidate",
+      headline: "Maintenance Leader",
+      summary: "Source-backed summary.",
+      skills: "Preventive maintenance",
+      jobs: [],
+      educationHeading: "",
+      education: "",
+      sections: [],
+    };
+
+    await saveEditedOutput(saveDocument, session, draft);
+
+    expect(saveDocument).toHaveBeenCalledWith("case-1", "resume", expect.objectContaining({
+      origin: "edited",
+      sourceRefs: ["resume:sha-resume:resume:reviewed:reviewed:explicit"],
+      capabilityRunId: "run-write-up-1",
+      content: expect.objectContaining({ reviewed: true, summary: "Source-backed summary." }),
+    }));
+
+    const legacyDraft: Record<string, unknown> = { ...draft };
+    delete legacyDraft.reviewed;
+    await saveEditedOutput(saveDocument, session, legacyDraft);
+    expect(saveDocument).toHaveBeenLastCalledWith("case-1", "resume", expect.objectContaining({
+      content: expect.objectContaining({ reviewed: true, summary: "Source-backed summary." }),
+    }));
   });
 
   it("reloads saved run history by active case and summarizes evidence without raw values", async () => {

@@ -30,6 +30,7 @@ export type BrandResumeResult =
       expiresInSeconds: number | null;
       contactRemoved: string[];
       notes: string[];
+      builderDigest: string;
     }
   | { status: "refused"; problems: string[] }
   | { status: "unavailable"; detail: string };
@@ -131,6 +132,9 @@ export function parseBuilderPayload(payload: unknown): BrandResumeResult {
   if (!isRecord(tool)) return unavailable("The resume builder answer had no build result. Nothing was built.");
 
   if (tool.ok === true && typeof tool.download_url === "string" && typeof tool.filename === "string") {
+    if (typeof tool.builder_digest !== "string" || !/^[a-f0-9]{64}$/i.test(tool.builder_digest)) {
+      return unavailable("The resume builder did not attest the exact repository builder version. Nothing was saved.");
+    }
     return {
       status: "built",
       filename: tool.filename,
@@ -138,6 +142,7 @@ export function parseBuilderPayload(payload: unknown): BrandResumeResult {
       expiresInSeconds: typeof tool.expires_in_seconds === "number" ? tool.expires_in_seconds : null,
       contactRemoved: stringList(tool.contact_removed),
       notes: stringList(tool.notes),
+      builderDigest: tool.builder_digest,
     };
   }
 

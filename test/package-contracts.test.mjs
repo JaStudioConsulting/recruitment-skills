@@ -200,7 +200,7 @@ test("every manifest capability exposes its capability-specific contract", async
     "ja-candidate-vetting": [/Use only proven facts/i, /average must be 4\.0 or higher/i],
     "ja-writer": [/Never invent.*salary, availability/is, /do not type a signature/i],
     "job-loxo": [/obtain Ja's explicit approval before the first Loxo write/i, /status.*published.*separately/is],
-    legislator: [/explicitly types a manual override/i, /Do not approve partial compliance as complete/i],
+    legislator: [/single canonical TTTG branded resume design/i, /Do not approve partial compliance as complete/i],
     "linkedin-posts": [/Publish-Ready Copy/i, /Short feed posts.*Login-gated/is],
     loxo: [/read-only and draft-only/i, /loxo-candidate-fit-review\.md/i],
     "loxo-automation": [/separate named authorization/i, /WAIT for approval/i],
@@ -237,6 +237,63 @@ test("root requirements include every server runtime dependency", async () => {
   const rootRequirements = packageNames(await readFile(path.join(root, "requirements.txt"), "utf8"));
   const serverRequirements = packageNames(await readFile(path.join(root, "server/requirements.txt"), "utf8"));
   assert.deepEqual([...serverRequirements].filter((name) => !rootRequirements.has(name)), []);
+});
+
+test("hosted builder runtime and resolved dependencies are pinned and attested", async () => {
+  const pythonVersion = (await readFile(path.join(root, ".python-version"), "utf8")).trim();
+  assert.equal(pythonVersion, "3.14.3");
+
+  const requirements = (await readFile(path.join(root, "requirements.txt"), "utf8"))
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"));
+  const lock = (await readFile(path.join(root, "requirements.lock"), "utf8"))
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"));
+  const serverRequirements = (await readFile(path.join(root, "server/requirements.txt"), "utf8"))
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"));
+  assert.ok(requirements.every((line) => /^[a-z0-9][a-z0-9._-]*==[^=]+$/i.test(line)));
+  assert.deepEqual(requirements, lock);
+  assert.deepEqual(serverRequirements, lock);
+
+  const render = await readFile(path.join(root, "render.yaml"), "utf8");
+  assert.match(render, /buildCommand:\s*pip install -r requirements\.lock/);
+  const server = await readFile(path.join(root, "server/server.py"), "utf8");
+  assert.match(server, /"\.python-version"/);
+  assert.match(server, /"requirements\.lock"/);
+  assert.match(server, /"server\/requirements\.txt"/);
+});
+
+test("mounted branded-resume documentation matches the executable registry", async () => {
+  const featureManifest = JSON.parse(
+    await readFile(path.join(root, "workstation/capability-features.json"), "utf8"),
+  );
+  const brandResume = featureManifest.features.find((feature) => feature.id === "brand-resume");
+  assert.equal(brandResume?.mounted, true);
+  assert.deepEqual(
+    brandResume?.requirements.filter((requirement) => requirement.required).map(({ id, kind, source_kinds }) => ({ id, kind, source_kinds })),
+    [
+      { id: "resume", kind: "reviewed_resume_document", source_kinds: ["resume"] },
+      { id: "job-description", kind: "reviewed_source", source_kinds: ["job_description"] },
+      { id: "call-evidence", kind: "reviewed_source", source_kinds: ["call_notes", "transcript"] },
+    ],
+  );
+
+  const workstationReadme = await readFile(path.join(root, "workstation/README.md"), "utf8");
+  const serverReadme = await readFile(path.join(root, "server/README.md"), "utf8");
+  for (const staleClaim of [
+    "blocked and unmounted",
+    "PDF-producing workflows are unmounted",
+    "deliberately keeps this executor unmounted",
+  ]) {
+    assert.doesNotMatch(workstationReadme, new RegExp(staleClaim, "i"));
+    assert.doesNotMatch(serverReadme, new RegExp(staleClaim, "i"));
+  }
+  assert.match(workstationReadme, /Branded Resume is mounted/);
+  assert.match(serverReadme, /build_pdf.*mounted canonical A-layout/s);
 });
 
 test("sourcing and web-sourcing CLIs export exact synthetic contracts", async () => {
@@ -463,6 +520,11 @@ test("Workbench artifact adapters validate at the server boundary", () => {
 
 test("synthetic branded resume artifact QA renders every page and records automation separately", async () => {
   const data = JSON.parse(await readFile(fixture, "utf8"));
+  assert.deepEqual(
+    await readFile(path.join(root, "workstation/public/tttg-logo.png")),
+    await readFile(path.join(skills, "recruiter/modules/brandedresume/assets/tttg_logo.png")),
+    "Workstation editable preview must use the canonical builder logo",
+  );
   const dir = await mkdtemp(path.join(root, ".tmp-resume-contract-"));
   try {
     const input = path.join(dir, "resume.json");
@@ -475,6 +537,14 @@ test("synthetic branded resume artifact QA renders every page and records automa
     const pages = Number(info.match(/^Pages:\s+(\d+)/m)?.[1] || 0);
     assert.ok(pages > 0);
     assert.match(info, /^Page size:\s+612 x 792 pts \(letter\)$/m);
+    const metadataInspection = spawnSync("python3", ["-c", [
+      "import json, sys",
+      "from pypdf import PdfReader",
+      "reader = PdfReader(sys.argv[1])",
+      "print(json.dumps({'metadata': dict(reader.metadata or {}), 'has_xmp': reader.xmp_metadata is not None}))",
+    ].join("; "), output], { encoding: "utf8" });
+    assert.equal(metadataInspection.status, 0, metadataInspection.stderr || metadataInspection.stdout);
+    assert.deepEqual(JSON.parse(metadataInspection.stdout), { metadata: {}, has_xmp: false });
     const imagePrefix = path.join(dir, "page");
     const render = spawnSync("pdftoppm", ["-png", "-r", "72", output, imagePrefix], { encoding: "utf8" });
     assert.equal(render.status, 0, render.stderr);
@@ -483,7 +553,7 @@ test("synthetic branded resume artifact QA renders every page and records automa
     for (const name of renderedPages) assert.ok(statSync(path.join(dir, name)).size > 0, name);
     const text = spawnSync("pdftotext", [output, "-"], { encoding: "utf8" }).stdout;
     assert.doesNotMatch(text, /\[[^\]]*(?:confirm|tbd|todo|xxx|placeholder|insert|add)[^\]]*\]/i);
-    assert.doesNotMatch(text, /—|–|--/);
+    assert.doesNotMatch(text, /—|–|--|;|~/);
     assert.equal((await readFile(output)).includes(Buffer.from("/URI")), false, "PDF must not contain hyperlinks");
     const pageQa = { schema_version: 1, artifact: output, pages, rendered_pages: renderedPages.length, automated_checks: { no_placeholders: true, no_long_dashes: true, no_hyperlinks: true, rendered_images_nonzero: true }, human_visual_inspection: "required", human_visual_inspection_complete: false, verified_by: "synthetic-harness" };
     assert.equal(pageQa.schema_version, 1);
@@ -511,5 +581,66 @@ test("synthetic branded resume artifact QA renders every page and records automa
     assert.notEqual(odd.status, 0, "odd Core Skills must fail closed");
     assert.match(odd.stdout + odd.stderr, /Core Skills count is odd/);
     assert.equal(exists(oddOutput), false);
+
+    const forbiddenInput = path.join(dir, "forbidden-punctuation.json");
+    const forbiddenOutput = path.join(dir, "forbidden-punctuation.pdf");
+    await writeFile(forbiddenInput, JSON.stringify({
+      ...data.resume,
+      summary: "Synthetic supervisor; reduced downtime ~10% with CNC / manual equipment.",
+    }), "utf8");
+    const forbidden = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", forbiddenInput, "--out", forbiddenOutput, "--engine", "reportlab"], { encoding: "utf8" });
+    assert.notEqual(forbidden.status, 0, "semicolons and tildes must fail closed");
+    assert.match(forbidden.stdout + forbidden.stderr, /semicolon \(;\)/);
+    assert.match(forbidden.stdout + forbidden.stderr, /tilde \(~\)/);
+    assert.match(forbidden.stdout + forbidden.stderr, /whitespace around slash/);
+    assert.equal(exists(forbiddenOutput), false);
+
+    const compensationInput = path.join(dir, "compensation.json");
+    const compensationOutput = path.join(dir, "compensation.pdf");
+    await writeFile(compensationInput, JSON.stringify({ ...data.resume, summary: "Seeking $120,000 annually." }), "utf8");
+    const compensation = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", compensationInput, "--out", compensationOutput, "--engine", "reportlab"], { encoding: "utf8" });
+    assert.notEqual(compensation.status, 0, "compensation must fail closed");
+    assert.match(compensation.stdout + compensation.stderr, /compensation information/);
+    assert.equal(exists(compensationOutput), false);
+
+    const datedEducationEntries = [
+      "**BSc** - Example University, 2015",
+      "2015 - **BSc** - Example University",
+      "**BSc** - Example University 2015",
+      "**BSc** - Example University - 2015",
+      "**BSc** - Example University, 2011-2015",
+      "**BSc** - Example University, Graduated: 2015",
+      "**BSc** - Example University, Education:2015",
+      "**ISO 9001:2015 Lead Auditor** - Example Registrar - 2020",
+    ];
+    for (const [index, education] of datedEducationEntries.entries()) {
+      const datedEducationInput = path.join(dir, `dated-education-${index}.json`);
+      const datedEducationOutput = path.join(dir, `dated-education-${index}.pdf`);
+      await writeFile(datedEducationInput, JSON.stringify({ ...data.resume, education: [education] }), "utf8");
+      const datedEducation = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", datedEducationInput, "--out", datedEducationOutput, "--engine", "reportlab"], { encoding: "utf8" });
+      assert.notEqual(datedEducation.status, 0, `education date must fail closed: ${education}`);
+      assert.match(datedEducation.stdout + datedEducation.stderr, /education\[0\].*contains a date/);
+      assert.equal(exists(datedEducationOutput), false);
+    }
+
+    const legitimateEdgeInput = path.join(dir, "legitimate-edge.json");
+    const legitimateEdgeOutput = path.join(dir, "legitimate-edge.pdf");
+    await writeFile(legitimateEdgeInput, JSON.stringify({
+      ...data.resume,
+      summary: "Improved quarterly earnings through process changes.",
+      education: ["**ISO 9001:2015 Lead Auditor** - Example Registrar"],
+    }), "utf8");
+    const legitimateEdge = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", legitimateEdgeInput, "--out", legitimateEdgeOutput, "--engine", "reportlab"], { encoding: "utf8" });
+    assert.equal(legitimateEdge.status, 0, legitimateEdge.stderr || legitimateEdge.stdout);
+    assert.equal(exists(legitimateEdgeOutput), true);
+
+    const incompleteInput = path.join(dir, "incomplete.json");
+    const incompleteOutput = path.join(dir, "incomplete.pdf");
+    await writeFile(incompleteInput, JSON.stringify({ name: "Synthetic Person", summary: "Source-backed summary." }), "utf8");
+    const incomplete = spawnSync("python3", [path.join(skills, "recruiter/modules/brandedresume/scripts/build_resume.py"), "--data", incompleteInput, "--out", incompleteOutput, "--engine", "reportlab"], { encoding: "utf8" });
+    assert.notEqual(incomplete.status, 0, "incomplete canonical structure must fail closed");
+    assert.match(incomplete.stdout + incomplete.stderr, /required branded-resume structure is incomplete/);
+    assert.match(incomplete.stdout + incomplete.stderr, /headline|skills|experience|education/);
+    assert.equal(exists(incompleteOutput), false);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });

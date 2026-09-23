@@ -52,12 +52,13 @@ its preview, grant, single-use consumption, idempotency result, unknown-result
 reconciliation, and readback evidence must be persisted with owner-scoped
 database constraints and tested through the real route.
 
-Branded Resume is intentionally blocked and unmounted. Its active repository
-authorities currently conflict on page size, typography, logo placement, name
-style, and punctuation; no exact legislator override was supplied. The hosted
-builder also does not attest the governing authority digest or collect every
-required presentation mode. Persisted PDF and visual-QA infrastructure exists,
-but it does not make that conflicting capability executable.
+Branded Resume is mounted as a partial, fail-closed workflow using the canonical
+A layout. A recruiter must save the source-grounded editable resume form before
+execution. The Workstation then calls the hosted ReportLab builder, verifies its
+attested authority digest, persists the exact PDF, and requires page-by-page
+human visual QA before release. Named submissions and internal MPC presentation
+are supported; external-client blind MPC remains blocked because verified
+anonymization is not implemented.
 
 ## Local development
 
@@ -94,11 +95,11 @@ the browser suite rejects off-origin requests. It therefore exercises persisted
 Job, candidate, source, draft, edit, version, reload, and blocked-workflow
 behavior without writing to Loxo, Gmail, Tracker, or another live service.
 
-PDF artifact review is intentionally not fabricated in this browser suite. The
-current PDF-producing workflows are unmounted, so there is no deterministic
-public UI path to a synthetic PDF. Artifact storage and visual-QA contracts stay
-covered by the Workstation unit/integration suite until a PDF executor is safely
-mounted.
+PDF artifact review is intentionally not fabricated in this browser suite. It
+does not call the hosted branded-resume builder or mark page-by-page human QA as
+complete. The mounted workflow UI, artifact storage, digest, and visual-QA
+contracts remain covered by browser and Workstation unit/integration tests with
+synthetic records.
 
 Repository-level validation also regenerates and checks the capability registry:
 

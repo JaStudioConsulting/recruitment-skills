@@ -11,6 +11,7 @@ import type {
   CaseArtifactRecord,
 } from "../lib/server/capability-run-repository";
 import type { CandidateCase, CaseDocument, CaseSource } from "../lib/workstation-types";
+import { featureById } from "../lib/capabilities/catalog";
 
 function run(input: {
   capabilityId: string;
@@ -70,6 +71,19 @@ function candidateCase(): CandidateCase {
     parsedText: "Synthetic Candidate\nMaintenance Supervisor\nProfessional Summary\nSynthetic summary\nSkills\nCMMS\nProfessional Experience\nMaintenance Supervisor | Example Manufacturing | Toronto, ON | 2020 - Present\n- Maintained synthetic equipment.\nEducation\nSynthetic College",
     classificationMethod: "manual",
   };
+  const groundingSource = (id: string, kind: "job_description" | "transcript"): CaseSource => ({
+    id,
+    kind,
+    filename: `${id}.txt`,
+    contentType: "text/plain",
+    sizeBytes: 100,
+    sha256: `sha-${id}`,
+    captureTime: "2026-09-20T12:00:00.000Z",
+    lifecycleStatus: "reviewed",
+    reviewStatus: "reviewed",
+    parsedText: `${kind} synthetic reviewed evidence`,
+    classificationMethod: "manual",
+  });
   return {
     id: "case-1",
     roleId: "role-1",
@@ -86,6 +100,7 @@ function candidateCase(): CandidateCase {
     documents: {
       resume: document("resume", {
         format: "tttg-resume-form-v1",
+        reviewed: true,
         name: "Synthetic Candidate",
         headline: "Maintenance Supervisor",
         summary: "Synthetic source-grounded summary.",
@@ -106,7 +121,11 @@ function candidateCase(): CandidateCase {
       email: document("email"),
       loxo_update: document("loxo_update"),
     },
-    sources: [resumeSource],
+    sources: [
+      resumeSource,
+      groundingSource("job-description-source", "job_description"),
+      groundingSource("call-source", "transcript"),
+    ],
     updatedAt: "2026-09-20T12:00:00.000Z",
   };
 }
@@ -134,6 +153,8 @@ function persistedArtifact(kind: string): CaseArtifactRecord {
 }
 
 function dependencies() {
+  const builderDigest = featureById("brand-resume")?.builder_digest;
+  if (!builderDigest) throw new Error("Synthetic test requires the generated branded-resume builder digest.");
   const callResumeBuilder = vi.fn<ArtifactCapabilityExecutorDependencies["callResumeBuilder"]>(async () => ({
     status: "built" as const,
     filename: "Synthetic Resume.pdf",
@@ -141,6 +162,7 @@ function dependencies() {
     expiresInSeconds: 3600,
     contactRemoved: ["email"],
     notes: ["synthetic builder note"],
+    builderDigest,
   }));
   const buildManualArtifact = vi.fn<ArtifactCapabilityExecutorDependencies["buildManualArtifact"]>(async () => ({
     status: "built" as const,
@@ -157,7 +179,7 @@ function dependencies() {
     endpoint: "https://builder.example/mcp",
     token: "synthetic-token",
   };
-  return { value, callResumeBuilder, buildManualArtifact, persistCaseArtifact };
+  return { value, callResumeBuilder, buildManualArtifact, persistCaseArtifact, builderDigest };
 }
 
 describe("canonical PDF capability executor adapters", () => {
@@ -201,6 +223,7 @@ describe("canonical PDF capability executor adapters", () => {
       filename: "Synthetic Resume.pdf",
       kind: "brandedresume",
       executorId: "brand-resume",
+      expectedDocument: { kind: "resume", revision: 2 },
       source: {
         downloadUrl: "https://builder.example/files/resume.pdf",
         evidence: {
@@ -210,6 +233,9 @@ describe("canonical PDF capability executor adapters", () => {
           expiresInSeconds: 3600,
           contactRemoved: ["email"],
           notes: ["synthetic builder note"],
+          builderDigest: deps.builderDigest,
+          resumeMode: "named_submission",
+          resumeDocumentRevision: 2,
         },
       },
     });
@@ -225,6 +251,155 @@ describe("canonical PDF capability executor adapters", () => {
       },
       canonicalIncomplete: { visualQaPassed: false },
     });
+  });
+
+  it("fails closed before the builder when role-specific JD or call evidence is not reviewed", async () => {
+    const scenarios = [
+      {
+        remove: ["job_description"],
+        message: "reviewed job description",
+      },
+      {
+        remove: ["transcript", "call_notes"],
+        message: "reviewed call notes or transcript",
+      },
+    ] as const;
+
+    for (const scenario of scenarios) {
+      const deps = dependencies();
+      const current = candidateCase();
+      current.sources = current.sources.filter((source) => !scenario.remove.some((kind) => kind === source.kind));
+
+      await expect(executeArtifactCapabilityWithDependencies({
+        userId: "user-1",
+        caseId: "case-1",
+        run: run({ capabilityId: "brandedresume", executorId: "brand-resume" }),
+        candidateCase: current,
+      }, deps.value)).rejects.toMatchObject({
+        status: 409,
+        message: expect.stringContaining(scenario.message),
+      });
+      expect(deps.callResumeBuilder).not.toHaveBeenCalled();
+      expect(deps.persistCaseArtifact).not.toHaveBeenCalled();
+    }
+  });
+
+  it("passes the selected internal MPC mode to the attested builder", async () => {
+    const deps = dependencies();
+    await executeArtifactCapabilityWithDependencies({
+      userId: "user-1",
+      caseId: "case-1",
+      run: run({ capabilityId: "brandedresume", executorId: "brand-resume", extraInput: JSON.stringify({ resume_mode: "internal_mpc" }) }),
+      candidateCase: candidateCase(),
+    }, deps.value);
+
+    expect(deps.callResumeBuilder).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: "internal_mpc" }),
+      expect.any(Object),
+    );
+  });
+
+  it("uses the same human-entered key-value mode syntax accepted during preparation", async () => {
+    const deps = dependencies();
+    await executeArtifactCapabilityWithDependencies({
+      userId: "user-1",
+      caseId: "case-1",
+      run: run({
+        capabilityId: "brandedresume",
+        executorId: "brand-resume",
+        extraInput: "resume_mode: internal_mpc",
+      }),
+      candidateCase: candidateCase(),
+    }, deps.value);
+
+    expect(deps.callResumeBuilder).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: "internal_mpc" }),
+      expect.any(Object),
+    );
+  });
+
+  it("refuses unsupported or malformed explicit resume modes before calling the builder", async () => {
+    for (const extraInput of [
+      JSON.stringify({ resume_mode: "external_blind_mpc" }),
+      JSON.stringify({ resume_mode: "unknown" }),
+      JSON.stringify({ resume_mode: 7 }),
+      JSON.stringify({}),
+      "not-json",
+    ]) {
+      const deps = dependencies();
+      await expect(executeArtifactCapabilityWithDependencies({
+        userId: "user-1",
+        caseId: "case-1",
+        run: run({ capabilityId: "brandedresume", executorId: "brand-resume", extraInput }),
+        candidateCase: candidateCase(),
+      }, deps.value)).rejects.toMatchObject({ status: 422 });
+      expect(deps.callResumeBuilder).not.toHaveBeenCalled();
+      expect(deps.persistCaseArtifact).not.toHaveBeenCalled();
+    }
+  });
+
+  it("refuses an odd number of reviewed source-backed skills before calling the builder", async () => {
+    const deps = dependencies();
+    const current = candidateCase();
+    const resume = current.documents.resume.content;
+    if (typeof resume !== "object" || resume === null || !("format" in resume)) {
+      throw new Error("Synthetic resume fixture is not a resume form.");
+    }
+    current.documents.resume.content = {
+      ...resume,
+      skills: "CMMS\nPreventive maintenance\nRoot cause analysis",
+    };
+
+    await expect(executeArtifactCapabilityWithDependencies({
+      userId: "user-1",
+      caseId: "case-1",
+      run: run({ capabilityId: "brandedresume", executorId: "brand-resume" }),
+      candidateCase: current,
+    }, deps.value)).rejects.toMatchObject({
+      status: 422,
+      message: expect.stringContaining("Core Skills count is odd (3)"),
+    });
+    expect(deps.callResumeBuilder).not.toHaveBeenCalled();
+  });
+
+  it("rejects a hosted builder whose digest differs from the repository", async () => {
+    const deps = dependencies();
+    deps.callResumeBuilder.mockResolvedValue({
+      status: "built",
+      filename: "Synthetic Resume.pdf",
+      downloadUrl: "/files/resume.pdf",
+      expiresInSeconds: 3600,
+      contactRemoved: [],
+      notes: [],
+      builderDigest: "f".repeat(64),
+    });
+
+    await expect(executeArtifactCapabilityWithDependencies({
+      userId: "user-1",
+      caseId: "case-1",
+      run: run({ capabilityId: "brandedresume", executorId: "brand-resume" }),
+      candidateCase: candidateCase(),
+    }, deps.value)).rejects.toThrow("does not match the canonical repository builder");
+    expect(deps.persistCaseArtifact).not.toHaveBeenCalled();
+  });
+
+  it("refuses an unreviewed editable resume before calling or persisting the builder", async () => {
+    const deps = dependencies();
+    const unreviewedCase = candidateCase();
+    unreviewedCase.documents.resume.content = {
+      ...(unreviewedCase.documents.resume.content as Record<string, unknown>),
+      reviewed: false,
+    };
+
+    await expect(executeArtifactCapabilityWithDependencies({
+      userId: "user-1",
+      caseId: "case-1",
+      run: run({ capabilityId: "brandedresume", executorId: "brand-resume" }),
+      candidateCase: unreviewedCase,
+    }, deps.value)).rejects.toThrow("compare the form with the original resume");
+
+    expect(deps.callResumeBuilder).not.toHaveBeenCalled();
+    expect(deps.persistCaseArtifact).not.toHaveBeenCalled();
   });
 
   it("never persists when the branded-resume builder refuses the input", async () => {

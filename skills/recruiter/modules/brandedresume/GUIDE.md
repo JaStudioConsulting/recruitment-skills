@@ -15,6 +15,8 @@ The deliverable is the PDF itself. The user does not want code or steps to run e
 
 One shot beats a redo. Before building, scan the input for any missing or unclear essential (employer, date, location, degree, a metric, named-vs-MPC). **If anything is missing, STOP and ask Ja in one short batch** — list exactly what's unknown and, for each, ask: provide it, leave it blank (`""`), or take it out. Never guess, never invent, never ship a `[confirm ...]` placeholder. Proceed only once every gap is resolved. Saves tokens, avoids a rebuild.
 
+The mounted branded-resume workflow also requires all three source groups before it may build: a human-reviewed editable resume, a reviewed job description for the selected role, and reviewed call evidence (a transcript or call notes). The Profile Summary depends on the role and call evidence. A resume-only case must remain blocked rather than producing a generic summary that repeats the resume.
+
 ## How to work
 
 1. **Read the raw candidate material** the user provides.
@@ -73,14 +75,14 @@ Refine the raw input into a polished, client-ready resume rather than copying it
 - **Preserve every section and line the original resume has. Never merge two sections into one, and never drop content, unless Ja explicitly tells you to.** The four core fields (`summary`, `skills`, `experience`, `education`) cover a common resume. For ANY other section the original has (a separate Certifications section, Licenses, Professional Development, Additional Information, Awards, Languages, Affiliations, Volunteer, Projects, Publications, and so on), add it to `sections[]` with its original heading and its lines. The builder renders each `sections[]` entry as its own headed block, in order, after Education. Nothing gets crammed into Education or stripped away.
 - **Education vs Certifications follows the original.** By default they share one "Education & Certifications" section: put both in `education[]`, most relevant first. If the original resume keeps Certifications (or Licenses, etc.) as its own separate section, preserve that: set `"education_heading": "Education"` and add a separate `sections[]` entry titled "Certifications". Match the source, do not force a merge or a split.
 - **Bold the credential in each entry** so it matches the emphasis used in the rest of the resume. Wrap the degree, diploma, or certification name in `**...**`, then the institution or issuer follows in regular weight (for example `**B.S. Mechanical Engineering** - Example University`, `**433A Industrial Millwright License**`). Institution name only, no dates, omit the year column entirely.
-- **No compensation information in any bullet point.** Compensation goes in the submission email only, never on the resume.
+- **No compensation information anywhere in the resume.** Compensation goes in the submission only, never in the summary, skills, experience, education, or another rendered section.
 - **Profile Summary must DEFEND fit for THIS role** — why this candidate is worth interviewing. It must NOT repeat the resume content. Pull new information from transcript/call notes. The reader should learn something they could not see on the resume.
 - **Anonymize for client submission:** drop personal contact info (email, phone, LinkedIn) unless told otherwise.
 - **Never invent facts, and never ship a placeholder.** If something essential is missing (a location, dates, an employer), do not write `[confirm ...]` into the field and build anyway. A client must never see a fill-in marker. Instead, **stop and ask the user** before building: offer to add the real value, or to leave that field out. If they say leave it out, set the field to an empty string `""` (an empty location simply renders as blank, which is fine). The builder will refuse to produce a PDF if any `[confirm ...]` style placeholder remains, so resolve them first.
 
 ## House style rules (enforced by the builder)
 
-- **No em dashes, en dashes, or double hyphens anywhere.** Reword with commas, "and", or restructure. Regular hyphens in compound words (cost-reduction) and the date format (`Dec-2025 - Present`) are fine. The builder aborts if it finds a long dash, so keep the source data clean.
+- **No em dashes, en dashes, double hyphens, semicolons, tildes, or whitespace around slashes anywhere.** Reword with commas, "and", or restructure. Regular hyphens in compound words (cost-reduction), slash-separated text without spaces (`CNC/manual`), and the date format (`Dec-2025 - Present`) are fine. The builder aborts if it finds forbidden punctuation, so keep the source data clean.
 - **No hyperlinks** in the resume.
 - **Logo centered** at the top; **black text only**, Arial throughout; clean and print-ready.
 - **Emphasis:** wrap text in `**...**` to bold it inside experience bullets, Education & Certifications entries, and any additional `sections[]` item. The builder renders it as real bold in both engines. Use it for the bullet proof point and the credential, nowhere else.
@@ -114,7 +116,7 @@ The logo lives at `assets/tttg_logo.png`. To rebrand for a different company, re
 
 ## Done conditions
 
-- Builder output reports expected page count and no long dashes or hyperlinks.
+- Builder output reports expected page count and no forbidden punctuation or hyperlinks.
 - Every page was rendered and inspected, with recorded PASS/FAIL for clipping, overlap,
   orphaned headings/bullets, logo placement, privacy/contact removal, and page breaks.
 - The canonical `skills/recruiter/scripts/validate-artifact-qa.mjs` validator passes successfully

@@ -12,6 +12,7 @@ import {
 } from "../lib/server/capability-executors";
 import type { CapabilityRunRecord } from "../lib/server/capability-run-repository";
 import { connectorCapabilities } from "../lib/server/connectors";
+import { emptyResumeForm } from "../lib/resume-form";
 import type {
   CandidateCase,
   CandidateRecord,
@@ -27,19 +28,32 @@ function context() {
     content: "",
     updatedAt: "2026-09-20T12:00:00.000Z",
   });
-  const source: CaseSource = {
-    id: "resume-source",
+  const reviewedResume: CaseDocument = {
     kind: "resume",
-    filename: "Synthetic Resume.txt",
+    revision: 2,
+    sourceRefs: ["resume-source:sha-resume:resume:reviewed:reviewed:manual"],
+    content: {
+      ...emptyResumeForm(),
+      reviewed: true,
+      name: "Synthetic Candidate",
+      headline: "Maintenance Supervisor",
+      summary: "Reviewed source-grounded summary.",
+    },
+    updatedAt: "2026-09-20T12:00:00.000Z",
+  };
+  const source = (id: string, kind: CaseSource["kind"], parsedText: string): CaseSource => ({
+    id,
+    kind,
+    filename: `${id}.txt`,
     contentType: "text/plain",
     sizeBytes: 10,
-    sha256: "sha-resume",
+    sha256: id === "resume-source" ? "sha-resume" : `sha-${id}`,
     captureTime: "2026-09-20T12:00:00.000Z",
     lifecycleStatus: "reviewed",
     reviewStatus: "reviewed",
-    parsedText: "Synthetic Candidate\nMaintenance Supervisor\nProfessional Experience",
+    parsedText,
     classificationMethod: "manual",
-  };
+  });
   const candidateCase: CandidateCase = {
     id: "case-1",
     roleId: "role-1",
@@ -54,13 +68,17 @@ function context() {
     assistant: { missing: [], askNext: [], fitConcern: "", nextAction: "" },
     externalRefs: {},
     documents: {
-      resume: document("resume"),
+      resume: reviewedResume,
       write_up: document("write_up"),
       submission: document("submission"),
       email: document("email"),
       loxo_update: document("loxo_update"),
     },
-    sources: [source],
+    sources: [
+      source("resume-source", "resume", "Synthetic Candidate\nMaintenance Supervisor\nProfessional Experience"),
+      source("job-description-source", "job_description", "Maintenance Manager role at Synthetic Manufacturing"),
+      source("call-source", "transcript", "Reviewed synthetic call evidence"),
+    ],
     updatedAt: "2026-09-20T12:00:00.000Z",
   };
   const role: RoleRecord = {
@@ -118,7 +136,7 @@ async function preparedArtifactRun(): Promise<CapabilityRunRecord> {
 }
 
 describe("artifact capability execution lifecycle", () => {
-  it("refuses a previously prepared branded-resume run while authority conflicts are active", async () => {
+  it("executes a prepared canonical A branded-resume run into visual QA", async () => {
     const run = await preparedArtifactRun();
     const events: string[] = [];
     const transitionCapabilityRun = vi.fn(async (
@@ -135,7 +153,22 @@ describe("artifact capability execution lifecycle", () => {
         evidence: transition.evidence ?? run.evidence,
       } as CapabilityRunRecord;
     });
-    const executeCapability = vi.fn<CapabilityExecutionDependencies["executeCapability"]>();
+    const executeCapability = vi.fn<CapabilityExecutionDependencies["executeCapability"]>(async () => ({
+      status: "awaiting_visual_qa",
+      capabilityId: "brandedresume",
+      executorId: "brand-resume",
+      outputKind: "pdf",
+      artifact: {
+        id: "artifact-1",
+        filename: "Synthetic Candidate - Top Tier Talent Group.pdf",
+        contentType: "application/pdf",
+        sha256: "a".repeat(64),
+        sizeBytes: 1024,
+        revision: 1,
+        visualQaStatus: "pending",
+      },
+      canonicalIncomplete: { visualQaPassed: false, completed: false },
+    }));
     const commitDraftReadyDocumentPackage = vi.fn<
       CapabilityExecutionDependencies["commitDraftReadyDocumentPackage"]
     >();
@@ -147,19 +180,20 @@ describe("artifact capability execution lifecycle", () => {
       executeCapability,
     };
 
-    await expect(executePreparedCapabilityWithDependencies(
+    const result = await executePreparedCapabilityWithDependencies(
       "user-1",
       "case-1",
       "run-1",
       dependencies,
-    )).rejects.toThrow("case context changed after preparation");
+    );
 
-    expect(events).toEqual(["transition:refused"]);
-    expect(executeCapability).not.toHaveBeenCalled();
+    expect(events).toEqual(["transition:running", "transition:awaiting_visual_qa"]);
+    expect(executeCapability).toHaveBeenCalledOnce();
     expect(commitDraftReadyDocumentPackage).not.toHaveBeenCalled();
-    expect(transitionCapabilityRun.mock.calls[0][3]).toMatchObject({
-      status: "refused",
-      error: { code: "prepared_input_changed" },
+    expect(result).toMatchObject({
+      reused: false,
+      documents: [],
+      run: { status: "awaiting_visual_qa" },
     });
   });
 });
