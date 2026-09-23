@@ -5,6 +5,7 @@ import {
   resumeFormHasContent,
   resumeFormToCandidate,
 } from "@/lib/resume-form";
+import { sourceIsUsable } from "@/lib/source-intake";
 import { ApiError } from "@/lib/server/api";
 import {
   persistCaseArtifact,
@@ -130,6 +131,31 @@ function brandedResumeCandidate(candidateCase: CandidateCase): Record<string, un
   );
 }
 
+function hasReviewedSource(candidateCase: CandidateCase, kinds: readonly string[]) {
+  return candidateCase.sources.some((source) =>
+    kinds.includes(source.kind) &&
+    source.lifecycleStatus === "reviewed" &&
+    source.reviewStatus === "reviewed" &&
+    sourceIsUsable(source),
+  );
+}
+
+function assertBrandedResumeGrounding(candidateCase: CandidateCase) {
+  const missing: string[] = [];
+  if (!hasReviewedSource(candidateCase, ["job_description"])) {
+    missing.push("reviewed job description");
+  }
+  if (!candidateCase.notes.trim() && !hasReviewedSource(candidateCase, ["call_notes", "transcript"])) {
+    missing.push("reviewed call notes or transcript");
+  }
+  if (missing.length) {
+    throw new ApiError(
+      409,
+      `The branded resume cannot be grounded for this role. Add ${missing.join(" and ")} before preparing the PDF.`,
+    );
+  }
+}
+
 function brandedResumeMode(run: CapabilityRunRecord): "named_submission" | "internal_mpc" {
   if (!run.input.extraInput.trim()) return "named_submission";
   const mode = structuredInputValues(run.input.extraInput).get("resume_mode");
@@ -203,6 +229,7 @@ export async function executeArtifactCapabilityWithDependencies(
   }
 
   if (definition.executorId === "brand-resume") {
+    assertBrandedResumeGrounding(input.candidateCase);
     const endpoint = dependencies.endpoint?.trim() || DEFAULT_RESUME_BUILDER_URL;
     const feature = featureById(definition.executorId);
     const expectedBuilderDigest = feature?.builder_digest;

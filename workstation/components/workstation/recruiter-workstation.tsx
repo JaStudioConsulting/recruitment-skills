@@ -62,11 +62,9 @@ import { mergeCandidateCaseSnapshots } from "@/lib/case-merge";
 import { resumeFormFromCase } from "@/lib/capabilities/deterministic-autofill";
 import {
   hasResumeFormFormat,
-  lines,
   resumeFormHasContent,
   toResumeForm,
   type ResumeFormDocument,
-  type ResumeFormJob,
 } from "@/lib/resume-form";
 import type { CapabilityExecutionResponse } from "@/lib/server/capability-execution-service";
 import type { CapabilityRunRecord } from "@/lib/server/capability-run-repository";
@@ -319,74 +317,17 @@ export function saveEditedOutput(
   });
 }
 
-function uniqueLines(values: readonly string[]) {
-  const seen = new Set<string>();
-  return values.flatMap(lines).filter((line) => {
-    const key = line.toLocaleLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).join("\n");
-}
-
-function resumeJobKey(job: ResumeFormJob) {
-  return [job.title, job.company, job.location, job.dates]
-    .map((value) => value.toLocaleLowerCase().replace(/\s+/g, " ").trim())
-    .join("\u0000");
-}
-
 function reconcileRecoveredResumeForms(forms: readonly ResumeFormDocument[]): ResumeFormDocument {
+  // Sources are already ordered newest first. Treat the newest usable resume
+  // as the replacement boundary for recovered content: a corrected resume can
+  // intentionally remove a summary, skill, job bullet, education entry, or
+  // section. Unioning older parsed forms would silently restore those facts.
+  // Older active resumes still remain in the saved sourceRefs for audit
+  // lineage, but their content is available only through the Sources view.
   const primary = forms[0] ?? toResumeForm(null);
-  const jobs: ResumeFormJob[] = [];
-  const jobIndex = new Map<string, number>();
-  for (const form of forms) {
-    for (const job of form.jobs) {
-      const key = resumeJobKey(job);
-      if (!key.replaceAll("\u0000", "")) continue;
-      const existingIndex = jobIndex.get(key);
-      if (existingIndex === undefined) {
-        jobIndex.set(key, jobs.length);
-        jobs.push({ ...job });
-        continue;
-      }
-      jobs[existingIndex] = {
-        ...jobs[existingIndex],
-        bullets: uniqueLines([jobs[existingIndex].bullets, job.bullets]),
-      };
-    }
-  }
-
-  const sections: ResumeFormDocument["sections"] = [];
-  const sectionIndex = new Map<string, number>();
-  for (const form of forms) {
-    for (const section of form.sections) {
-      const key = section.heading.toLocaleLowerCase().replace(/\s+/g, " ").trim();
-      const existingIndex = key ? sectionIndex.get(key) : undefined;
-      if (existingIndex === undefined) {
-        if (key) sectionIndex.set(key, sections.length);
-        sections.push({ ...section });
-        continue;
-      }
-      sections[existingIndex] = {
-        ...sections[existingIndex],
-        items: uniqueLines([sections[existingIndex].items, section.items]),
-      };
-    }
-  }
-
-  const firstNonBlank = (field: keyof Pick<ResumeFormDocument, "name" | "headline" | "educationHeading">) =>
-    forms.map((form) => form[field]).find((value) => value.trim()) ?? "";
   return {
-    ...primary,
+    ...toResumeForm(primary),
     reviewed: false,
-    name: firstNonBlank("name"),
-    headline: firstNonBlank("headline"),
-    summary: uniqueLines(forms.map((form) => form.summary)),
-    skills: uniqueLines(forms.map((form) => form.skills)),
-    jobs,
-    educationHeading: firstNonBlank("educationHeading"),
-    education: uniqueLines(forms.map((form) => form.education)),
-    sections,
   };
 }
 

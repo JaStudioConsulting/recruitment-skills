@@ -26,10 +26,12 @@
       "mounted": true,
       "requirements": [
         { "id": "resume", "label": "Human-reviewed editable resume", "kind": "reviewed_resume_document", "source_kinds": ["resume"], "required": true },
+        { "id": "job-description", "label": "Reviewed job description", "kind": "reviewed_source", "source_kinds": ["job_description"], "required": true },
+        { "id": "call-evidence", "label": "Reviewed call notes or transcript", "kind": "reviewed_source", "source_kinds": ["call_notes", "transcript"], "required": true },
         { "id": "resume-mode", "label": "Presentation mode", "kind": "user_input", "input_keys": ["resume_mode"], "allowed_values": ["named_submission", "internal_mpc"], "required": false }
       ],
       "outside_world": true,
-      "outside_world_note": "The mounted executor consumes named_submission or internal_mpc, requires the hosted builder to attest the canonical repository builder digest, persists the exact PDF, and holds completion for page-by-page visual QA. External-client blind MPC is not available."
+      "outside_world_note": "The mounted executor requires a human-reviewed editable resume, reviewed job description, and reviewed call notes or transcript; consumes named_submission or internal_mpc; requires the hosted builder to attest the canonical repository builder digest; persists the exact PDF; and holds completion for page-by-page visual QA. External-client blind MPC is not available."
     },
     {
       "id": "write-up-candidate",

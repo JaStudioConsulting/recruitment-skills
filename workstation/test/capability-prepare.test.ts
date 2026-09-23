@@ -181,7 +181,10 @@ describe("canonical capability preparation", () => {
       model: "none",
     });
     expect(unreviewed.canExecute).toBe(false);
-    expect(unreviewed.missing).toEqual(["Human-reviewed editable resume"]);
+    expect(unreviewed.missing).toEqual([
+      "Human-reviewed editable resume",
+      "Reviewed job description",
+    ]);
 
     input.candidateCase.documents.resume = {
       ...input.candidateCase.documents.resume,
@@ -194,6 +197,16 @@ describe("canonical capability preparation", () => {
         summary: "Human-reviewed source-grounded summary.",
       },
     };
+    input.candidateCase.sources = input.candidateCase.sources.map((item) =>
+      item.kind === "job_description"
+        ? {
+            ...item,
+            lifecycleStatus: "reviewed" as const,
+            reviewStatus: "reviewed" as const,
+            classificationMethod: "manual" as const,
+          }
+        : item,
+    );
     const brandedResume = await prepareCapabilityFromContext("brandedresume", input, {
       extraInput: "",
       provider: "manual",
@@ -218,6 +231,7 @@ describe("canonical capability preparation", () => {
         summary: "Human-reviewed source-grounded summary.",
       },
     };
+    editedInput.candidateCase.sources = input.candidateCase.sources;
     const afterEdit = await prepareCapabilityFromContext("brandedresume", editedInput, {
       extraInput: "",
       provider: "manual",
@@ -239,7 +253,7 @@ describe("canonical capability preparation", () => {
     const replacedSource = context();
     replacedSource.availableExecutorIds = [...replacedSource.availableExecutorIds, "brand-resume"];
     replacedSource.candidateCase.documents.resume = input.candidateCase.documents.resume;
-    replacedSource.candidateCase.sources = replacedSource.candidateCase.sources.map((item) => item.id === "resume"
+    replacedSource.candidateCase.sources = input.candidateCase.sources.map((item) => item.id === "resume"
       ? { ...item, sha256: "sha-replacement-resume" }
       : item);
     const staleReview = await prepareCapabilityFromContext("brandedresume", replacedSource, {
@@ -257,6 +271,7 @@ describe("canonical capability preparation", () => {
       ...input.candidateCase.documents.resume,
       sourceRefs: undefined,
     };
+    legacyReview.candidateCase.sources = input.candidateCase.sources;
     const missingLegacyProvenance = await prepareCapabilityFromContext("brandedresume", legacyReview, {
       extraInput: "",
       provider: "manual",
@@ -264,6 +279,56 @@ describe("canonical capability preparation", () => {
     });
     expect(missingLegacyProvenance.canExecute).toBe(false);
     expect(missingLegacyProvenance.blocker).toContain("Resume sources changed after this form was reviewed");
+  });
+
+  it("requires reviewed role and call evidence before a branded-resume run can execute", async () => {
+    const input = context();
+    input.availableExecutorIds = [...input.availableExecutorIds, "brand-resume"];
+    input.candidateCase.notes = "";
+    input.candidateCase.documents.resume = {
+      ...input.candidateCase.documents.resume,
+      revision: 2,
+      sourceRefs: ["resume:sha-resume:resume:classified:unreviewed:content"],
+      content: {
+        ...emptyResumeForm(),
+        reviewed: true,
+        name: "Synthetic Candidate",
+        summary: "Role-specific, human-reviewed summary.",
+      },
+    };
+
+    const unreviewedEvidence = await prepareCapabilityFromContext("brandedresume", input, {
+      extraInput: "",
+      provider: "manual",
+      model: "none",
+    });
+    expect(unreviewedEvidence.canExecute).toBe(false);
+    expect(unreviewedEvidence.missing).toEqual([
+      "Reviewed job description",
+      "Reviewed call notes or transcript",
+    ]);
+
+    input.candidateCase.sources = input.candidateCase.sources.map((item) =>
+      item.kind === "job_description" || item.kind === "transcript"
+        ? {
+            ...item,
+            lifecycleStatus: "reviewed" as const,
+            reviewStatus: "reviewed" as const,
+            classificationMethod: "manual" as const,
+          }
+        : item,
+    );
+    const reviewedEvidence = await prepareCapabilityFromContext("brandedresume", input, {
+      extraInput: "",
+      provider: "manual",
+      model: "none",
+    });
+    expect(reviewedEvidence.canExecute).toBe(true);
+    expect(reviewedEvidence.missing).toEqual([]);
+    expect(reviewedEvidence.sourceRefs).toEqual(expect.arrayContaining([
+      "jd:sha-jd:job_description:reviewed:reviewed:manual",
+      "transcript:sha-transcript:transcript:reviewed:reviewed:manual",
+    ]));
   });
 
   it("uses versioned typed Workstation notes as call evidence when no call file exists", async () => {

@@ -129,7 +129,7 @@ describe("canonical workflow UI execution contract", () => {
     expect(resumeDraftForEdit(current)).toBeNull();
   });
 
-  it("reconciles every usable resume attachment before saving reviewed recovery lineage", async () => {
+  it("uses the newest usable resume as a replacement while retaining every resume in saved lineage", async () => {
     const current = candidateCase();
     current.documents.resume.content = { time: 0, version: "2.31.0", blocks: [] };
     current.sources = [
@@ -146,14 +146,18 @@ describe("canonical workflow UI execution contract", () => {
         parsedText: `Synthetic Candidate
 Maintenance Manager
 PROFESSIONAL SUMMARY
-Earlier source-backed summary.
+Obsolete source-backed summary.
 CORE COMPETENCIES
 Preventive maintenance
 PROFESSIONAL EXPERIENCE
+Maintenance Manager | Example Manufacturing Inc. | 2023 - Present
+• Obsolete maintenance scope.
 Maintenance Planner | Example Components Ltd. | 2020 - 2023
 • Planned preventive work.
 EDUCATION
-Mechanical Technology Diploma`,
+Mechanical Technology Diploma
+CERTIFICATIONS
+Expired Synthetic Certificate`,
         classificationMethod: "explicit",
       },
       {
@@ -183,18 +187,25 @@ Synthetic Reliability Certificate`,
 
     const recovered = resumeDraftForEdit(current)!;
     expect(recovered.headline).toBe("Senior Maintenance Manager");
-    expect(recovered.summary).toContain("Current source-backed summary.");
-    expect(recovered.summary).toContain("Earlier source-backed summary.");
-    expect(recovered.skills.split("\n")).toEqual(["CMMS administration", "Preventive maintenance"]);
-    expect(recovered.jobs.map((job) => job.title)).toEqual([
-      "Senior Maintenance Manager",
-      "Maintenance Planner",
-    ]);
-    expect(recovered.education).toBe("Mechanical Technology Diploma");
+    expect(recovered.summary).toBe("Current source-backed summary.");
+    expect(recovered.skills).toBe("CMMS administration");
+    expect(recovered.jobs).toEqual([expect.objectContaining({
+      title: "Senior Maintenance Manager",
+      company: "Example Manufacturing Inc.",
+      dates: "2023 - Present",
+      bullets: "Led maintenance operations.",
+    })]);
+    expect(recovered.educationHeading).toBe("");
+    expect(recovered.education).toBe("");
     expect(recovered.sections).toEqual([{
       heading: "CERTIFICATIONS",
       items: "Synthetic Reliability Certificate",
     }]);
+    expect(JSON.stringify(recovered)).not.toContain("Obsolete");
+    expect(JSON.stringify(recovered)).not.toContain("Preventive maintenance");
+    expect(JSON.stringify(recovered)).not.toContain("Maintenance Planner");
+    expect(JSON.stringify(recovered)).not.toContain("Mechanical Technology Diploma");
+    expect(JSON.stringify(recovered)).not.toContain("Expired Synthetic Certificate");
 
     const versions: DocumentVersion[] = [{
       kind: "resume",
@@ -216,6 +227,46 @@ Synthetic Reliability Certificate`,
       ],
       content: expect.objectContaining({ reviewed: true }),
     }));
+  });
+
+  it("does not fall through to obsolete resume facts when the newest usable replacement has no recoverable body", () => {
+    const current = candidateCase();
+    current.documents.resume.content = { time: 0, version: "2.31.0", blocks: [] };
+    current.sources = [
+      {
+        id: "resume-older-complete",
+        kind: "resume",
+        filename: "synthetic-older-complete-resume.txt",
+        contentType: "text/plain",
+        sizeBytes: 220,
+        sha256: "sha-older-complete",
+        captureTime: "2026-09-20T00:00:00.000Z",
+        lifecycleStatus: "reviewed",
+        reviewStatus: "reviewed",
+        parsedText: `Synthetic Candidate
+Maintenance Manager
+PROFESSIONAL SUMMARY
+Obsolete summary that was removed.
+CORE COMPETENCIES
+Obsolete skill`,
+        classificationMethod: "explicit",
+      },
+      {
+        id: "resume-newer-minimal",
+        kind: "resume",
+        filename: "synthetic-corrected-resume.txt",
+        contentType: "text/plain",
+        sizeBytes: 60,
+        sha256: "sha-newer-minimal",
+        captureTime: "2026-09-23T00:00:00.000Z",
+        lifecycleStatus: "reviewed",
+        reviewStatus: "reviewed",
+        parsedText: "Synthetic Candidate\nMaintenance Leader",
+        classificationMethod: "explicit",
+      },
+    ];
+
+    expect(resumeDraftForEdit(current)).toBeNull();
   });
 
   it("refuses to replace the visible case when candidate intake finishes in a changed context", () => {

@@ -15,6 +15,8 @@ The deliverable is the PDF itself. The user does not want code or steps to run e
 
 One shot beats a redo. Before building, scan the input for any missing or unclear essential (employer, date, location, degree, a metric, named-vs-MPC). **If anything is missing, STOP and ask Ja in one short batch** — list exactly what's unknown and, for each, ask: provide it, leave it blank (`""`), or take it out. Never guess, never invent, never ship a `[confirm ...]` placeholder. Proceed only once every gap is resolved. Saves tokens, avoids a rebuild.
 
+The mounted branded-resume workflow also requires all three source groups before it may build: a human-reviewed editable resume, a reviewed job description for the selected role, and reviewed call evidence (a transcript or call notes). The Profile Summary depends on the role and call evidence. A resume-only case must remain blocked rather than producing a generic summary that repeats the resume.
+
 ## How to work
 
 1. **Read the raw candidate material** the user provides.

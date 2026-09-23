@@ -9,7 +9,7 @@ export type FeatureRuntime = "deterministic_server" | "local_ai" | "local_ai_web
 export type FeatureRequirement = {
   id: string;
   label: string;
-  kind: "source" | "source_or_input" | "user_input" | "role" | "adapter" | "reviewed_resume_document";
+  kind: "source" | "reviewed_source" | "source_or_input" | "user_input" | "role" | "adapter" | "reviewed_resume_document";
   source_kinds?: SourceKind[];
   adapter?: string;
   input_keys?: string[];

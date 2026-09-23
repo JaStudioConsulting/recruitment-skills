@@ -277,11 +277,30 @@ class ContactStripping(unittest.TestCase):
         self.assertIn("summary contains contact details (address)", joined)
         self.assertIn("experience[0].bullets[0] contains contact details (address)", joined)
 
+    def test_uncued_international_postal_addresses_are_refused(self):
+        addresses = (
+            "Based at 10 Downing Street, London SW1A 2AA.",
+            "Worked from 50 Lower Mount Street, Dublin D02 X285.",
+            "Reported to 1 Collins Street, Melbourne VIC 3000.",
+            "Located at 221B Baker Street, London NW1 6XE.",
+        )
+        for text in addresses:
+            with self.subTest(text=text):
+                _, rep = norm(complete_candidate(summary=text))
+                self.assertTrue(any(
+                    "summary contains contact details (address)" in problem
+                    for problem in rep["problems"]
+                ), rep["problems"])
+
     def test_address_guard_does_not_match_counts_routes_or_generic_main_street_language(self):
         for text in (
             "Supported 123 Main Street retail locations across Ontario.",
             "Managed Highway 401 corridor maintenance.",
             "Processed 500 King Street orders per month.",
+            "Opened 10 Downing Street accounts across London.",
+            "Validated SW1A 2AA as a product code in the test system.",
+            "Maintained ISO 9001:2015 and AS9100 standards.",
+            "Supported 12 Museum Street locations and 1017 annual work orders.",
         ):
             with self.subTest(text=text):
                 self.assertEqual(find_contact(text), [])
@@ -324,6 +343,32 @@ class DirectBuilderBoundary(unittest.TestCase):
         candidate = complete_candidate(summary="Lives at 123 Main Street, Toronto, ON M5V 2T6.")
         offenders = _BUILDER.check_forbidden_content(candidate)
         self.assertTrue(any("summary: contains contact details (address)" in problem for problem in offenders))
+
+    def test_direct_builder_rejects_uncued_international_postal_addresses(self):
+        for text in (
+            "Based at 10 Downing Street, London SW1A 2AA.",
+            "Worked from 50 Lower Mount Street, Dublin D02 X285.",
+            "Reported to 1 Collins Street, Melbourne VIC 3000.",
+        ):
+            with self.subTest(text=text):
+                offenders = _BUILDER.check_forbidden_content(
+                    complete_candidate(summary=text)
+                )
+                self.assertTrue(any(
+                    "summary: contains contact details (address)" in problem
+                    for problem in offenders
+                ), offenders)
+
+    def test_direct_builder_address_guard_avoids_international_false_positives(self):
+        candidate = complete_candidate(
+            summary="Opened 10 Downing Street accounts across London.",
+            experience=[{**JOB, "bullets": [
+                "Validated SW1A 2AA as a product code in the test system.",
+                "Maintained ISO 9001:2015 and AS9100 standards.",
+            ]}],
+        )
+        offenders = _BUILDER.check_forbidden_content(candidate)
+        self.assertFalse(any("contact details (address)" in problem for problem in offenders), offenders)
 
     def test_direct_builder_rejects_uncombined_same_company_roles(self):
         candidate = complete_candidate(experience=[

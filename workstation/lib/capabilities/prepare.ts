@@ -129,6 +129,17 @@ function requirementState(
       reviewedSourceRefs.length === currentResumeSourceRefs.length &&
       reviewedSourceRefs.every((sourceRef, index) => sourceRef === currentResumeSourceRefs[index]);
   }
+  const reviewedSourcePresent = context.candidateCase.sources.some(
+    (source) => sourceIsUsable(source) &&
+      source.lifecycleStatus === "reviewed" &&
+      source.reviewStatus === "reviewed" &&
+      requirement.source_kinds?.includes(source.kind),
+  );
+  const reviewedTypedNotesPresent = Boolean(context.candidateCase.notes.trim()) &&
+    Boolean(requirement.source_kinds?.includes("call_notes"));
+  if (requirement.kind === "reviewed_source") {
+    return reviewedSourcePresent || reviewedTypedNotesPresent;
+  }
   const sourcePresent = context.candidateCase.sources.some(
     (source) => sourceIsUsable(source) && requirement.source_kinds?.includes(source.kind),
   );

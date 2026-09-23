@@ -41,19 +41,19 @@ function context() {
     },
     updatedAt: "2026-09-20T12:00:00.000Z",
   };
-  const source: CaseSource = {
-    id: "resume-source",
-    kind: "resume",
-    filename: "Synthetic Resume.txt",
+  const source = (id: string, kind: CaseSource["kind"], parsedText: string): CaseSource => ({
+    id,
+    kind,
+    filename: `${id}.txt`,
     contentType: "text/plain",
     sizeBytes: 10,
-    sha256: "sha-resume",
+    sha256: id === "resume-source" ? "sha-resume" : `sha-${id}`,
     captureTime: "2026-09-20T12:00:00.000Z",
     lifecycleStatus: "reviewed",
     reviewStatus: "reviewed",
-    parsedText: "Synthetic Candidate\nMaintenance Supervisor\nProfessional Experience",
+    parsedText,
     classificationMethod: "manual",
-  };
+  });
   const candidateCase: CandidateCase = {
     id: "case-1",
     roleId: "role-1",
@@ -74,7 +74,11 @@ function context() {
       email: document("email"),
       loxo_update: document("loxo_update"),
     },
-    sources: [source],
+    sources: [
+      source("resume-source", "resume", "Synthetic Candidate\nMaintenance Supervisor\nProfessional Experience"),
+      source("job-description-source", "job_description", "Maintenance Manager role at Synthetic Manufacturing"),
+      source("call-source", "transcript", "Reviewed synthetic call evidence"),
+    ],
     updatedAt: "2026-09-20T12:00:00.000Z",
   };
   const role: RoleRecord = {

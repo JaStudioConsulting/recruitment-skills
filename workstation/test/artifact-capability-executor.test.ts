@@ -71,6 +71,19 @@ function candidateCase(): CandidateCase {
     parsedText: "Synthetic Candidate\nMaintenance Supervisor\nProfessional Summary\nSynthetic summary\nSkills\nCMMS\nProfessional Experience\nMaintenance Supervisor | Example Manufacturing | Toronto, ON | 2020 - Present\n- Maintained synthetic equipment.\nEducation\nSynthetic College",
     classificationMethod: "manual",
   };
+  const groundingSource = (id: string, kind: "job_description" | "transcript"): CaseSource => ({
+    id,
+    kind,
+    filename: `${id}.txt`,
+    contentType: "text/plain",
+    sizeBytes: 100,
+    sha256: `sha-${id}`,
+    captureTime: "2026-09-20T12:00:00.000Z",
+    lifecycleStatus: "reviewed",
+    reviewStatus: "reviewed",
+    parsedText: `${kind} synthetic reviewed evidence`,
+    classificationMethod: "manual",
+  });
   return {
     id: "case-1",
     roleId: "role-1",
@@ -108,7 +121,11 @@ function candidateCase(): CandidateCase {
       email: document("email"),
       loxo_update: document("loxo_update"),
     },
-    sources: [resumeSource],
+    sources: [
+      resumeSource,
+      groundingSource("job-description-source", "job_description"),
+      groundingSource("call-source", "transcript"),
+    ],
     updatedAt: "2026-09-20T12:00:00.000Z",
   };
 }
@@ -234,6 +251,37 @@ describe("canonical PDF capability executor adapters", () => {
       },
       canonicalIncomplete: { visualQaPassed: false },
     });
+  });
+
+  it("fails closed before the builder when role-specific JD or call evidence is not reviewed", async () => {
+    const scenarios = [
+      {
+        remove: ["job_description"],
+        message: "reviewed job description",
+      },
+      {
+        remove: ["transcript", "call_notes"],
+        message: "reviewed call notes or transcript",
+      },
+    ] as const;
+
+    for (const scenario of scenarios) {
+      const deps = dependencies();
+      const current = candidateCase();
+      current.sources = current.sources.filter((source) => !scenario.remove.some((kind) => kind === source.kind));
+
+      await expect(executeArtifactCapabilityWithDependencies({
+        userId: "user-1",
+        caseId: "case-1",
+        run: run({ capabilityId: "brandedresume", executorId: "brand-resume" }),
+        candidateCase: current,
+      }, deps.value)).rejects.toMatchObject({
+        status: 409,
+        message: expect.stringContaining(scenario.message),
+      });
+      expect(deps.callResumeBuilder).not.toHaveBeenCalled();
+      expect(deps.persistCaseArtifact).not.toHaveBeenCalled();
+    }
   });
 
   it("passes the selected internal MPC mode to the attested builder", async () => {

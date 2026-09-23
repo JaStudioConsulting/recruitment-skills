@@ -17,8 +17,8 @@
     },
     "brandedresume": {
       "workflow_group": "candidate_work",
-      "inputs": ["Reviewed resume or candidate material", "Resolved clarification gaps"],
-      "context": ["Candidate", "Job when tailoring is requested"],
+      "inputs": ["Human-reviewed editable resume", "Reviewed job description", "Reviewed transcript or call notes", "Resolved clarification gaps"],
+      "context": ["Candidate", "Job"],
       "output": "Source-grounded Top Tier Talent Group branded PDF resume with completed visual QA evidence",
       "runtime": "Repository Python PDF builder plus artifact storage and visual QA",
       "operations": [
@@ -26,8 +26,8 @@
         { "id": "visual-qa", "label": "Complete visual QA", "stage": "quality_assurance", "approval": "preview", "output": "Page-by-page artifact QA evidence bound to the exact PDF" }
       ],
       "status": "partial",
-      "blocker": "The canonical A layout is the sole active branded resume design. Its mounted executor consumes only a human-reviewed saved resume form, supports named_submission or internal_mpc, requires the hosted ReportLab runtime to attest the canonical repository builder and deployment digest, persists the exact PDF, and requires page-by-page human visual QA. External-client blind MPC remains unavailable, and authority preflight for unresolved employer, date, location, degree, metric, and role-specific fit gaps is not fully connected.",
-      "evidence": ["skills/recruiter/modules/brandedresume/scripts/build_resume.py", "test/package-contracts.test.mjs", "workstation/lib/server/resume-builder.ts", "workstation/lib/server/capability-executors/artifact.ts", "workstation/lib/server/case-artifact-store.ts", "workstation/test/resume-builder.test.ts", "workstation/test/artifact-capability-executor.test.ts", "workstation/test/artifact-capability-execution-service.test.ts", "workstation/test/case-artifact-store.test.ts"]
+      "blocker": "The canonical A layout is the sole active branded resume design. Its mounted executor requires a human-reviewed saved resume form, reviewed job description, and reviewed transcript or call notes before building; supports named_submission or internal_mpc; requires the hosted ReportLab runtime to attest the canonical repository builder and deployment digest; persists the exact PDF; and requires page-by-page human visual QA. External-client blind MPC remains unavailable, and authority preflight for unresolved employer, date, location, degree, and metric gaps is not fully connected.",
+      "evidence": ["skills/recruiter/modules/brandedresume/scripts/build_resume.py", "test/package-contracts.test.mjs", "workstation/lib/capabilities/prepare.ts", "workstation/lib/server/resume-builder.ts", "workstation/lib/server/capability-executors/artifact.ts", "workstation/lib/server/case-artifact-store.ts", "workstation/test/resume-builder.test.ts", "workstation/test/capability-prepare.test.ts", "workstation/test/artifact-capability-executor.test.ts", "workstation/test/artifact-capability-execution-service.test.ts", "workstation/test/case-artifact-store.test.ts"]
     },
     "candidate-defense": {
       "workflow_group": "candidate_work",

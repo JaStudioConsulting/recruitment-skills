@@ -129,13 +129,21 @@ EDUCATION_DATE = re.compile(
     re.I,
 )
 STREET = (
-    r"\b\d{1,6}(?:-\d{1,6})?\s+"
+    r"\b\d{1,6}[A-Za-z]?(?:-\d{1,6}[A-Za-z]?)?\s+"
     r"(?:[A-Za-z0-9][A-Za-z0-9.'-]*\s+){1,6}"
     r"(?:street|st|road|rd|avenue|ave|boulevard|blvd|drive|dr|lane|ln|court|ct|"
     r"way|trail|trl|parkway|pkwy|crescent|cres|place|pl|terrace|terr|circle|cir|"
-    r"highway|hwy)\.?(?=\s|,|$)"
+    r"highway|hwy|close|gardens|square|row|mews|quay)\.?(?=\s|,|$)"
 )
-POSTAL_CODE = r"(?:[A-Z]\d[A-Z][ -]?\d[A-Z]\d|\d{5}(?:-\d{4})?)"
+POSTAL_CODE = (
+    # Canada and the US.
+    r"(?:[A-Z]\d[A-Z][ -]?\d[A-Z]\d|\d{5}(?:-\d{4})?"
+    # UK postcode and Irish Eircode. These formats include
+    # letters in fixed positions, so they are safe to recognize without a
+    # country cue and do not turn ordinary years or counts into addresses.
+    r"|GIR[ ]?0AA|[A-Z]{1,2}\d[A-Z\d]?[ ]?\d[A-Z]{2}"
+    r"|[AC-FHKNPRTV-Y]\d{2}[ ]?[AC-FHKNPRTV-Y0-9]{4})"
+)
 REGION = (
     r"(?:AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT|"
     r"AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|"
@@ -145,6 +153,12 @@ REGION = (
 POSTAL_ADDRESS = re.compile(
     STREET
     + rf"(?=[^\n]{{0,90}}(?:\b{POSTAL_CODE}\b|,\s*[A-Za-z][A-Za-z .'-]{{1,40}},\s*{REGION}\b))",
+    re.I,
+)
+AUSTRALIAN_ADDRESS = re.compile(
+    STREET
+    + r"(?=[^\n]{0,60},\s*[A-Za-z][A-Za-z .'-]{1,40},?\s+"
+      r"(?:ACT|NSW|NT|QLD|SA|TAS|VIC|WA)\s+\d{4}\b)",
     re.I,
 )
 CUED_ADDRESS = re.compile(
@@ -167,7 +181,8 @@ def check_forbidden_content(data):
         for pattern, kind in ((EMAIL, "email"), (URL, "link"), (PHONE, "phone")):
             if pattern.search(text):
                 offenders.append(f"  {label}: contains contact details ({kind}) -> {text[:70]!r}")
-        if POSTAL_ADDRESS.search(text) or CUED_ADDRESS.search(text):
+        if (POSTAL_ADDRESS.search(text) or AUSTRALIAN_ADDRESS.search(text)
+                or CUED_ADDRESS.search(text)):
             offenders.append(f"  {label}: contains contact details (address) -> {text[:70]!r}")
     scan("name", data.get("name", ""))
     scan("headline", data.get("headline", ""))

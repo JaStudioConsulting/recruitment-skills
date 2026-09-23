@@ -36,7 +36,7 @@ describe("canonical workstation capability registry", () => {
 
   it("preserves the audited blockers for incomplete capability implementations", () => {
     const audited = [
-      ["brandedresume", "partial", [/canonical A layout/, /sole active branded resume design/, /human-reviewed saved resume form/, /supports named_submission or internal_mpc/, /hosted ReportLab runtime/, /canonical repository builder and deployment digest/, /External-client blind MPC remains unavailable/, /authority preflight/]],
+      ["brandedresume", "partial", [/canonical A layout/, /sole active branded resume design/, /human-reviewed saved resume form/, /reviewed job description/, /reviewed transcript or call notes/, /supports named_submission or internal_mpc/, /hosted ReportLab runtime/, /canonical repository builder and deployment digest/, /External-client blind MPC remains unavailable/, /authority preflight/]],
       ["loxo-pipeline", "partial", [/explicit validated config/, /declared transport/, /rejected_at readback/, /No verified live Loxo/]],
       ["loxo-readonly-candidate-dashboard", "partial", [/arbitrary input stages/, /outreach filter/, /No live Loxo read adapter/]],
       ["sourcing", "partial", [/schemas/, /name-plus-company fallback dedupe/, /explicit-URL conflict preservation/, /No mounted public-research executor/, /live research outcome/]],

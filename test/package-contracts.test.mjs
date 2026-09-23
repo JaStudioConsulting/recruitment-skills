@@ -273,6 +273,14 @@ test("mounted branded-resume documentation matches the executable registry", asy
   );
   const brandResume = featureManifest.features.find((feature) => feature.id === "brand-resume");
   assert.equal(brandResume?.mounted, true);
+  assert.deepEqual(
+    brandResume?.requirements.filter((requirement) => requirement.required).map(({ id, kind, source_kinds }) => ({ id, kind, source_kinds })),
+    [
+      { id: "resume", kind: "reviewed_resume_document", source_kinds: ["resume"] },
+      { id: "job-description", kind: "reviewed_source", source_kinds: ["job_description"] },
+      { id: "call-evidence", kind: "reviewed_source", source_kinds: ["call_notes", "transcript"] },
+    ],
+  );
 
   const workstationReadme = await readFile(path.join(root, "workstation/README.md"), "utf8");
   const serverReadme = await readFile(path.join(root, "server/README.md"), "utf8");

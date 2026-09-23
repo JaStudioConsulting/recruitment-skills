@@ -43,13 +43,21 @@ _PHONE = re.compile(
 # addresses without treating ordinary counts such as "500 King Street orders"
 # as contact information.
 _STREET = (
-    r"\b\d{1,6}(?:-\d{1,6})?\s+"
+    r"\b\d{1,6}[A-Za-z]?(?:-\d{1,6}[A-Za-z]?)?\s+"
     r"(?:[A-Za-z0-9][A-Za-z0-9.'-]*\s+){1,6}"
     r"(?:street|st|road|rd|avenue|ave|boulevard|blvd|drive|dr|lane|ln|court|ct|"
     r"way|trail|trl|parkway|pkwy|crescent|cres|place|pl|terrace|terr|circle|cir|"
-    r"highway|hwy)\.?(?=\s|,|$)"
+    r"highway|hwy|close|gardens|square|row|mews|quay)\.?(?=\s|,|$)"
 )
-_POSTAL_CODE = r"(?:[A-Z]\d[A-Z][ -]?\d[A-Z]\d|\d{5}(?:-\d{4})?)"
+_POSTAL_CODE = (
+    # Canada and the US.
+    r"(?:[A-Z]\d[A-Z][ -]?\d[A-Z]\d|\d{5}(?:-\d{4})?"
+    # UK postcode and Irish Eircode. These formats include
+    # letters in fixed positions, so they are safe to recognize without a
+    # country cue and do not turn ordinary years or counts into addresses.
+    r"|GIR[ ]?0AA|[A-Z]{1,2}\d[A-Z\d]?[ ]?\d[A-Z]{2}"
+    r"|[AC-FHKNPRTV-Y]\d{2}[ ]?[AC-FHKNPRTV-Y0-9]{4})"
+)
 _REGION = (
     r"(?:AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT|"
     r"AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|"
@@ -59,6 +67,12 @@ _REGION = (
 _POSTAL_ADDRESS = re.compile(
     _STREET
     + rf"(?=[^\n]{{0,90}}(?:\b{_POSTAL_CODE}\b|,\s*[A-Za-z][A-Za-z .'-]{{1,40}},\s*{_REGION}\b))",
+    re.I,
+)
+_AUSTRALIAN_ADDRESS = re.compile(
+    _STREET
+    + r"(?=[^\n]{0,60},\s*[A-Za-z][A-Za-z .'-]{1,40},?\s+"
+      r"(?:ACT|NSW|NT|QLD|SA|TAS|VIC|WA)\s+\d{4}\b)",
     re.I,
 )
 _CUED_ADDRESS = re.compile(
@@ -100,7 +114,8 @@ def find_contact(text):
         return []
     found = [kind for pattern, kind in ((_EMAIL, "email"), (_URL, "link"), (_PHONE, "phone"))
              if pattern.search(text)]
-    if _POSTAL_ADDRESS.search(text) or _CUED_ADDRESS.search(text):
+    if (_POSTAL_ADDRESS.search(text) or _AUSTRALIAN_ADDRESS.search(text)
+            or _CUED_ADDRESS.search(text)):
         found.append("address")
     return found
 
