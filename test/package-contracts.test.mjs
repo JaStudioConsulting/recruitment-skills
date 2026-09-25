@@ -275,11 +275,8 @@ test("mounted branded-resume documentation matches the executable registry", asy
   assert.equal(brandResume?.mounted, true);
   assert.deepEqual(
     brandResume?.requirements.filter((requirement) => requirement.required).map(({ id, kind, source_kinds }) => ({ id, kind, source_kinds })),
-    [
-      { id: "resume", kind: "reviewed_resume_document", source_kinds: ["resume"] },
-      { id: "job-description", kind: "reviewed_source", source_kinds: ["job_description"] },
-      { id: "call-evidence", kind: "reviewed_source", source_kinds: ["call_notes", "transcript"] },
-    ],
+    [{ id: "resume", kind: "reviewed_resume_document", source_kinds: ["resume"] }],
+    "a resume on its own must be enough to brand; a job description and call evidence sharpen the Summary but never gate the build",
   );
 
   const workstationReadme = await readFile(path.join(root, "workstation/README.md"), "utf8");

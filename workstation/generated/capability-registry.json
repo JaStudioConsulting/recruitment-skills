@@ -2344,7 +2344,7 @@
           "source_kinds": [
             "job_description"
           ],
-          "required": true
+          "required": false
         },
         {
           "id": "call-evidence",
@@ -2354,7 +2354,7 @@
             "call_notes",
             "transcript"
           ],
-          "required": true
+          "required": false
         },
         {
           "id": "resume-mode",
