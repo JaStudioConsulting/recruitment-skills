@@ -59,7 +59,7 @@ import type {
   CaseArtifactSummary,
 } from "@/lib/artifact-browser";
 import { mergeCandidateCaseSnapshots } from "@/lib/case-merge";
-import { resumeFormFromCase } from "@/lib/capabilities/deterministic-autofill";
+import { resumeFormFromCase, withDerivedResumeFields } from "@/lib/capabilities/deterministic-autofill";
 import {
   hasResumeFormFormat,
   resumeFormHasContent,
@@ -154,6 +154,12 @@ const JOB_SOURCE_KIND_LABELS: Record<SourceKind, string> = {
   call_notes: "Client notes",
   pasted_text: "Instructions",
 };
+/* A recruiter's desk starts with a person, not a requisition. A resume pasted
+ * with no Job selected is filed under this folder instead of being refused, and
+ * can be moved to a real Job afterwards. */
+export const UNASSIGNED_JOB_TITLE = "Unassigned";
+export const UNASSIGNED_JOB_CLIENT = "No client yet";
+
 export const JOB_SOURCE_KIND_OPTIONS = ["job_description", "call_notes", "pasted_text", "other"] as const satisfies readonly SourceKind[];
 export const CANDIDATE_SOURCE_KIND_OPTIONS = ["resume", "transcript", "job_description", "call_notes", "pasted_text", "other"] as const satisfies readonly SourceKind[];
 const SOURCE_ACCEPT = ".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg";
@@ -340,7 +346,12 @@ export function resumeDraftForEdit(candidateCase: CandidateCase) {
   const recovered = reconcileRecoveredResumeForms(resumeSources.map((source) =>
     resumeFormFromCase({ ...candidateCase, sources: [source] }).form,
   ));
-  return resumeFormHasContent(recovered) ? recovered : null;
+  if (!resumeFormHasContent(recovered)) return null;
+  // A resume with no Summary or Core Skills section still has to reach the
+  // builder, which rejects a missing headline, a missing summary, or an odd or
+  // empty skills list. Only empty fields are filled, and only from what this
+  // resume already says, so parsed content is never replaced.
+  return withDerivedResumeFields(recovered).form;
 }
 
 export function loadCapabilityRunsForCase(
@@ -1097,10 +1108,23 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     if ((!pendingJobFile && !pendingCandidateFile && !text) || sourceBusy) return;
     const file = pendingJobFile?.file ?? pendingCandidateFile?.file ?? new File([text], effectivePastedProposal.filename, { type: "text/plain" });
 
-    if (pasteScope === "candidate") {
-      if (sourceTarget === "new_candidate" || !activeCase) {
+    // Candidate-first: a resume pasted with no Job selected creates the
+    // Unassigned folder rather than refusing, so intake can start from a person.
+    let adoptedRoleId: string | null = null;
+    if (!roleId && effectivePastedKind === "resume") {
+      adoptedRoleId = await resolveJobFolder(UNASSIGNED_JOB_TITLE, UNASSIGNED_JOB_CLIENT);
+      if (!adoptedRoleId) return;
+      // resolveJobFolder sets roleId state, but the ref only catches up on the
+      // next render. The staleness guards below read the ref, so point it at the
+      // folder we just adopted or they abort this very intake as "changed".
+      roleIdRef.current = adoptedRoleId;
+    }
+    const effectiveRoleId = roleId || adoptedRoleId;
+
+    if (pasteScope === "candidate" || adoptedRoleId) {
+      if (sourceTarget === "new_candidate" || adoptedRoleId || !activeCase) {
         const creatingFromResume = effectivePastedKind === "resume";
-        if (!roleId || (creatingFromResume ? !pastedCandidateName.trim() : !pastedCandidateExistingId)) {
+        if (!effectiveRoleId || (creatingFromResume ? !pastedCandidateName.trim() : !pastedCandidateExistingId)) {
           setActionMessage(creatingFromResume
             ? "Review the candidate name from the source before saving."
             : "Choose the candidate this source belongs to before saving.");
@@ -1108,8 +1132,8 @@ export function RecruiterWorkstation({ user }: { user: User }) {
         }
         const intakeSelectionToken = beginLatestRequest(caseSelectionRequestRef);
         const originatingContext: CandidateIntakeContext = {
-          roleId,
-          caseId: activeCaseRef.current?.id ?? null,
+          roleId: effectiveRoleId,
+          caseId: adoptedRoleId ? null : activeCaseRef.current?.id ?? null,
         };
         const contextChange = await prepareCandidateContextChange({
           outputEditActive: Boolean(outputEditSession || outputEditBusy),
@@ -1138,7 +1162,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
           let staleCompletionMessage: string;
           if (creatingFromResume) {
             const result = await workstationApi.intakeCandidateResume({
-              roleId,
+              roleId: effectiveRoleId,
               name: pastedCandidateName.trim(),
               currentTitle: pastedCandidateTitle.trim(),
               file,
@@ -1150,8 +1174,8 @@ export function RecruiterWorkstation({ user }: { user: User }) {
             nextCandidateId = result.candidate.id;
             staleCompletionMessage = "Candidate and resume saved. The workspace selection changed, so the current view was kept.";
           } else {
-            const nextCase = cases.find((item) => item.roleId === roleId && item.candidateId === pastedCandidateExistingId)
-              ?? await workstationApi.openCase({ roleId, candidateId: pastedCandidateExistingId });
+            const nextCase = cases.find((item) => item.roleId === effectiveRoleId && item.candidateId === pastedCandidateExistingId)
+              ?? await workstationApi.openCase({ roleId: effectiveRoleId, candidateId: pastedCandidateExistingId });
             savedCase = await workstationApi.uploadSources(nextCase.id, [file], [effectivePastedKind]);
             nextCandidateId = pastedCandidateExistingId;
             staleCompletionMessage = "Candidate source saved. The workspace selection changed, so the current view was kept.";
@@ -1192,7 +1216,7 @@ export function RecruiterWorkstation({ user }: { user: User }) {
       return;
     }
 
-    let targetRoleId = roleId;
+    let targetRoleId = effectiveRoleId;
     if (!targetRoleId) {
       const title = pastedJobTitle.trim();
       const client = pastedJobClient.trim();
@@ -1460,22 +1484,28 @@ export function RecruiterWorkstation({ user }: { user: User }) {
     /could not|failed|select|choose|save or cancel|required|not run|cannot|changed before|no mounted|review the candidate name/i.test(actionMessage)
   );
   const actionDialogOpen = addSourcesOpen || Boolean(creationMode) || pasteOpen || workflowsOpen || deleteRoleOpen;
+  // A resume needs no Job: intake adopts the Unassigned folder on save.
+  const resumeWithoutJob = !roleId && effectivePastedKind === "resume";
   const pastedSourceCanSave = Boolean(pendingJobFile || pendingCandidateFile || pastedSource.trim()) && !sourceBusy && !intakeBusy && (
-    pasteScope === "candidate"
-      ? sourceTarget === "new_candidate" || !activeCase
-        ? effectivePastedKind === "resume"
-          ? Boolean(roleId && pastedCandidateName.trim())
-          : Boolean(roleId && pastedCandidateExistingId)
-        : Boolean(activeCase)
-      : Boolean(roleId) || (effectivePastedKind === "job_description" && Boolean(pastedJobTitle.trim()) && Boolean(pastedJobClient.trim()))
+    resumeWithoutJob
+      ? Boolean(pastedCandidateName.trim())
+      : pasteScope === "candidate"
+        ? sourceTarget === "new_candidate" || !activeCase
+          ? effectivePastedKind === "resume"
+            ? Boolean(roleId && pastedCandidateName.trim())
+            : Boolean(roleId && pastedCandidateExistingId)
+          : Boolean(activeCase)
+        : Boolean(roleId) || (effectivePastedKind === "job_description" && Boolean(pastedJobTitle.trim()) && Boolean(pastedJobClient.trim()))
   );
-  const pastedSaveLabel = pasteScope === "candidate"
-    ? sourceTarget === "new_candidate" || !activeCase
-      ? effectivePastedKind === "resume" ? "Create candidate and save source" : "Save candidate source"
-      : "Save candidate source"
-    : roleId
-      ? "Save to this Job"
-      : "Create Job and save source";
+  const pastedSaveLabel = resumeWithoutJob
+    ? "Create candidate and save source"
+    : pasteScope === "candidate"
+      ? sourceTarget === "new_candidate" || !activeCase
+        ? effectivePastedKind === "resume" ? "Create candidate and save source" : "Save candidate source"
+        : "Save candidate source"
+      : roleId
+        ? "Save to this Job"
+        : "Create Job and save source";
   const effectivePastedFilename = pendingJobFile?.file.name ?? pendingCandidateFile?.file.name ?? effectivePastedProposal.filename;
 
 
@@ -1654,15 +1684,18 @@ export function RecruiterWorkstation({ user }: { user: User }) {
         setPastedSource(value);
         setPastedKindOverride("");
         const proposal = proposePastedSource(value);
-        if (pasteScope === "job" && !roleId) {
+        // A resume pasted with no Job is candidate intake, so fill the candidate
+        // identity rather than the Job identity.
+        const resumeIntake = proposal.kind === "resume" && !roleId;
+        if (pasteScope === "job" && !roleId && !resumeIntake) {
           setPastedJobTitle(proposal.job?.title ?? "");
           setPastedJobClient(proposal.job?.client ?? "");
-        } else if (pasteScope === "candidate" && sourceTarget === "new_candidate") {
+        } else if (resumeIntake || (pasteScope === "candidate" && sourceTarget === "new_candidate")) {
           setPastedCandidateName(proposal.candidate?.name ?? "");
           setPastedCandidateTitle(proposal.candidate?.currentTitle ?? "");
         }
       }} placeholder={pendingJobFile || pendingCandidateFile ? "No extractable text was found in this file." : "Paste the source text exactly as received."} className="paste-source-textarea" />
-        <section className="paste-detection" aria-live="polite"><div><strong>Detected source</strong><span>{SOURCE_KIND_LABELS[effectivePastedKind]} · {effectivePastedFilename}</span></div>{pasteScope === "job" && !roleId ? <><label className="paste-kind-review">Source type<select value={effectivePastedKind} onChange={(event) => setPastedKindOverride(event.target.value as SourceKind)}><option value="job_description">Job description</option><option value="pasted_text">Instructions</option><option value="call_notes">Client notes</option><option value="other">Other</option></select></label><div className={`paste-confidence ${effectivePastedProposal.job?.confidence ?? "low"}`}>{effectivePastedProposal.job?.autoCreateEligible ? "Complete Job identity detected" : "Review the Job identity before saving"}</div><div className="paste-job-fields"><label>Job title<Input value={pastedJobTitle} onChange={(event) => setPastedJobTitle(event.target.value)} placeholder="Not found in the source" /></label><label>Company or client<Input value={pastedJobClient} onChange={(event) => setPastedJobClient(event.target.value)} placeholder="Not found in the source" /></label></div>{effectivePastedProposal.job?.evidence.length ? <small>Found in source: {effectivePastedProposal.job.evidence.join(" | ")}</small> : <small>No Job identity was inferred. Unknown values stay blank.</small>}</> : pasteScope === "candidate" && (sourceTarget === "new_candidate" || !activeCase) ? <><label className="paste-kind-review">Source type<select aria-label="Candidate source type" value={effectivePastedKind} onChange={(event) => setPastedKindOverride(event.target.value as SourceKind)}>{CANDIDATE_SOURCE_KIND_OPTIONS.map((kind) => <option key={kind} value={kind}>{SOURCE_KIND_LABELS[kind]}</option>)}</select></label>{effectivePastedKind === "resume" ? <><div className={`paste-confidence ${effectivePastedProposal.candidate?.confidence ?? "low"}`}>{pastedCandidateName ? "Candidate identity found — review before saving" : "Candidate identity needs review"}</div><div className="paste-job-fields"><label>Candidate name<Input value={pastedCandidateName} onChange={(event) => setPastedCandidateName(event.target.value)} placeholder="Not found in the source" /></label><label>Current title<Input value={pastedCandidateTitle} onChange={(event) => setPastedCandidateTitle(event.target.value)} placeholder="Not found in the source" /></label></div>{effectivePastedProposal.candidate?.evidence.length ? <small>Found in source: {effectivePastedProposal.candidate.evidence.join(" | ")}</small> : <small>Unknown values stay blank until you review the source.</small>}</> : <label className="paste-kind-review">Assign to candidate<select aria-label="Candidate for source" value={pastedCandidateExistingId} onChange={(event) => setPastedCandidateExistingId(event.target.value)}><option value="">Select a candidate...</option>{roleCandidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name}{candidate.currentTitle ? ` · ${candidate.currentTitle}` : ""}</option>)}</select></label>}</> : pasteScope === "job" ? <small>This source will be attached to the selected Job.</small> : <small>This source will be attached to {activeCandidate?.name ?? "the selected candidate"}.</small>}</section>
+        <section className="paste-detection" aria-live="polite"><div><strong>Detected source</strong><span>{SOURCE_KIND_LABELS[effectivePastedKind]} · {effectivePastedFilename}</span></div>{pasteScope === "job" && !roleId && effectivePastedKind !== "resume" ? <><label className="paste-kind-review">Source type<select value={effectivePastedKind} onChange={(event) => setPastedKindOverride(event.target.value as SourceKind)}><option value="resume">Resume</option><option value="job_description">Job description</option><option value="pasted_text">Instructions</option><option value="call_notes">Client notes</option><option value="other">Other</option></select></label><div className={`paste-confidence ${effectivePastedProposal.job?.confidence ?? "low"}`}>{effectivePastedProposal.job?.autoCreateEligible ? "Complete Job identity detected" : "Review the Job identity before saving"}</div><div className="paste-job-fields"><label>Job title<Input value={pastedJobTitle} onChange={(event) => setPastedJobTitle(event.target.value)} placeholder="Not found in the source" /></label><label>Company or client<Input value={pastedJobClient} onChange={(event) => setPastedJobClient(event.target.value)} placeholder="Not found in the source" /></label></div>{effectivePastedProposal.job?.evidence.length ? <small>Found in source: {effectivePastedProposal.job.evidence.join(" | ")}</small> : <small>No Job identity was inferred. Unknown values stay blank.</small>}</> : (pasteScope === "candidate" || !roleId) && (sourceTarget === "new_candidate" || !roleId || !activeCase) ? <><label className="paste-kind-review">Source type<select aria-label="Candidate source type" value={effectivePastedKind} onChange={(event) => setPastedKindOverride(event.target.value as SourceKind)}>{CANDIDATE_SOURCE_KIND_OPTIONS.map((kind) => <option key={kind} value={kind}>{SOURCE_KIND_LABELS[kind]}</option>)}</select></label>{effectivePastedKind === "resume" ? <><div className={`paste-confidence ${effectivePastedProposal.candidate?.confidence ?? "low"}`}>{pastedCandidateName ? "Candidate identity found — review before saving" : "Candidate identity needs review"}</div><div className="paste-job-fields"><label>Candidate name<Input value={pastedCandidateName} onChange={(event) => setPastedCandidateName(event.target.value)} placeholder="Not found in the source" /></label><label>Current title<Input value={pastedCandidateTitle} onChange={(event) => setPastedCandidateTitle(event.target.value)} placeholder="Not found in the source" /></label></div>{effectivePastedProposal.candidate?.evidence.length ? <small>Found in source: {effectivePastedProposal.candidate.evidence.join(" | ")}</small> : <small>Unknown values stay blank until you review the source.</small>}</> : <label className="paste-kind-review">Assign to candidate<select aria-label="Candidate for source" value={pastedCandidateExistingId} onChange={(event) => setPastedCandidateExistingId(event.target.value)}><option value="">Select a candidate...</option>{roleCandidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name}{candidate.currentTitle ? ` · ${candidate.currentTitle}` : ""}</option>)}</select></label>}</> : pasteScope === "job" ? <small>This source will be attached to the selected Job.</small> : <small>This source will be attached to {activeCandidate?.name ?? "the selected candidate"}.</small>}</section>
         {actionNeedsAttention ? <p className="dialog-action-error" role="alert">{actionMessage}</p> : null}
         <DialogFooter><Button variant="outline" onClick={closePasteDialog}>Cancel</Button><Button disabled={!pastedSourceCanSave} onClick={() => void savePastedSource()}>{pastedSaveLabel}</Button></DialogFooter></DialogContent></Dialog>
 

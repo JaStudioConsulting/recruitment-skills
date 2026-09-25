@@ -282,6 +282,152 @@ export function parseResumeText(text: string, filename: string): ParsedResume {
   return { form, sources };
 }
 
+
+/* ---------------------------------------------------------------- derivation
+
+A resume that carries no Summary or Core Skills section still has to produce a
+branded PDF, because the builder refuses a missing headline, a missing summary,
+or an odd/empty skills list. Everything below is restated from facts already in
+the parsed form. Nothing is inferred about the candidate that the resume does
+not literally say, and nothing already parsed is removed or replaced: these run
+only when the corresponding field came back empty, so a real Summary or Core
+Skills section in the source always wins. The recruiter edits afterwards to add
+what only they know. */
+
+const TITLE_CASE_EXCEPTIONS = new Set(["and", "of", "the", "for", "to", "in", "on", "per"]);
+
+function titleCasePhrase(value: string): string {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word, index) => {
+      const lower = word.toLowerCase();
+      if (index > 0 && TITLE_CASE_EXCEPTIONS.has(lower)) return lower;
+      if (/^[A-Z0-9][A-Z0-9/&-]*$/.test(word)) return word; // ISO, CNC, OEE, 5S
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(" ");
+}
+
+/** Terms the resume itself uses. Each entry matches only when the resume text
+ * literally contains it, so the skill is quoted back, never invented. */
+const SKILL_TERMS: ReadonlyArray<readonly [RegExp, string]> = [
+  [/\bpreventive maintenance\b|\bpreventative maintenance\b/i, "Preventive Maintenance"],
+  [/\bpredictive maintenance\b/i, "Predictive Maintenance"],
+  [/\bthermoform\w*/i, "Thermoforming"],
+  [/\binjection mould\w*|\binjection mold\w*/i, "Injection Moulding"],
+  [/\bextrusion\b|\bextrud\w*/i, "Extrusion"],
+  [/\bstamping\b/i, "Stamping"],
+  [/\bwelding\b|\bwelder\b/i, "Welding"],
+  [/\bmachining\b|\bmachinist\b/i, "Machining"],
+  [/\bcnc\b/i, "CNC Operation"],
+  [/\bplc\b/i, "PLC Troubleshooting"],
+  [/\bhydraulic\w*/i, "Hydraulics"],
+  [/\bpneumatic\w*/i, "Pneumatics"],
+  [/\bchangeover\w*/i, "Tooling Changeovers"],
+  [/\btroubleshoot\w*/i, "Breakdown Troubleshooting"],
+  [/\bdowntime\b/i, "Downtime Reduction"],
+  [/\broot cause\b|\b8d\b/i, "Root Cause Analysis"],
+  [/\bcontinuous improvement\b|\bkaizen\b/i, "Continuous Improvement"],
+  [/\blean\b/i, "Lean Manufacturing"],
+  [/\bsix sigma\b/i, "Six Sigma"],
+  [/\b5s\b/i, "5S"],
+  [/\bquality (check|control|assurance|system)\w*/i, "Quality Control"],
+  [/\bfirst[- ]off\b/i, "First-Off Inspection"],
+  [/\biso ?9001\b/i, "ISO 9001"],
+  [/\biatf ?16949\b/i, "IATF 16949"],
+  [/\bhaccp\b/i, "HACCP"],
+  [/\bgmp\b/i, "GMP"],
+  [/\bwhmis\b/i, "WHMIS"],
+  [/\bhealth and safety\b|\bsafety\b/i, "Health and Safety"],
+  [/\boee\b/i, "OEE Tracking"],
+  [/\bsap\b/i, "SAP"],
+  [/\berp\b/i, "ERP Systems"],
+  [/\bscheduling\b|\bproduction schedul\w*/i, "Production Scheduling"],
+  [/\binventory\b/i, "Inventory Control"],
+  [/\bshift\b/i, "Shift Operations"],
+  [/\btrain\w*/i, "Training and Mentoring"],
+  [/\bsupervis\w*|\blead(ing|ership)?\b/i, "Team Supervision"],
+  [/\bcalibrat\w*/i, "Calibration"],
+  [/\bblueprint\w*|\bdrawing\w*/i, "Blueprint Reading"],
+];
+
+/** Core Skills drawn from the resume's own wording. The builder requires an
+ * even, nonzero list, so an odd tail is dropped rather than padded. */
+export function deriveSkills(form: ResumeFormDocument): string {
+  const haystack = [form.headline, form.jobs.map((job) => `${job.title} ${job.bullets}`).join(" ")]
+    .join(" ")
+    .toLowerCase();
+  const found: string[] = [];
+  for (const [pattern, label] of SKILL_TERMS) {
+    if (pattern.test(haystack) && !found.includes(label)) found.push(label);
+  }
+  if (found.length < 2) return "";
+  const even = found.length % 2 === 0 ? found : found.slice(0, -1);
+  return even.slice(0, 12).join("\n");
+}
+
+function tenureYears(dates: string): number {
+  const years = dates.match(/\b(19|20)\d{2}\b/g);
+  if (!years?.length) return 0;
+  const start = Number(years[0]);
+  const end = /present|current/i.test(dates) ? new Date().getFullYear() : Number(years[years.length - 1]);
+  return Math.max(0, end - start);
+}
+
+/** Two or three sentences built only from fields the resume already supplied. */
+export function deriveSummary(form: ResumeFormDocument): string {
+  const current = form.jobs.find((job) => job.title || job.company);
+  const role = form.headline || current?.title || "";
+  if (!role) return "";
+  const sentences: string[] = [];
+
+  const years = current ? tenureYears(current.dates) : 0;
+  const tenure = years >= 2 ? ` with ${years} years` : "";
+  const at = current?.company ? ` at ${current.company.split(",")[0].trim()}` : "";
+  // "Vanguard Stamping Inc." already ends a sentence; do not add a second stop.
+  const opener = `${role}${tenure}${at}`.replace(/\s+/g, " ").trim();
+  sentences.push(/[.!?]$/.test(opener) ? opener : `${opener}.`);
+
+  const firstBullet = current?.bullets.split("\n").map((line) => line.trim()).find(Boolean);
+  if (firstBullet) {
+    const trimmed = firstBullet.replace(/[.;]+$/, "");
+    sentences.push(`${trimmed.charAt(0).toUpperCase()}${trimmed.slice(1)}.`);
+  }
+
+  const priorCompanies = form.jobs.slice(1).map((job) => job.company.split(",")[0].trim()).filter(Boolean);
+  const education = form.education.split("\n").map((line) => line.replace(/\*\*/g, "").trim()).find(Boolean);
+  if (education) sentences.push(/[.!?]$/.test(education) ? education : `${education}.`);
+  else if (priorCompanies.length) {
+    const prior = `Previously with ${priorCompanies[0]}`;
+    sentences.push(/[.!?]$/.test(prior) ? prior : `${prior}.`);
+  }
+
+  return sentences.join(" ").replace(/\s+/g, " ").trim();
+}
+
+/** Fill only what the source left empty, so parsed content is never replaced. */
+export function withDerivedResumeFields(form: ResumeFormDocument): {
+  form: ResumeFormDocument;
+  derived: string[];
+} {
+  const derived: string[] = [];
+  const next = { ...form };
+  if (!next.headline.trim()) {
+    const current = next.jobs.find((job) => job.title)?.title ?? "";
+    if (current) { next.headline = current; derived.push("headline"); }
+  }
+  if (!next.summary.trim()) {
+    const summary = deriveSummary(next);
+    if (summary) { next.summary = summary; derived.push("summary"); }
+  }
+  if (!next.skills.trim()) {
+    const skills = deriveSkills(next);
+    if (skills) { next.skills = skills; derived.push("skills"); }
+  }
+  return { form: next, derived };
+}
+
 function reviewedSource(candidateCase: CandidateCase | null, kinds: string[]): CaseSource | undefined {
   return candidateCase?.sources.find((source) => sourceIsUsable(source) && kinds.includes(source.kind));
 }
