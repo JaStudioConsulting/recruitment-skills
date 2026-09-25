@@ -113,7 +113,7 @@
     "skills/tracker-manager/scripts/tracker.mjs",
     "tests/fixtures/synthetic-candidate-dashboard.json"
   ],
-  "repositoryAuthorityDigest": "154c22b92b9e5f46dc343cb536b249f94f3da88876aa7918427fdec58bec3f44",
+  "repositoryAuthorityDigest": "a3e71d32aaed9b69921f0d94274c4fc9e06a30df90842cf8c3d0e3e0cd79e148",
   "policies": [
     "skills/GLOBAL-RULES.md",
     "skills/TOOL-CONVENTIONS.md"
@@ -1908,7 +1908,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "57acf1e0404c5d0aad778dc2251faad3566a0f9c587bec6d5fa1f0fc50bb26c0",
+      "authorityDigest": "c1bd674783e4a0f270cbcf24c5a5d693e1ce0b2b3a0c720070b317525fe977c9",
       "repositoryGroup": "compatibility",
       "repositoryStatus": "legacy",
       "workflowGroup": "candidate_work",
@@ -2229,7 +2229,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "26d5b17413a9ee961f87e91c686f2072b6ded5939a21c2db442ab7027452c33d",
+      "authorityDigest": "c434ac2ae0907ecb9954e1793bd05e9441e55c8c8bda86d82b4f323e0fbfdaa9",
       "repositoryGroup": "daily_core",
       "repositoryStatus": "active",
       "workflowGroup": "candidate_work",

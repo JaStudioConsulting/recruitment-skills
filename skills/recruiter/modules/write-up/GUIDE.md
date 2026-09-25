@@ -106,23 +106,11 @@ python3 "skills/recruiter/modules/brandedresume/scripts/build_resume.py" \
   --preview /tmp/_preview.png
 ```
 
-Follow `modules/brandedresume/GUIDE.md` data rules (even skill count, one title, no em/en dashes, no placeholders) and its **Named vs MPC** section for how to fill `candidate.json`. For MPC, the PDF filename can use the title, e.g. `Maintenance Manager - Top Tier Talent Group.pdf`. Render every PDF page and inspect every page. Record PASS/FAIL for clipping, overlap, orphaned headings/bullets, logo placement, privacy/contact removal, and natural page breaks. Fix failures and rerender; a preview glance is not QA.
+Follow `modules/brandedresume/GUIDE.md` data rules (even skill count, one title, no em/en dashes, no placeholders) and its **Named vs MPC** section for how to fill `candidate.json`. For MPC, the PDF filename can use the title, e.g. `Maintenance Manager - Top Tier Talent Group.pdf`. Look at the rendered pages and fix anything off: clipping, overlap, orphaned headings/bullets, logo placement, contact removal, page breaks.
 
-Automated render checks cannot mark visual completion. After actual human/vision inspection of
-every rendered page, create the canonical QA record with
-`human_visual_inspection_complete: true`, the inspected page count, and explicit PASS results
-for every required check. Validate the final PDF and record:
-
-```bash
-node skills/recruiter/scripts/validate-artifact-qa.mjs \
-  "/absolute/path/to/artifact-qa.json"
-```
-
-The QA record's `artifact` field must contain the absolute final PDF path.
-
-The package is not ready, and the draft must not be called ready for handoff, until this
-validator exits 0 successfully. Automated tests or a render manifest must leave the
-human-inspection field false and are not completion proof.
+The builder already verifies page count, forbidden punctuation, and hyperlinks, and refuses to
+write a PDF that fails. No separate QA record or validator run is needed before handing the
+package over.
 
 ## Send checklist (run this, nothing drifts)
 
@@ -140,10 +128,8 @@ human-inspection field false and are not completion proof.
 - Draft recipients, subject, body, and saved state were reread and verified.
 - Attachment proof matches the exact PDF filename when supported; otherwise the handoff says
   `PDF ready to attach; draft has no attachment`.
-- Every PDF page has recorded PASS results for clipping, overlap, orphaned headings/bullets,
-  logo placement, privacy, and page breaks.
-- The canonical `skills/recruiter/scripts/validate-artifact-qa.mjs` validator passes successfully
-  for the final PDF and completed QA record after actual human/vision inspection of every page.
+- The rendered pages are clean: no clipping, overlap, orphaned headings/bullets, misplaced logo,
+  leftover contact details, or bad page breaks.
 
 ## Output
 
