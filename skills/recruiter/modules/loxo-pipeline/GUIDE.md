@@ -50,7 +50,7 @@ No live Loxo adapter or workstation execution route is verified by this module.
 Before any read, construct config from the current job and agency metadata. The
 pull config requires:
 
-- `baseUrl`
+- `baseUrl` — the agency subdomain origin, e.g. `https://<agency-slug>.app.loxo.co`. Not the bare `https://app.loxo.co` host: it content-negotiates to JSON, so the per-candidate `loxo_url` profile links (built from `baseUrl`) would open a raw JSON blob instead of the profile page.
 - `agencyId`
 - `jobId`
 - an absolute `outputDir`
@@ -110,9 +110,10 @@ For each exact `person_id`:
 ### 5. Assemble and review
 
 Write one JSON and one CSV for the current job plus resume-text files when
-present. Run `scripts/build_review.py` for the compact offline card review when
-that shape is requested. The separate read-only dashboard module owns the
-normalized table dashboard.
+present. By default, also run `scripts/build_review.py` to produce the compact
+offline card review and hand back its link — every pull yields the review page
+unless the request was export-only (CSV/JSON) or cleanup-only. The separate
+read-only dashboard module owns the normalized table dashboard.
 
 ## Optional rejection workflow
 

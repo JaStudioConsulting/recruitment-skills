@@ -113,7 +113,7 @@
     "skills/tracker-manager/scripts/tracker.mjs",
     "tests/fixtures/synthetic-candidate-dashboard.json"
   ],
-  "repositoryAuthorityDigest": "a3e71d32aaed9b69921f0d94274c4fc9e06a30df90842cf8c3d0e3e0cd79e148",
+  "repositoryAuthorityDigest": "801a8acad7e79e1fac584ff9b2bd184abaac1dfd4b51dab292ac1a5b280de0ff",
   "policies": [
     "skills/GLOBAL-RULES.md",
     "skills/TOOL-CONVENTIONS.md"
@@ -997,7 +997,7 @@
         "skills/tracker-manager/GUIDE.md",
         "tests/fixtures/synthetic-candidate-dashboard.json"
       ],
-      "authorityDigest": "315a401acca1c8be1cc5748f968da2cbe2e9c5e63337f0bea507930a1d23cca4",
+      "authorityDigest": "3f460e6bdc0bad9987511c17afabcd32a0ce7129077273ffa0147bfba60e1971",
       "repositoryGroup": "daily_core",
       "repositoryStatus": "read_only",
       "workflowGroup": "pipeline_tracker",
@@ -1055,7 +1055,7 @@
             },
             {
               "id": "loxo-pipeline",
-              "authorityDigest": "a8f83ed2f6ccba6a8f3ab3f4f7704503dc8c1ccfd27f7c443cd5df489477ca4c"
+              "authorityDigest": "4c322dc40ca7da41137b691401489fe1e26a930262101227dc63ad8a5b6b2e82"
             }
           ]
         }
@@ -1278,7 +1278,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "a8f83ed2f6ccba6a8f3ab3f4f7704503dc8c1ccfd27f7c443cd5df489477ca4c",
+      "authorityDigest": "4c322dc40ca7da41137b691401489fe1e26a930262101227dc63ad8a5b6b2e82",
       "repositoryGroup": "on_demand",
       "repositoryStatus": "restricted",
       "workflowGroup": "pipeline_tracker",
@@ -3044,7 +3044,7 @@
         },
         {
           "id": "loxo-pipeline",
-          "authority_digest": "a8f83ed2f6ccba6a8f3ab3f4f7704503dc8c1ccfd27f7c443cd5df489477ca4c"
+          "authority_digest": "4c322dc40ca7da41137b691401489fe1e26a930262101227dc63ad8a5b6b2e82"
         }
       ]
     },
