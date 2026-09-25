@@ -22,7 +22,7 @@ const CALLBACK_PATH = "/callback";
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   const requestHeaders = await headers();
   const email = requestHeaders.get(USER_EMAIL_HEADER);
-  if (!email) return null;
+  if (!email) return localStandaloneUser();
 
   const authenticatedUserId = requestHeaders.get(USER_ID_HEADER);
   const ownerEmail = env.SITE_OWNER_EMAIL?.trim().toLowerCase();
@@ -47,6 +47,17 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
     email,
     fullName,
   };
+}
+
+// Standalone mode: run the workstation as an ordinary local web app, with no
+// ChatGPT hosting in front of it to inject the oai-authenticated-* headers.
+// Set LOCAL_STANDALONE_USER_EMAIL to switch it on. Never set it on a publicly
+// reachable deployment: it hands every visitor the owner's workspace.
+function localStandaloneUser(): ChatGPTUser | null {
+  const email = env.LOCAL_STANDALONE_USER_EMAIL?.trim();
+  if (!email) return null;
+  const userId = env.SITE_OWNER_USER_ID?.trim() || `local:${email.toLowerCase()}`;
+  return { userId, displayName: email, email, fullName: null };
 }
 
 export async function requireChatGPTUser(

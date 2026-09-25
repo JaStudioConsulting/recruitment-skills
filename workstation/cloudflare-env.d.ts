@@ -16,5 +16,11 @@ declare namespace Cloudflare {
     SITE_OWNER_EMAIL?: string;
     /** Existing stable owner ID, preserving access to the owner's stored workspace records. */
     SITE_OWNER_USER_ID?: string;
+    /**
+     * Standalone mode. Set to an email to run the Workstation as a plain local web
+     * app with no ChatGPT hosting in front of it. Every request is then treated as
+     * that user. Local use only: never set on a publicly reachable deployment.
+     */
+    LOCAL_STANDALONE_USER_EMAIL?: string;
   }
 }
