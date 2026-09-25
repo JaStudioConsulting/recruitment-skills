@@ -113,7 +113,7 @@
     "skills/tracker-manager/scripts/tracker.mjs",
     "tests/fixtures/synthetic-candidate-dashboard.json"
   ],
-  "repositoryAuthorityDigest": "106c04de1fc8564de671ff98c5f7fff265374940098fe7fc9dd8447867147832",
+  "repositoryAuthorityDigest": "154c22b92b9e5f46dc343cb536b249f94f3da88876aa7918427fdec58bec3f44",
   "policies": [
     "skills/GLOBAL-RULES.md",
     "skills/TOOL-CONVENTIONS.md"
@@ -237,7 +237,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "ba490515e1961cd0673753718368ad7064650e8021fa0456daed88a9fd268e21",
+      "authorityDigest": "dc48210926667752bf7a5d68ebd05abb049c3def5fa195f3b82399324bd54308",
       "repositoryGroup": "daily_core",
       "repositoryStatus": "active",
       "workflowGroup": "candidate_work",
@@ -283,7 +283,7 @@
           "supportingAuthorities": [
             {
               "id": "legislator",
-              "authorityDigest": "ba490515e1961cd0673753718368ad7064650e8021fa0456daed88a9fd268e21"
+              "authorityDigest": "dc48210926667752bf7a5d68ebd05abb049c3def5fa195f3b82399324bd54308"
             }
           ]
         }
@@ -833,7 +833,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "ba490515e1961cd0673753718368ad7064650e8021fa0456daed88a9fd268e21",
+      "authorityDigest": "dc48210926667752bf7a5d68ebd05abb049c3def5fa195f3b82399324bd54308",
       "repositoryGroup": "supporting",
       "repositoryStatus": "active",
       "workflowGroup": "artifacts",
@@ -1908,7 +1908,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "a1429e8c88fd6e09f39c3f4e3173b8456e2c5767d470181edba99a2947547d92",
+      "authorityDigest": "57acf1e0404c5d0aad778dc2251faad3566a0f9c587bec6d5fa1f0fc50bb26c0",
       "repositoryGroup": "compatibility",
       "repositoryStatus": "legacy",
       "workflowGroup": "candidate_work",
@@ -1972,7 +1972,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "bac5e4ee13ada43f298d4e18aa893288b8d25d9f7da9d55a8201622909558b9c",
+      "authorityDigest": "159f93141d1044636dd6fa4d7093c2cedf7045d9b9806ebfe024605527d74f4d",
       "repositoryGroup": "evaluation",
       "repositoryStatus": "internal",
       "workflowGroup": "artifacts",
@@ -2229,7 +2229,7 @@
         "skills/recruiter/templates/candidate-call-submission-template.md",
         "skills/tracker-manager/GUIDE.md"
       ],
-      "authorityDigest": "b97d5477094e8f667f17b53082caabfe9cb264e6f39419517974f51da9c7699c",
+      "authorityDigest": "26d5b17413a9ee961f87e91c686f2072b6ded5939a21c2db442ab7027452c33d",
       "repositoryGroup": "daily_core",
       "repositoryStatus": "active",
       "workflowGroup": "candidate_work",
@@ -2277,7 +2277,7 @@
           "supportingAuthorities": [
             {
               "id": "brandedresume",
-              "authorityDigest": "ba490515e1961cd0673753718368ad7064650e8021fa0456daed88a9fd268e21"
+              "authorityDigest": "dc48210926667752bf7a5d68ebd05abb049c3def5fa195f3b82399324bd54308"
             }
           ]
         }
@@ -2375,11 +2375,11 @@
       "supporting_capability_ids": [
         "legislator"
       ],
-      "builder_digest": "a113d9d19a70cc26386b2c1b818ee3cffb7cfa6d159367f6ae12beee847cdc3e",
+      "builder_digest": "f0ec280483a26eb8e3d8eaa8af232028ef35049a37c0931347801c65f9598339",
       "supporting_authorities": [
         {
           "id": "legislator",
-          "authority_digest": "ba490515e1961cd0673753718368ad7064650e8021fa0456daed88a9fd268e21"
+          "authority_digest": "dc48210926667752bf7a5d68ebd05abb049c3def5fa195f3b82399324bd54308"
         }
       ]
     },
@@ -2443,7 +2443,7 @@
       "supporting_authorities": [
         {
           "id": "brandedresume",
-          "authority_digest": "ba490515e1961cd0673753718368ad7064650e8021fa0456daed88a9fd268e21"
+          "authority_digest": "dc48210926667752bf7a5d68ebd05abb049c3def5fa195f3b82399324bd54308"
         }
       ]
     },

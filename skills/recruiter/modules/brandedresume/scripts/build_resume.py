@@ -9,7 +9,8 @@ Two rendering engines, picked automatically:
   - chrome     : headless Chrome/Chromium renders HTML -> PDF (best fidelity).
   - reportlab  : pure-Python PDF (no browser needed). Works on cloud machines
                  like Cowork that have no Chrome and no display.
-Default is "auto": use Chrome if present, otherwise reportlab. Override with
+Default is "auto": reportlab (fast, no browser). Use --engine chrome only if
+you need browser rendering. Override with
 --engine chrome|reportlab.
 
 Usage:
@@ -560,7 +561,7 @@ def main():
     chrome = find_chrome()
     engine = args.engine
     if engine == "auto":
-        engine = "chrome" if chrome else "reportlab"
+        engine = "reportlab"
     if engine == "chrome" and not chrome:
         sys.exit("ERROR: --engine chrome requested but no Chrome/Chromium found.")
 

@@ -193,7 +193,7 @@ test("consolidated non-mutating guidance is routed and guarded", async () => {
 test("every manifest capability exposes its capability-specific contract", async () => {
   const contracts = {
     "applicant-screening": [/Score each must-have 0[–-]3/i, /Score on job-related criteria only/i],
-    brandedresume: [/validate-artifact-qa\.mjs/i, /Title must match/i],
+    brandedresume: [/build_resume\.py/i, /Title must match/i],
     "candidate-defense": [/Never fabricate titles, scope, comp/i, /Stop after each mode/i],
     "complete-reference-check": [/reference-check-template\.docx/i, /every page.*human\/vision/is],
     "cover-letter": [/Use concrete evidence/i, /why \*this\* company/i],

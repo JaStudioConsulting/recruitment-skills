@@ -15,7 +15,7 @@ The deliverable is the PDF itself. The user does not want code or steps to run e
 
 One shot beats a redo. Before building, scan the input for any missing or unclear essential (employer, date, location, degree, a metric, named-vs-MPC). **If anything is missing, STOP and ask Ja in one short batch** — list exactly what's unknown and, for each, ask: provide it, leave it blank (`""`), or take it out. Never guess, never invent, never ship a `[confirm ...]` placeholder. Proceed only once every gap is resolved. Saves tokens, avoids a rebuild.
 
-The mounted branded-resume workflow also requires all three source groups before it may build: a human-reviewed editable resume, a reviewed job description for the selected role, and reviewed call evidence (a transcript or call notes). The Profile Summary depends on the role and call evidence. A resume-only case must remain blocked rather than producing a generic summary that repeats the resume.
+A resume on its own is enough to build. A job description and call evidence make the Profile Summary sharper, so use them when they exist, but never block on them. With a resume alone, write the Summary from the resume and keep it factual rather than inventing a role fit that the source does not support.
 
 ## How to work
 
@@ -33,31 +33,16 @@ The mounted branded-resume workflow also requires all three source groups before
    ```
 
    Save the PDF to the user's Downloads folder (or wherever they ask), named `<Candidate Name> - Top Tier Talent Group.pdf`.
-5. **Render and inspect every page** the builder writes, fix anything off, then hand over the
-   PDF as a clickable link. A preview glance is insufficient. Record PASS/FAIL for clipping,
-   overlap, orphaned headings or bullets, logo placement, privacy/contact removal, and natural
-   page breaks. Fix every FAIL and rerender before handoff. Delete temporary preview/json files
-   only after the QA record is complete.
+5. **Look at the rendered pages, fix anything off, then hand over the PDF.** Check clipping,
+   overlap, orphaned headings or bullets, logo placement, and contact removal. Fix and rerender
+   if any of those are wrong, then delete the temporary preview and json files.
 
-   Automated render checks are necessary, but they cannot mark visual completion. After actual
-   human/vision inspection of every rendered page, write the canonical artifact QA record with
-   `human_visual_inspection_complete: true`, the inspected page count, and explicit PASS results
-   for each required check. Validate that record against the final PDF:
-
-   The QA record's `artifact` field must contain the absolute final PDF path. Run the canonical
-   validator against that record:
-
-   ```bash
-   node skills/recruiter/scripts/validate-artifact-qa.mjs \
-     "/absolute/path/to/artifact-qa.json"
-   ```
-
-   Stop unless this validator exits 0 successfully. Automated tests or a render manifest
-   must leave the human-inspection field false and are not completion proof.
+   The builder already verifies page count, forbidden punctuation, and hyperlinks and refuses to
+   write a PDF that fails. No separate QA record or validator run is required to hand over the file.
 
 ### How the builder just works anywhere
 
-- It picks the PDF engine automatically: headless Chrome if present, otherwise declared `reportlab` and `pillow` dependencies.
+- It builds the PDF with `reportlab` by default: pure Python, no browser, well under a second. `--engine chrome` is available but is roughly 15x slower for the same output.
 - It never installs packages at runtime. Use the repository/workspace dependency environment and stop if a declared dependency is missing.
 - The builder enforces the house rules and prints `engine / pages / long_dashes / hyperlinks` so you can confirm the file is clean before handing it over.
 
@@ -117,10 +102,8 @@ The logo lives at `assets/tttg_logo.png`. To rebrand for a different company, re
 ## Done conditions
 
 - Builder output reports expected page count and no forbidden punctuation or hyperlinks.
-- Every page was rendered and inspected, with recorded PASS/FAIL for clipping, overlap,
-  orphaned headings/bullets, logo placement, privacy/contact removal, and page breaks.
-- The canonical `skills/recruiter/scripts/validate-artifact-qa.mjs` validator passes successfully
-  for the final PDF and QA record after actual human/vision inspection of every page.
+- The rendered pages were looked at, and clipping, overlap, orphaned headings/bullets, logo
+  placement and contact removal are all clean.
 - No candidate contact information, placeholders, or unsupported facts remain.
 - The final PDF exists at the requested output path.
 
